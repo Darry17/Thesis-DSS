@@ -140,7 +140,6 @@ const GenerateForecast = () => {
     if (!fileData) return;
 
     try {
-      // Fetch the actual file content
       const response = await fetch(
         `http://localhost:8000/storage/read/${fileData.filename}`
       );
@@ -151,10 +150,16 @@ const GenerateForecast = () => {
 
       const data = await response.json();
 
-      // Navigate to result page with the data
-      navigate("/forecast-result", {
-        state: { ...formData, forecastData: data },
-      });
+      // Check model type and navigate accordingly
+      if (formData.modelType === "Hybrid") {
+        navigate("/HybridModelConfiguration", {
+          state: { ...formData, forecastData: data },
+        });
+      } else {
+        navigate("/SingleModelConfiguration", {
+          state: { ...formData, forecastData: data },
+        });
+      }
     } catch (err) {
       setError(err.message);
     }
@@ -169,10 +174,10 @@ const GenerateForecast = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen flex justify-center items-center">
+    <div className="p-6 flex justify-center items-center">
       <form
         onSubmit={handleGenerate}
-        className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+        className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6">Generate</h1>
 
         {/* File Information */}

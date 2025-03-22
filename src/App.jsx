@@ -1,12 +1,14 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navigation from "@/components/Navigation/Navigation";
-import { Dashboard, Forecast, History } from "@/components/Main";
+import { Dashboard, History } from "@/components/Main";
 import {
+  Forecast,
   ModelOption,
   SelectForecast,
   GenerateForecast,
-  ForecastResult,
+  SingleModelConfiguration,
+  HybridModelConfiguration,
 } from "./components/Main";
 
 const App = () => {
@@ -18,7 +20,14 @@ const App = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/history" element={<History />} />
-        <Route path="/ForecastResult" element={<ForecastResult />} />
+        <Route
+          path="/SingleModelConfiguration"
+          element={<SingleModelConfiguration />}
+        />
+        <Route
+          path="/HybridModelConfiguration"
+          element={<HybridModelConfiguration />}
+        />
         {/* Forecast and model configuration routes */}
         <Route path="/ModelOption" element={<ModelOption />} />
         <Route path="/SelectForecast" element={<SelectForecast />} />
