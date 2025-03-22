@@ -9,6 +9,7 @@ import {
   GenerateForecast,
   SingleModelConfiguration,
   HybridModelConfiguration,
+  ForecastResult,
 } from "./components/Main";
 
 const App = () => {
@@ -28,6 +29,7 @@ const App = () => {
           path="/HybridModelConfiguration"
           element={<HybridModelConfiguration />}
         />
+        <Route path="/ForecastResult" element={<ForecastResult />} />
         {/* Forecast and model configuration routes */}
         <Route path="/ModelOption" element={<ModelOption />} />
         <Route path="/SelectForecast" element={<SelectForecast />} />

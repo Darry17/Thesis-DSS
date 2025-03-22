@@ -30,21 +30,21 @@ const GenerateForecast = () => {
     switch (granularity) {
       case "Hourly":
         return [
-          { value: "1", label: "1 Step (1-Hour Horizon)" },
-          { value: "24", label: "24 Steps (1-Day Horizon)" },
-          { value: "168", label: "168 Steps (1-Week Horizon)" },
+          { value: "1-hour", label: "1 Step (1-Hour Horizon)" },
+          { value: "24-hour", label: "24 Steps (1-Day Horizon)" },
+          { value: "168-hour", label: "168 Steps (1-Week Horizon)" },
         ];
       case "Daily":
         return [
-          { value: "1", label: "1 (1-Day Horizon)" },
-          { value: "7", label: "7 Steps (1-Week Horizon)" },
-          { value: "30", label: "30 Steps (1-Month Horizon)" },
+          { value: "1-day", label: "1 Step (1-Day Horizon)" },
+          { value: "7-day", label: "7 Steps (1-Week Horizon)" },
+          { value: "30-day", label: "30 Steps (1-Month Horizon)" },
         ];
       case "Weekly":
         return [
-          { value: "1", label: "1 Step (1-Week Horizon)" },
-          { value: "4", label: "4 Steps (1-Month Horizon)" },
-          { value: "52", label: "52 Steps (1-Year Horizon)" },
+          { value: "1-week", label: "1 Step (1-Week Horizon)" },
+          { value: "4-week", label: "4 Steps (1-Month Horizon)" },
+          { value: "52-week", label: "52 Steps (1-Year Horizon)" },
         ];
       default:
         return null;
