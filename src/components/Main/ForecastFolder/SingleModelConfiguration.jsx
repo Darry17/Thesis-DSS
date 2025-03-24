@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const ModelConfiguration = () => {
+const SingleModelConfiguration = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const modelType = location.state?.modelType;
-  const selectedModel =
-    location.state?.singleModel || location.state?.hybridModel;
+
+  // Get the model directly from location.state.model
+  const selectedModel = location.state?.model;
 
   const getModelTitle = () => {
     if (!selectedModel) return "MODEL CONFIGURATION";
@@ -315,12 +315,10 @@ const ModelConfiguration = () => {
 
   return (
     <div className="max-w-md mx-auto p-6 bg-gray-50 rounded-lg shadow-md">
-      <h2 className="text-xl font-bold text-center mb-6">
-        {selectedModel === "ESN" ? "Echo State Networks" : getModelTitle()}
-      </h2>
+      <h2 className="text-xl font-bold text-center mb-6">{getModelTitle()}</h2>
       {renderForm()}
     </div>
   );
 };
 
-export default ModelConfiguration;
+export default SingleModelConfiguration;
