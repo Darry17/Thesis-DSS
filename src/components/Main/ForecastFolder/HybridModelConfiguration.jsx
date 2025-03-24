@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const HybridConfiguration = () => {
+const HybridModelConfiguration = () => {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1 for DHR, 2 for ESN
   const [formData, setFormData] = useState({
@@ -35,6 +35,7 @@ const HybridConfiguration = () => {
       setStep(2); // Move to ESN configuration
     } else {
       console.log("Final form submitted:", formData);
+      navigate("/ForecastResult");
       // Add your submission logic here
     }
   };
@@ -303,4 +304,4 @@ const HybridConfiguration = () => {
   );
 };
 
-export default HybridConfiguration;
+export default HybridModelConfiguration;

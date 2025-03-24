@@ -1,8 +1,9 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navigation from "@/components/Navigation/Navigation";
-import { Dashboard, History } from "@/components/Main";
 import {
+  Dashboard,
+  History,
   Forecast,
   ModelOption,
   SelectForecast,
@@ -10,7 +11,8 @@ import {
   SingleModelConfiguration,
   HybridModelConfiguration,
   ForecastResult,
-} from "./components/Main";
+  ViewGraph,
+} from "@/components/Main";
 
 const App = () => {
   return (
@@ -21,6 +23,10 @@ const App = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/history" element={<History />} />
+        {/* Forecast and model configuration routes */}
+        <Route path="/ModelOption" element={<ModelOption />} />
+        <Route path="/SelectForecast" element={<SelectForecast />} />
+        <Route path="/GenerateForecast" element={<GenerateForecast />} />
         <Route
           path="/SingleModelConfiguration"
           element={<SingleModelConfiguration />}
@@ -30,10 +36,7 @@ const App = () => {
           element={<HybridModelConfiguration />}
         />
         <Route path="/ForecastResult" element={<ForecastResult />} />
-        {/* Forecast and model configuration routes */}
-        <Route path="/ModelOption" element={<ModelOption />} />
-        <Route path="/SelectForecast" element={<SelectForecast />} />
-        <Route path="/GenerateForecast" element={<GenerateForecast />} />
+        <Route path="/ViewGraph" element={<ViewGraph />} />
       </Routes>
     </Router>
   );

@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const ModelConfiguration = () => {
+const SingleModelConfiguration = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const modelType = location.state?.modelType;
   const selectedModel =
     location.state?.singleModel || location.state?.hybridModel;
 
@@ -21,23 +20,35 @@ const ModelConfiguration = () => {
     }
   };
 
-  // State to manage form inputs
-  const [formData, setFormData] = useState({
-    // ESN fields
-    reservoirSize: "",
-    spectralRadius: "",
-    sparsity: "",
-    inputScaling: "",
-    regularization: "",
-    dropout: "",
-    lags: "",
-    // DHR fields
-    fourierOrder: "",
-    windowLength: "",
-    seasonalityPeriods: "",
-    polyorder: "",
-    trendComponents: "",
-  });
+  // Initialize form data based on selected model
+  const getInitialFormData = () => {
+    switch (selectedModel) {
+      case "DHR":
+        return {
+          fourierOrder: "",
+          windowLength: "",
+          seasonalityPeriods: "",
+          polyorder: "",
+          regularization: "",
+          trendComponents: "",
+        };
+      case "ESN":
+        return {
+          reservoirSize: "",
+          spectralRadius: "",
+          sparsity: "",
+          inputScaling: "",
+          regularization: "",
+          dropout: "",
+          lags: "",
+        };
+      default:
+        return {};
+    }
+  };
+
+  // State to manage form inputs with only relevant fields
+  const [formData, setFormData] = useState(getInitialFormData());
 
   // Handle input changes
   const handleChange = (e) => {
@@ -52,6 +63,7 @@ const ModelConfiguration = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Form submitted:", formData);
+    navigate("/ForecastResult");
   };
 
   // Handle cancel button
@@ -197,120 +209,124 @@ const ModelConfiguration = () => {
       );
     }
 
-    // Return DHR form (existing form)
-    return (
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* First Row: Fourier Order and Window Length */}
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">
-              Fourier Order{" "}
-              <span className="text-gray-500 cursor-pointer">ⓘ</span>
-            </label>
-            <input
-              type="text"
-              name="fourierOrder"
-              value={formData.fourierOrder}
-              onChange={handleChange}
-              placeholder="3"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+    if (selectedModel === "DHR") {
+      return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* First Row: Fourier Order and Window Length */}
+          <div className="flex space-x-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">
+                Fourier Order{" "}
+                <span className="text-gray-500 cursor-pointer">ⓘ</span>
+              </label>
+              <input
+                type="text"
+                name="fourierOrder"
+                value={formData.fourierOrder}
+                onChange={handleChange}
+                placeholder="3"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">
+                Window Length{" "}
+                <span className="text-gray-500 cursor-pointer">ⓘ</span>
+              </label>
+              <input
+                type="text"
+                name="windowLength"
+                value={formData.windowLength}
+                onChange={handleChange}
+                placeholder="1"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">
-              Window Length{" "}
-              <span className="text-gray-500 cursor-pointer">ⓘ</span>
-            </label>
-            <input
-              type="text"
-              name="windowLength"
-              value={formData.windowLength}
-              onChange={handleChange}
-              placeholder="1"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
 
-        {/* Second Row: Seasonality Periods and Polyorder */}
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">
-              Seasonality Periods{" "}
-              <span className="text-gray-500 cursor-pointer">ⓘ</span>
-            </label>
-            <input
-              type="text"
-              name="seasonalityPeriods"
-              value={formData.seasonalityPeriods}
-              onChange={handleChange}
-              placeholder="M"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          {/* Second Row: Seasonality Periods and Polyorder */}
+          <div className="flex space-x-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">
+                Seasonality Periods{" "}
+                <span className="text-gray-500 cursor-pointer">ⓘ</span>
+              </label>
+              <input
+                type="text"
+                name="seasonalityPeriods"
+                value={formData.seasonalityPeriods}
+                onChange={handleChange}
+                placeholder="M"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">
+                Polyorder{" "}
+                <span className="text-gray-500 cursor-pointer">ⓘ</span>
+              </label>
+              <input
+                type="text"
+                name="polyorder"
+                value={formData.polyorder}
+                onChange={handleChange}
+                placeholder="0.1"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">
-              Polyorder <span className="text-gray-500 cursor-pointer">ⓘ</span>
-            </label>
-            <input
-              type="text"
-              name="polyorder"
-              value={formData.polyorder}
-              onChange={handleChange}
-              placeholder="0.1"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
 
-        {/* Third Row: Regularization and Trend Components */}
-        <div className="flex space-x-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">
-              Regularization{" "}
-              <span className="text-gray-500 cursor-pointer">ⓘ</span>
-            </label>
-            <input
-              type="text"
-              name="regularization"
-              value={formData.regularization}
-              onChange={handleChange}
-              placeholder="1e-4"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          {/* Third Row: Regularization and Trend Components */}
+          <div className="flex space-x-4">
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">
+                Regularization{" "}
+                <span className="text-gray-500 cursor-pointer">ⓘ</span>
+              </label>
+              <input
+                type="text"
+                name="regularization"
+                value={formData.regularization}
+                onChange={handleChange}
+                placeholder="1e-4"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium mb-1">
+                Trend Components{" "}
+                <span className="text-gray-500 cursor-pointer">ⓘ</span>
+              </label>
+              <input
+                type="text"
+                name="trendComponents"
+                value={formData.trendComponents}
+                onChange={handleChange}
+                placeholder="2"
+                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-1">
-              Trend Components{" "}
-              <span className="text-gray-500 cursor-pointer">ⓘ</span>
-            </label>
-            <input
-              type="text"
-              name="trendComponents"
-              value={formData.trendComponents}
-              onChange={handleChange}
-              placeholder="2"
-              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
 
-        {/* Buttons */}
-        <div className="flex justify-end space-x-4 mt-6">
-          <button
-            type="button"
-            onClick={handleCancel}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500">
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
-            Submit
-          </button>
-        </div>
-      </form>
-    );
+          {/* Buttons */}
+          <div className="flex justify-end space-x-4 mt-6">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
+              Back
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+              Submit
+            </button>
+          </div>
+        </form>
+      );
+    }
+
+    return null;
   };
 
   return (
@@ -323,4 +339,4 @@ const ModelConfiguration = () => {
   );
 };
 
-export default ModelConfiguration;
+export default SingleModelConfiguration;

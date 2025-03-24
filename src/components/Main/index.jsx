@@ -8,3 +8,4 @@ export { default as GenerateForecast } from "./ForecastFolder/GenerateForecast";
 export { default as SingleModelConfiguration } from "./ForecastFolder/SingleModelConfiguration";
 export { default as HybridModelConfiguration } from "./ForecastFolder/HybridModelConfiguration";
 export { default as ForecastResult } from "./ForecastFolder/ForecastResult";
+export { default as ViewGraph } from "./ForecastFolder/ViewGraph";
