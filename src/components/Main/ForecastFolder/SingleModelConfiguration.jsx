@@ -115,7 +115,7 @@ const SingleModelConfiguration = () => {
           state: {
             forecastId: location.state?.forecastId,
             filename: location.state?.filename,
-            forecast_model: selectedModel,
+            model: selectedModel,
             steps: location.state?.steps,
             granularity: location.state?.granularity,
             // Add any other data you need
