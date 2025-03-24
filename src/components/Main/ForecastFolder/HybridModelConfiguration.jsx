@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const HybridModelConfiguration = () => {
+  const location = useLocation();
   const navigate = useNavigate();
+  const { forecastId } = location.state || {}; // Get forecastId from location state
   const [step, setStep] = useState(1); // 1 for DHR, 2 for ESN
   const [formData, setFormData] = useState({
     // DHR fields
@@ -29,14 +31,60 @@ const HybridModelConfiguration = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (step === 1) {
       setStep(2); // Move to ESN configuration
     } else {
-      console.log("Final form submitted:", formData);
-      navigate("/ForecastResult");
-      // Add your submission logic here
+      try {
+        // Prepare the hybrid configuration data
+        const hybridConfig = {
+          forecast_id: parseInt(forecastId),
+          // DHR part
+          fourier_order: parseInt(formData.fourierOrder),
+          window_length: parseInt(formData.windowLength),
+          seasonality_periods: formData.seasonalityPeriods,
+          polyorder: parseFloat(formData.polyorder),
+          regularization_dhr: parseFloat(formData.regularization),
+          trend_components: parseInt(formData.trendComponents),
+          // ESN part
+          reservoir_size: parseInt(formData.reservoirSize),
+          spectral_radius: parseFloat(formData.spectralRadius),
+          sparsity: parseFloat(formData.sparsity),
+          input_scaling: parseFloat(formData.inputScaling),
+          dropout: parseFloat(formData.dropout),
+          lags: parseInt(formData.lags),
+          regularization_esn: parseFloat(formData.regularization),
+        };
+
+        // Send the configuration to the backend
+        const response = await fetch(
+          "http://localhost:8000/api/hybrid-configurations",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(hybridConfig),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to save hybrid configuration");
+        }
+
+        // Navigate to forecast result page with necessary data
+        navigate("/ForecastResult", {
+          state: {
+            forecastId,
+            model: "DHR-ESN",
+            ...location.state, // Preserve other state data
+          },
+        });
+      } catch (error) {
+        console.error("Error saving configuration:", error);
+        // You might want to show an error message to the user
+      }
     }
   };
 

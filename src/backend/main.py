@@ -1,6 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import create_engine, Column, Integer, String, desc, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, desc, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
@@ -11,6 +11,7 @@ import json
 import pandas as pd
 import logging
 from dotenv import load_dotenv
+from typing import Optional
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -63,6 +64,35 @@ class Forecast(Base):
     steps = Column(String(50), nullable=False)
     granularity = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=datetime.now)
+
+class DHRConfiguration(Base):
+    __tablename__ = "dhr_configurations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    forecast_id = Column(Integer, nullable=False)
+    fourier_order = Column(Integer, nullable=False)
+    window_length = Column(Integer, nullable=False)
+    seasonality_periods = Column(String(50), nullable=False)
+    polyorder = Column(Float, nullable=False)
+    regularization_dhr = Column(Float, nullable=False)
+    trend_components = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+class ESNConfiguration(Base):
+    __tablename__ = "esn_configurations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    forecast_id = Column(Integer, nullable=False)
+    reservoir_size = Column(Integer, nullable=False)
+    spectral_radius = Column(Float, nullable=False)
+    sparsity = Column(Float, nullable=False)
+    input_scaling = Column(Float, nullable=False)
+    dropout = Column(Float, nullable=False)
+    lags = Column(Integer, nullable=False)
+    regularization_esn = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 Base.metadata.create_all(bind=engine)
 
@@ -342,4 +372,135 @@ async def create_forecast(forecast: ForecastCreate, db: Session = Depends(get_db
     except Exception as e:
         logger.error(f"Error creating forecast: {str(e)}")
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Add these Pydantic models (after your existing ForecastCreate model)
+class DHRConfigurationCreate(BaseModel):
+    forecast_id: int
+    fourier_order: int
+    window_length: int
+    seasonality_periods: str
+    polyorder: float
+    regularization_dhr: float
+    trend_components: int
+
+    model_config = {
+        'from_attributes': True
+    }
+
+class ESNConfigurationCreate(BaseModel):
+    forecast_id: int
+    reservoir_size: int
+    spectral_radius: float
+    sparsity: float
+    input_scaling: float
+    dropout: float
+    lags: int
+    regularization_esn: float
+
+    model_config = {
+        'from_attributes': True
+    }
+
+# Add these new endpoints (after your existing endpoints)
+@app.post("/api/dhr-configurations")
+async def create_dhr_configuration(config: DHRConfigurationCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"Creating DHR configuration: {config}")
+        
+        # Check if forecast exists
+        forecast = db.query(Forecast).filter(Forecast.id == config.forecast_id).first()
+        if not forecast:
+            raise HTTPException(status_code=404, detail="Forecast not found")
+
+        db_config = DHRConfiguration(
+            forecast_id=config.forecast_id,
+            fourier_order=config.fourier_order,
+            window_length=config.window_length,
+            seasonality_periods=config.seasonality_periods,
+            polyorder=config.polyorder,
+            regularization_dhr=config.regularization_dhr,
+            trend_components=config.trend_components
+        )
+        
+        db.add(db_config)
+        db.commit()
+        db.refresh(db_config)
+
+        logger.info(f"Created DHR configuration with ID: {db_config.id}")
+
+        return {
+            "id": db_config.id,
+            "message": "DHR configuration created successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating DHR configuration: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/esn-configurations")
+async def create_esn_configuration(config: ESNConfigurationCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"Creating ESN configuration: {config}")
+        
+        # Check if forecast exists
+        forecast = db.query(Forecast).filter(Forecast.id == config.forecast_id).first()
+        if not forecast:
+            raise HTTPException(status_code=404, detail="Forecast not found")
+
+        db_config = ESNConfiguration(
+            forecast_id=config.forecast_id,
+            reservoir_size=config.reservoir_size,
+            spectral_radius=config.spectral_radius,
+            sparsity=config.sparsity,
+            input_scaling=config.input_scaling,
+            dropout=config.dropout,
+            lags=config.lags,
+            regularization_esn=config.regularization_esn
+        )
+        
+        db.add(db_config)
+        db.commit()
+        db.refresh(db_config)
+
+        logger.info(f"Created ESN configuration with ID: {db_config.id}")
+
+        return {
+            "id": db_config.id,
+            "message": "ESN configuration created successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating ESN configuration: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Optional: Add these GET endpoints
+@app.get("/api/dhr-configurations/{forecast_id}")
+async def get_dhr_configuration(forecast_id: int, db: Session = Depends(get_db)):
+    try:
+        config = db.query(DHRConfiguration).filter(DHRConfiguration.forecast_id == forecast_id).first()
+        if not config:
+            raise HTTPException(status_code=404, detail="DHR configuration not found")
+        return config
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/esn-configurations/{forecast_id}")
+async def get_esn_configuration(forecast_id: int, db: Session = Depends(get_db)):
+    try:
+        config = db.query(ESNConfiguration).filter(ESNConfiguration.forecast_id == forecast_id).first()
+        if not config:
+            raise HTTPException(status_code=404, detail="ESN configuration not found")
+        return config
+    except HTTPException:
+        raise
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

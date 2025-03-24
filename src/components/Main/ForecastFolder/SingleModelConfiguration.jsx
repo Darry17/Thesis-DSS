@@ -1,12 +1,54 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const SingleModelConfiguration = () => {
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Get the model directly from location.state.model
   const selectedModel = location.state?.model;
+  const forecastId = location.state?.forecastId;
+
+  // Redirect if no model is selected
+  React.useEffect(() => {
+    if (!location.state || !selectedModel) {
+      navigate("/generate");
+    }
+  }, [location.state, selectedModel, navigate]);
+
+  // Add validation for forecastId
+  useEffect(() => {
+    if (!forecastId) {
+      console.error("No forecast ID provided");
+      navigate(-1);
+    }
+  }, [forecastId, navigate]);
+
+  // Initialize form data based on selected model
+  const getInitialFormData = () => {
+    if (selectedModel === "DHR") {
+      return {
+        fourierOrder: "",
+        windowLength: "",
+        seasonalityPeriods: "",
+        polyorder: "",
+        regularization: "",
+        trendComponents: "",
+      };
+    } else if (selectedModel === "ESN") {
+      return {
+        reservoirSize: "",
+        spectralRadius: "",
+        sparsity: "",
+        inputScaling: "",
+        regularization: "",
+        dropout: "",
+        lags: "",
+      };
+    }
+    return {};
+  };
+
+  // State to manage form inputs with only relevant fields
+  const [formData, setFormData] = useState(getInitialFormData());
 
   const getModelTitle = () => {
     if (!selectedModel) return "MODEL CONFIGURATION";
@@ -21,24 +63,6 @@ const SingleModelConfiguration = () => {
     }
   };
 
-  // State to manage form inputs
-  const [formData, setFormData] = useState({
-    // ESN fields
-    reservoirSize: "",
-    spectralRadius: "",
-    sparsity: "",
-    inputScaling: "",
-    regularization: "",
-    dropout: "",
-    lags: "",
-    // DHR fields
-    fourierOrder: "",
-    windowLength: "",
-    seasonalityPeriods: "",
-    polyorder: "",
-    trendComponents: "",
-  });
-
   // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -49,9 +73,105 @@ const SingleModelConfiguration = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
+
+    try {
+      if (selectedModel === "DHR") {
+        // Log the data being sent for debugging
+        console.log("Form Data:", formData);
+        console.log("Forecast ID:", location.state?.forecastId);
+
+        const dhrConfig = {
+          forecast_id: parseInt(location.state?.forecastId),
+          fourier_order: parseInt(formData.fourierOrder),
+          window_length: parseInt(formData.windowLength),
+          seasonality_periods: formData.seasonalityPeriods,
+          polyorder: parseFloat(formData.polyorder),
+          regularization_dhr: parseFloat(formData.regularization),
+          trend_components: parseInt(formData.trendComponents),
+        };
+
+        // Log the final config for debugging
+        console.log("DHR Config being sent:", dhrConfig);
+
+        const response = await fetch(
+          "http://localhost:8000/api/dhr-configurations",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(dhrConfig),
+          }
+        );
+
+        if (!response.ok) {
+          // Get the error details from the response
+          const errorData = await response.json();
+          console.error("Server error details:", errorData);
+          throw new Error(
+            `Failed to save DHR configuration: ${errorData.detail}`
+          );
+        }
+
+        const result = await response.json();
+        console.log("Success:", result);
+
+        // Navigate to forecast result page instead of going back
+        navigate("/ForecastResult", {
+          state: {
+            forecastId: location.state?.forecastId,
+            filename: location.state?.filename,
+            forecast_model: selectedModel,
+            steps: location.state?.steps,
+            granularity: location.state?.granularity,
+            // Add any other data you need
+          },
+        });
+      } else if (selectedModel === "ESN") {
+        const esnConfig = {
+          forecast_id: parseInt(location.state?.forecastId),
+          reservoir_size: parseInt(formData.reservoirSize),
+          spectral_radius: parseFloat(formData.spectralRadius),
+          sparsity: parseFloat(formData.sparsity),
+          input_scaling: parseFloat(formData.inputScaling),
+          dropout: parseFloat(formData.dropout),
+          lags: parseInt(formData.lags),
+          regularization_esn: parseFloat(formData.regularization),
+        };
+
+        const response = await fetch(
+          "http://localhost:8000/api/esn-configurations",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(esnConfig),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to save ESN configuration");
+        }
+
+        // Navigate to forecast result page instead of going back
+        navigate("/ForecastResult", {
+          state: {
+            forecastId: location.state?.forecastId,
+            filename: location.state?.filename,
+            forecast_model: selectedModel,
+            steps: location.state?.steps,
+            granularity: location.state?.granularity,
+            // Add any other data you need
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error saving configuration:", error);
+      // You might want to show an error message to the user
+    }
   };
 
   // Handle cancel button
