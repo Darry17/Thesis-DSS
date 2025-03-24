@@ -78,10 +78,6 @@ const SingleModelConfiguration = () => {
 
     try {
       if (selectedModel === "DHR") {
-        // Log the data being sent for debugging
-        console.log("Form Data:", formData);
-        console.log("Forecast ID:", location.state?.forecastId);
-
         const dhrConfig = {
           forecast_id: parseInt(location.state?.forecastId),
           fourier_order: parseInt(formData.fourierOrder),
@@ -91,9 +87,6 @@ const SingleModelConfiguration = () => {
           regularization_dhr: parseFloat(formData.regularization),
           trend_components: parseInt(formData.trendComponents),
         };
-
-        // Log the final config for debugging
-        console.log("DHR Config being sent:", dhrConfig);
 
         const response = await fetch(
           "http://localhost:8000/api/dhr-configurations",
@@ -116,7 +109,6 @@ const SingleModelConfiguration = () => {
         }
 
         const result = await response.json();
-        console.log("Success:", result);
 
         // Navigate to forecast result page instead of going back
         navigate("/ForecastResult", {

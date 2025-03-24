@@ -38,8 +38,6 @@ const HybridModelConfiguration = () => {
       setStep(2); // Move to ESN configuration
     } else {
       try {
-        console.log("Submitting form data:", formData); // Debug log
-
         const hybridConfig = {
           forecast_id: parseInt(forecastId),
           // DHR part
@@ -58,8 +56,6 @@ const HybridModelConfiguration = () => {
           lags: parseInt(formData.lags),
           regularization_esn: parseFloat(formData.regularizationESN),
         };
-
-        console.log("Sending hybrid config:", hybridConfig); // Debug log
 
         const response = await fetch(
           "http://localhost:8000/api/hybrid-configurations",
