@@ -12,7 +12,7 @@ const HybridModelConfiguration = () => {
     windowLength: "",
     seasonalityPeriods: "",
     polyorder: "",
-    regularization: "",
+    regularizationDHR: "",
     trendComponents: "",
     // ESN fields
     reservoirSize: "",
@@ -21,6 +21,7 @@ const HybridModelConfiguration = () => {
     inputScaling: "",
     dropout: "",
     lags: "",
+    regularizationESN: "",
   });
 
   const handleChange = (e) => {
@@ -37,7 +38,8 @@ const HybridModelConfiguration = () => {
       setStep(2); // Move to ESN configuration
     } else {
       try {
-        // Prepare the hybrid configuration data
+        console.log("Submitting form data:", formData); // Debug log
+
         const hybridConfig = {
           forecast_id: parseInt(forecastId),
           // DHR part
@@ -45,7 +47,7 @@ const HybridModelConfiguration = () => {
           window_length: parseInt(formData.windowLength),
           seasonality_periods: formData.seasonalityPeriods,
           polyorder: parseFloat(formData.polyorder),
-          regularization_dhr: parseFloat(formData.regularization),
+          regularization_dhr: parseFloat(formData.regularizationDHR),
           trend_components: parseInt(formData.trendComponents),
           // ESN part
           reservoir_size: parseInt(formData.reservoirSize),
@@ -54,10 +56,11 @@ const HybridModelConfiguration = () => {
           input_scaling: parseFloat(formData.inputScaling),
           dropout: parseFloat(formData.dropout),
           lags: parseInt(formData.lags),
-          regularization_esn: parseFloat(formData.regularization),
+          regularization_esn: parseFloat(formData.regularizationESN),
         };
 
-        // Send the configuration to the backend
+        console.log("Sending hybrid config:", hybridConfig); // Debug log
+
         const response = await fetch(
           "http://localhost:8000/api/hybrid-configurations",
           {
@@ -70,6 +73,8 @@ const HybridModelConfiguration = () => {
         );
 
         if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Server error:", errorData);
           throw new Error("Failed to save hybrid configuration");
         }
 
@@ -168,13 +173,13 @@ const HybridModelConfiguration = () => {
       <div className="flex space-x-4">
         <div className="flex-1">
           <label className="block text-sm font-medium mb-1">
-            Regularization{" "}
+            Regularization (DHR){" "}
             <span className="text-gray-500 cursor-pointer">ⓘ</span>
           </label>
           <input
             type="text"
-            name="regularization"
-            value={formData.regularization}
+            name="regularizationDHR"
+            value={formData.regularizationDHR}
             onChange={handleChange}
             placeholder="1e-4"
             className="w-full p-2 border border-gray-300 rounded-md"
@@ -234,13 +239,13 @@ const HybridModelConfiguration = () => {
         </div>
         <div className="flex-1">
           <label className="block text-sm font-medium mb-1">
-            Regularization{" "}
+            Regularization (ESN){" "}
             <span className="text-gray-500 cursor-pointer">ⓘ</span>
           </label>
           <input
             type="text"
-            name="regularization"
-            value={formData.regularization}
+            name="regularizationESN"
+            value={formData.regularizationESN}
             onChange={handleChange}
             placeholder="0.2"
             className="w-full p-2 border border-gray-300 rounded-md"

@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 
 const ForecastResult = () => {
   const location = useLocation();
-  const { filename, forecast_model, steps, granularity, forecastId } =
+  const { filename, model, steps, granularity, forecastId } =
     location.state || {};
   const [configuration, setConfiguration] = useState(null);
   const [recommendations, setRecommendations] = useState({
@@ -11,16 +11,26 @@ const ForecastResult = () => {
     bidStrategically: true,
   });
 
-  // Fetch configuration data when component mounts
+  // Updated fetchConfiguration to handle hybrid model
   useEffect(() => {
     const fetchConfiguration = async () => {
       try {
         if (!forecastId) return;
 
-        const endpoint =
-          forecast_model === "DHR"
-            ? `/api/dhr-configurations/${forecastId}`
-            : `/api/esn-configurations/${forecastId}`;
+        let endpoint;
+        switch (model) {
+          case "DHR":
+            endpoint = `/api/dhr-configurations/${forecastId}`;
+            break;
+          case "ESN":
+            endpoint = `/api/esn-configurations/${forecastId}`;
+            break;
+          case "DHR-ESN":
+            endpoint = `/api/hybrid-configurations/${forecastId}`;
+            break;
+          default:
+            throw new Error(`Unknown model type: ${model}`);
+        }
 
         const response = await fetch(`http://localhost:8000${endpoint}`);
         if (!response.ok) throw new Error("Failed to fetch configuration");
@@ -33,7 +43,7 @@ const ForecastResult = () => {
     };
 
     fetchConfiguration();
-  }, [forecastId, forecast_model]);
+  }, [forecastId, model]);
 
   // Function to get step label
   const getStepLabel = (steps, granularity) => {
@@ -78,9 +88,148 @@ const ForecastResult = () => {
     }
   };
 
-  // Function to determine which configuration section to show
+  // Updated renderConfigSection to handle hybrid model
   const renderConfigSection = () => {
-    if (forecast_model === "DHR") {
+    if (!configuration) return <div>Loading configuration...</div>;
+
+    if (model === "DHR-ESN") {
+      return (
+        <div className="space-y-8">
+          {/* DHR Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">
+              Dynamic Harmonic Regression
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Fourier Order</p>
+                <input
+                  type="text"
+                  value={configuration?.fourier_order || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Window Length</p>
+                <input
+                  type="text"
+                  value={configuration?.window_length || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Seasonality Periods</p>
+                <input
+                  type="text"
+                  value={configuration?.seasonality_periods || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Polyorder</p>
+                <input
+                  type="text"
+                  value={configuration?.polyorder || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Regularization (DHR)</p>
+                <input
+                  type="text"
+                  value={configuration?.regularization_dhr || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Trend Components</p>
+                <input
+                  type="text"
+                  value={configuration?.trend_components || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ESN Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Echo State Networks</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Reservoir Size</p>
+                <input
+                  type="text"
+                  value={configuration?.reservoir_size || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Spectral Radius</p>
+                <input
+                  type="text"
+                  value={configuration?.spectral_radius || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Sparsity</p>
+                <input
+                  type="text"
+                  value={configuration?.sparsity || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Input Scaling</p>
+                <input
+                  type="text"
+                  value={configuration?.input_scaling || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Dropout</p>
+                <input
+                  type="text"
+                  value={configuration?.dropout || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Lags</p>
+                <input
+                  type="text"
+                  value={configuration?.lags || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Regularization (ESN)</p>
+                <input
+                  type="text"
+                  value={configuration?.regularization_esn || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    } else if (model === "DHR") {
       return (
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-4">
@@ -144,7 +293,7 @@ const ForecastResult = () => {
           </div>
         </div>
       );
-    } else if (forecast_model === "ESN") {
+    } else if (model === "ESN") {
       return (
         <div>
           <h3 className="text-lg font-semibold mb-4">Echo State Networks</h3>
@@ -228,9 +377,7 @@ const ForecastResult = () => {
             <h3 className="text-sm text-gray-500 mb-2">
               {filename || "No filename available"}
             </h3>
-            <h2 className="font-bold mb-4">
-              {forecast_model || "No model selected"}
-            </h2>
+            <h2 className="font-bold mb-4">{model || "No model selected"}</h2>
             {/* Replace with actual graph component */}
             <div className="h-48 bg-gray-100 rounded mb-4">
               {/* Graph will go here */}

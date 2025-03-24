@@ -94,6 +94,27 @@ class ESNConfiguration(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
+class HybridConfiguration(Base):
+    __tablename__ = "hybrid_configurations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    forecast_id = Column(Integer, nullable=False)
+    fourier_order = Column(Integer, nullable=False)
+    window_length = Column(Integer, nullable=False)
+    seasonality_periods = Column(String(50), nullable=False)
+    polyorder = Column(Float, nullable=False)
+    regularization_dhr = Column(Float, nullable=False)
+    trend_components = Column(Integer, nullable=False)
+    reservoir_size = Column(Integer, nullable=False)
+    spectral_radius = Column(Float, nullable=False)
+    sparsity = Column(Float, nullable=False)
+    input_scaling = Column(Float, nullable=False)
+    dropout = Column(Float, nullable=False)
+    lags = Column(Integer, nullable=False)
+    regularization_esn = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
 Base.metadata.create_all(bind=engine)
 
 # Database session dependency
@@ -504,3 +525,109 @@ async def get_esn_configuration(forecast_id: int, db: Session = Depends(get_db))
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Pydantic model for request validation
+class HybridConfigurationCreate(BaseModel):
+    forecast_id: int
+    fourier_order: int
+    window_length: int
+    seasonality_periods: str
+    polyorder: float
+    regularization_dhr: float
+    trend_components: int
+    reservoir_size: int
+    spectral_radius: float
+    sparsity: float
+    input_scaling: float
+    dropout: float
+    lags: int
+    regularization_esn: float
+
+    model_config = {
+        'from_attributes': True
+    }
+
+@app.post("/api/hybrid-configurations")
+async def create_hybrid_configuration(config: HybridConfigurationCreate, db: Session = Depends(get_db)):
+    print("Received configuration:", config)  # Debug log
+    try:
+        db_config = HybridConfiguration(
+            forecast_id=config.forecast_id,
+            fourier_order=config.fourier_order,
+            window_length=config.window_length,
+            seasonality_periods=config.seasonality_periods,
+            polyorder=config.polyorder,
+            regularization_dhr=config.regularization_dhr,
+            trend_components=config.trend_components,
+            reservoir_size=config.reservoir_size,
+            spectral_radius=config.spectral_radius,
+            sparsity=config.sparsity,
+            input_scaling=config.input_scaling,
+            dropout=config.dropout,
+            lags=config.lags,
+            regularization_esn=config.regularization_esn,
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+
+        db.add(db_config)
+        db.commit()
+        db.refresh(db_config)
+
+        return {
+            "id": db_config.id,
+            "message": "Hybrid configuration created successfully"
+        }
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error creating hybrid configuration: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Add GET endpoint for retrieving the configuration
+@app.get("/api/hybrid-configurations/{forecast_id}")
+async def get_hybrid_configuration(forecast_id: int, db: Session = Depends(get_db)):
+    try:
+        config = db.query(HybridConfiguration).filter(
+            HybridConfiguration.forecast_id == forecast_id
+        ).first()
+        
+        if not config:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Hybrid configuration not found for forecast_id: {forecast_id}"
+            )
+            
+        return {
+            "id": config.id,
+            "forecast_id": config.forecast_id,
+            "fourier_order": config.fourier_order,
+            "window_length": config.window_length,
+            "seasonality_periods": config.seasonality_periods,
+            "polyorder": config.polyorder,
+            "regularization_dhr": config.regularization_dhr,
+            "trend_components": config.trend_components,
+            "reservoir_size": config.reservoir_size,
+            "spectral_radius": config.spectral_radius,
+            "sparsity": config.sparsity,
+            "input_scaling": config.input_scaling,
+            "dropout": config.dropout,
+            "lags": config.lags,
+            "regularization_esn": config.regularization_esn,
+            "created_at": config.created_at,
+            "updated_at": config.updated_at
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Test endpoint to verify API is working
+@app.get("/")
+async def root():
+    return {"message": "API is running"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0000", port=8000)
