@@ -59,8 +59,7 @@ const GenerateForecast = () => {
     granularity: initialGranularity,
     steps: initialStepOptions ? initialStepOptions[0].value : "1",
     modelType: "",
-    singleModel: "",
-    hybridModel: "",
+    model: "",
   });
 
   // Update steps when granularity changes
@@ -117,8 +116,7 @@ const GenerateForecast = () => {
   const isFormValid = () => {
     if (!fileData) return false;
     if (!formData.modelType) return false;
-    if (formData.modelType === "Single" && !formData.singleModel) return false;
-    if (formData.modelType === "Hybrid" && !formData.hybridModel) return false;
+    if (!formData.model) return false;
     return true;
   };
 
@@ -127,11 +125,8 @@ const GenerateForecast = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      // Reset model selections when model type changes
-      ...(name === "modelType" && {
-        singleModel: value === "Single" ? "" : prev.singleModel,
-        hybridModel: value === "Hybrid" ? "" : prev.hybridModel,
-      }),
+      // Reset model selection when model type changes
+      ...(name === "modelType" && { model: "" }),
     }));
   };
 
@@ -140,28 +135,63 @@ const GenerateForecast = () => {
     if (!fileData) return;
 
     try {
-      const response = await fetch(
+      const fileResponse = await fetch(
         `http://localhost:8000/storage/read/${fileData.filename}`
       );
 
-      if (!response.ok) {
+      if (!fileResponse.ok) {
         throw new Error("Failed to read file data");
       }
 
-      const data = await response.json();
+      const data = await fileResponse.json();
 
-      // Check model type and navigate accordingly
+      // Create forecast entry in database
+      const forecastData = {
+        filename: fileData.filename,
+        forecast_model: formData.model,
+        steps: formData.steps,
+        granularity: formData.granularity,
+      };
+
+      // Send POST request to create forecast record
+      const createForecastResponse = await fetch(
+        "http://localhost:8000/api/forecasts",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(forecastData),
+        }
+      );
+
+      if (!createForecastResponse.ok) {
+        throw new Error("Failed to create forecast record");
+      }
+
+      const createdForecast = await createForecastResponse.json();
+
+      // Navigate with the forecast ID
       if (formData.modelType === "Hybrid") {
         navigate("/HybridModelConfiguration", {
-          state: { ...formData, forecastData: data },
+          state: {
+            ...formData,
+            forecastData: data,
+            forecastId: createdForecast.id,
+          },
         });
       } else {
         navigate("/SingleModelConfiguration", {
-          state: { ...formData, forecastData: data },
+          state: {
+            ...formData,
+            forecastData: data,
+            forecastId: createdForecast.id,
+          },
         });
       }
     } catch (err) {
       setError(err.message);
+      console.error("Error:", err);
     }
   };
 
@@ -264,42 +294,28 @@ const GenerateForecast = () => {
           )}
         </div>
 
-        {/* Single Model Options */}
-        {formData.modelType === "Single" && (
+        {/* Model Selection */}
+        {formData.modelType && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Single Model
+              Model
             </label>
             <select
-              name="singleModel"
-              value={formData.singleModel}
+              name="model"
+              value={formData.model}
               onChange={handleChange}
               className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Select a model</option>
-              <option value="DHR">DHR</option>
-              <option value="ESN">ESN</option>
+              {formData.modelType === "Single" ? (
+                <>
+                  <option value="DHR">DHR</option>
+                  <option value="ESN">ESN</option>
+                </>
+              ) : (
+                <option value="DHR-ESN">DHR-ESN</option>
+              )}
             </select>
-            {formData.modelType === "Single" && !formData.singleModel && (
-              <p className="text-sm text-red-500 mt-1">Please select a model</p>
-            )}
-          </div>
-        )}
-
-        {/* Hybrid Model Options */}
-        {formData.modelType === "Hybrid" && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Hybrid Model
-            </label>
-            <select
-              name="hybridModel"
-              value={formData.hybridModel}
-              onChange={handleChange}
-              className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">Select a model</option>
-              <option value="DHR-ESN">DHR-ESN</option>
-            </select>
-            {formData.modelType === "Hybrid" && !formData.hybridModel && (
+            {!formData.model && (
               <p className="text-sm text-red-500 mt-1">Please select a model</p>
             )}
           </div>

@@ -54,6 +54,16 @@ class DailyData(BaseDataModel):
 class WeeklyData(BaseDataModel):
     __tablename__ = "weekly_data"
 
+class Forecast(Base):
+    __tablename__ = "forecasts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String(255), nullable=False)
+    forecast_model = Column(String(50), nullable=False)
+    steps = Column(String(50), nullable=False)
+    granularity = Column(String(50), nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+
 Base.metadata.create_all(bind=engine)
 
 # Database session dependency
@@ -288,4 +298,48 @@ async def get_latest_by_pattern(filename: str, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Add this to your Pydantic models section
+class ForecastCreate(BaseModel):
+    filename: str
+    forecast_model: str
+    steps: str
+    granularity: str
+
+    model_config = {
+        'from_attributes': True
+    }
+
+# Add this new endpoint
+@app.post("/api/forecasts")
+async def create_forecast(forecast: ForecastCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"Creating forecast: {forecast}")
+        
+        db_forecast = Forecast(
+            filename=forecast.filename,
+            forecast_model=forecast.forecast_model,
+            steps=forecast.steps,
+            granularity=forecast.granularity
+        )
+        
+        db.add(db_forecast)
+        db.commit()
+        db.refresh(db_forecast)
+
+        logger.info(f"Created forecast with ID: {db_forecast.id}")
+
+        return {
+            "id": db_forecast.id,
+            "filename": db_forecast.filename,
+            "forecast_model": db_forecast.forecast_model,
+            "steps": db_forecast.steps,
+            "granularity": db_forecast.granularity,
+            "created_at": db_forecast.created_at
+        }
+
+    except Exception as e:
+        logger.error(f"Error creating forecast: {str(e)}")
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
