@@ -530,13 +530,8 @@ const ForecastResult = () => {
           )}
           <div className="flex space-x-4 mt-8">
             <button
-              onClick={handleViewGraphs}
-              className="flex-1 bg-white text-black px-6 py-2 rounded-md hover:bg-gray-50 border-b-2 border-green-500">
-              View Graphs
-            </button>
-            <button
               onClick={handleEdit}
-              className="flex-1 bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+              className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
               Edit
             </button>
           </div>
