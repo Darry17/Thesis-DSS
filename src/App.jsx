@@ -5,7 +5,6 @@ import {
   Dashboard,
   History,
   Forecast,
-  ModelOption,
   SelectForecast,
   GenerateForecast,
   SingleModelConfiguration,
@@ -23,20 +22,20 @@ const App = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/history" element={<History />} />
+
         {/* Forecast and model configuration routes */}
-        <Route path="/ModelOption" element={<ModelOption />} />
-        <Route path="/SelectForecast" element={<SelectForecast />} />
-        <Route path="/GenerateForecast" element={<GenerateForecast />} />
+        <Route path="/select-forecast" element={<SelectForecast />} />
+        <Route path="/generate" element={<GenerateForecast />} />
         <Route
-          path="/SingleModelConfiguration"
+          path="/single-model-config"
           element={<SingleModelConfiguration />}
         />
         <Route
-          path="/HybridModelConfiguration"
+          path="/hybrid-model-config"
           element={<HybridModelConfiguration />}
         />
-        <Route path="/ForecastResult" element={<ForecastResult />} />
-        <Route path="/ViewGraph" element={<ViewGraph />} />
+        <Route path="/result" element={<ForecastResult />} />
+        <Route path="/view-graph" element={<ViewGraph />} />
       </Routes>
     </Router>
   );

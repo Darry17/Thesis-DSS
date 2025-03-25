@@ -11,29 +11,29 @@ const SelectForecast = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchLatestFile = async () => {
-      try {
-        const response = await fetch(
-          "http://localhost:8000/storage/latest-file/?data_type=json"
-        );
-        if (!response.ok) {
-          throw new Error("Failed to fetch latest file");
-        }
-        const data = await response.json();
-        setFileData({
-          filename: data.filename,
-          upload_date: new Date(data.upload_date).toLocaleString(),
-        });
-      } catch (err) {
-        console.error("Error fetching latest file:", err);
-        setError("Error fetching latest file");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchLatestFile();
   }, []);
+
+  const fetchLatestFile = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:8000/storage/latest-file/?data_type=json"
+      );
+      if (!response.ok) {
+        throw new Error("Failed to fetch latest file");
+      }
+      const data = await response.json();
+      setFileData({
+        filename: data.filename,
+        upload_date: new Date(data.upload_date).toLocaleString(),
+      });
+    } catch (err) {
+      console.error("Error fetching latest file:", err);
+      setError("Error fetching latest file");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleModelSelect = async (modelType) => {
     try {
@@ -50,17 +50,10 @@ const SelectForecast = () => {
         throw new Error("Data is empty or not an array");
       }
 
-      // Process data and create new file
       const { filteredData, folderPrefix } = processData(data, modelType);
-      const newFilename = await uploadProcessedData(
-        filteredData,
-        folderPrefix,
-        modelType
-      );
+      await uploadProcessedData(filteredData, folderPrefix, modelType);
 
-      // Navigate to format generation
-      const dataType = folderPrefix; // This will be 'hourly', 'daily', or 'weekly'
-      navigate(`/GenerateForecast?type=${dataType}`);
+      navigate(`/generate?type=${folderPrefix}`);
     } catch (err) {
       console.error("Error details:", err);
       setError(`Error processing data: ${err.message}`);
@@ -107,7 +100,7 @@ const SelectForecast = () => {
       throw new Error("No valid time-related field found in data");
     }
 
-    // Filter data
+    // Filter data to include only required fields
     const filteredData = data.map((row) => ({
       [selectedTimeField]: row[selectedTimeField],
       ...Object.fromEntries(
@@ -125,35 +118,20 @@ const SelectForecast = () => {
   };
 
   const uploadProcessedData = async (filteredData, folderPrefix, modelType) => {
-    // Determine the table type based on folderPrefix
-    let tableType = folderPrefix; // Since folderPrefix already contains 'hourly', 'daily', or 'weekly'
-
     // Get the latest ID from the appropriate table
     const latestFileResponse = await fetch(
-      `http://localhost:8000/storage/latest-file/?data_type=${tableType}`
+      `http://localhost:8000/storage/latest-file/?data_type=${folderPrefix}`
     );
 
     let nextId = 1; // Default to 1 if no files exist
 
     if (latestFileResponse.ok) {
       const latestFile = await latestFileResponse.json();
-      // Make sure we're getting a valid ID
       if (latestFile && typeof latestFile.id === "number") {
-        nextId = latestFile.id + 1; // Increment by 1 to get next available ID
-      } else {
-        console.warn(
-          `No valid ID found in response from ${tableType}:`,
-          latestFile
-        );
+        nextId = latestFile.id + 1;
       }
-    } else {
-      console.warn(
-        `Failed to fetch latest file from ${tableType}:`,
-        await latestFileResponse.text()
-      );
     }
 
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "_");
     const newFilename = `${nextId}_${folderPrefix}_${modelType.toLowerCase()}_data.json`;
 
     const formData = new FormData();

@@ -6,43 +6,44 @@ const HybridModelConfiguration = () => {
   const navigate = useNavigate();
   const { forecastId, isEditing, existingConfig } = location.state || {};
   const [step, setStep] = useState(1); // 1 for DHR, 2 for ESN
-  const [formData, setFormData] = useState(
-    isEditing
-      ? {
-          // DHR fields
-          fourierOrder: existingConfig.fourier_order.toString(),
-          windowLength: existingConfig.window_length.toString(),
-          seasonalityPeriods: existingConfig.seasonality_periods,
-          polyorder: existingConfig.polyorder.toString(),
-          regularizationDHR: existingConfig.regularization_dhr.toString(),
-          trendComponents: existingConfig.trend_components.toString(),
-          // ESN fields
-          reservoirSize: existingConfig.reservoir_size.toString(),
-          spectralRadius: existingConfig.spectral_radius.toString(),
-          sparsity: existingConfig.sparsity.toString(),
-          inputScaling: existingConfig.input_scaling.toString(),
-          dropout: existingConfig.dropout.toString(),
-          lags: existingConfig.lags.toString(),
-          regularizationESN: existingConfig.regularization_esn.toString(),
-        }
-      : {
-          // DHR fields
-          fourierOrder: "",
-          windowLength: "",
-          seasonalityPeriods: "",
-          polyorder: "",
-          regularizationDHR: "",
-          trendComponents: "",
-          // ESN fields
-          reservoirSize: "",
-          spectralRadius: "",
-          sparsity: "",
-          inputScaling: "",
-          dropout: "",
-          lags: "",
-          regularizationESN: "",
-        }
-  );
+
+  const initialFormData = isEditing
+    ? {
+        // DHR fields
+        fourierOrder: existingConfig.fourier_order.toString(),
+        windowLength: existingConfig.window_length.toString(),
+        seasonalityPeriods: existingConfig.seasonality_periods,
+        polyorder: existingConfig.polyorder.toString(),
+        regularizationDHR: existingConfig.regularization_dhr.toString(),
+        trendComponents: existingConfig.trend_components.toString(),
+        // ESN fields
+        reservoirSize: existingConfig.reservoir_size.toString(),
+        spectralRadius: existingConfig.spectral_radius.toString(),
+        sparsity: existingConfig.sparsity.toString(),
+        inputScaling: existingConfig.input_scaling.toString(),
+        dropout: existingConfig.dropout.toString(),
+        lags: existingConfig.lags.toString(),
+        regularizationESN: existingConfig.regularization_esn.toString(),
+      }
+    : {
+        // DHR fields
+        fourierOrder: "",
+        windowLength: "",
+        seasonalityPeriods: "",
+        polyorder: "",
+        regularizationDHR: "",
+        trendComponents: "",
+        // ESN fields
+        reservoirSize: "",
+        spectralRadius: "",
+        sparsity: "",
+        inputScaling: "",
+        dropout: "",
+        lags: "",
+        regularizationESN: "",
+      };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -54,62 +55,58 @@ const HybridModelConfiguration = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (step === 1) {
       setStep(2); // Move to ESN configuration
-    } else {
-      try {
-        const hybridConfig = {
-          forecast_id: parseInt(forecastId),
-          // DHR part
-          fourier_order: parseInt(formData.fourierOrder),
-          window_length: parseInt(formData.windowLength),
-          seasonality_periods: formData.seasonalityPeriods,
-          polyorder: parseFloat(formData.polyorder),
-          regularization_dhr: parseFloat(formData.regularizationDHR),
-          trend_components: parseInt(formData.trendComponents),
-          // ESN part
-          reservoir_size: parseInt(formData.reservoirSize),
-          spectral_radius: parseFloat(formData.spectralRadius),
-          sparsity: parseFloat(formData.sparsity),
-          input_scaling: parseFloat(formData.inputScaling),
-          dropout: parseFloat(formData.dropout),
-          lags: parseInt(formData.lags),
-          regularization_esn: parseFloat(formData.regularizationESN),
-        };
+      return;
+    }
 
-        // Choose the correct endpoint based on whether we're editing or creating
-        const endpoint = isEditing
-          ? `http://localhost:8000/api/hybrid-configurations/${forecastId}`
-          : "http://localhost:8000/api/hybrid-configurations";
+    try {
+      const hybridConfig = {
+        forecast_id: parseInt(forecastId),
+        // DHR part
+        fourier_order: parseInt(formData.fourierOrder),
+        window_length: parseInt(formData.windowLength),
+        seasonality_periods: formData.seasonalityPeriods,
+        polyorder: parseFloat(formData.polyorder),
+        regularization_dhr: parseFloat(formData.regularizationDHR),
+        trend_components: parseInt(formData.trendComponents),
+        // ESN part
+        reservoir_size: parseInt(formData.reservoirSize),
+        spectral_radius: parseFloat(formData.spectralRadius),
+        sparsity: parseFloat(formData.sparsity),
+        input_scaling: parseFloat(formData.inputScaling),
+        dropout: parseFloat(formData.dropout),
+        lags: parseInt(formData.lags),
+        regularization_esn: parseFloat(formData.regularizationESN),
+      };
 
-        const response = await fetch(endpoint, {
-          method: isEditing ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(hybridConfig),
-        });
+      const endpoint = isEditing
+        ? `http://localhost:8000/api/hybrid-configurations/${forecastId}`
+        : "http://localhost:8000/api/hybrid-configurations";
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Server error:", errorData);
-          throw new Error(
-            `Failed to ${isEditing ? "update" : "save"} hybrid configuration: ${
-              errorData.detail
-            }`
-          );
-        }
+      const response = await fetch(endpoint, {
+        method: isEditing ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(hybridConfig),
+      });
 
-        // Navigate to forecast result page with necessary data
-        navigate("/ForecastResult", {
-          state: {
-            forecastId,
-          },
-        });
-      } catch (error) {
-        console.error("Error saving configuration:", error);
-        // You might want to show an error message to the user
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          `Failed to ${isEditing ? "update" : "save"} hybrid configuration: ${
+            errorData.detail
+          }`
+        );
       }
+
+      navigate("/result", {
+        state: { forecastId },
+      });
+    } catch (error) {
+      console.error("Error saving configuration:", error);
     }
   };
 
@@ -121,107 +118,43 @@ const HybridModelConfiguration = () => {
     }
   };
 
+  const renderFormField = (name, label, placeholder) => (
+    <div className="flex-1">
+      <label className="block text-sm font-medium mb-1">
+        {label} <span className="text-gray-500 cursor-pointer">ⓘ</span>
+      </label>
+      <input
+        type="text"
+        name={name}
+        value={formData[name]}
+        onChange={handleChange}
+        placeholder={placeholder}
+        className="w-full p-2 border border-gray-300 rounded-md"
+      />
+    </div>
+  );
+
   const renderDHRForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-xl font-bold text-center mb-6">
         DYNAMIC HARMONIC REGRESSION
       </h2>
-      {/* First Row: Fourier Order and Window Length */}
+
       <div className="flex space-x-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Fourier Order{" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="fourierOrder"
-            value={formData.fourierOrder}
-            onChange={handleChange}
-            placeholder="3"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Window Length{" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="windowLength"
-            value={formData.windowLength}
-            onChange={handleChange}
-            placeholder="1"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        {renderFormField("fourierOrder", "Fourier Order", "3")}
+        {renderFormField("windowLength", "Window Length", "1")}
       </div>
 
-      {/* Second Row: Seasonality Periods and Polyorder */}
       <div className="flex space-x-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Seasonality Periods{" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="seasonalityPeriods"
-            value={formData.seasonalityPeriods}
-            onChange={handleChange}
-            placeholder="M"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Polyorder <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="polyorder"
-            value={formData.polyorder}
-            onChange={handleChange}
-            placeholder="0.1"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        {renderFormField("seasonalityPeriods", "Seasonality Periods", "M")}
+        {renderFormField("polyorder", "Polyorder", "0.1")}
       </div>
 
-      {/* Third Row: Regularization and Trend Components */}
       <div className="flex space-x-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Regularization (DHR){" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="regularizationDHR"
-            value={formData.regularizationDHR}
-            onChange={handleChange}
-            placeholder="1e-4"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Trend Components{" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="trendComponents"
-            value={formData.trendComponents}
-            onChange={handleChange}
-            placeholder="2"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        {renderFormField("regularizationDHR", "Regularization (DHR)", "1e-4")}
+        {renderFormField("trendComponents", "Trend Components", "2")}
       </div>
 
-      {/* Buttons */}
       <div className="flex justify-end space-x-4 mt-6">
         <button
           type="button"
@@ -241,119 +174,27 @@ const HybridModelConfiguration = () => {
   const renderESNForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
       <h2 className="text-xl font-bold text-center mb-6">ECHO STATE NETWORK</h2>
-      {/* First Row */}
+
       <div className="flex space-x-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Reservoir Size{" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="reservoirSize"
-            value={formData.reservoirSize}
-            onChange={handleChange}
-            placeholder="500"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Regularization (ESN){" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="regularizationESN"
-            value={formData.regularizationESN}
-            onChange={handleChange}
-            placeholder="0.2"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        {renderFormField("reservoirSize", "Reservoir Size", "500")}
+        {renderFormField("regularizationESN", "Regularization (ESN)", "0.2")}
       </div>
 
-      {/* Second Row */}
       <div className="flex space-x-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Spectral Radius{" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="spectralRadius"
-            value={formData.spectralRadius}
-            onChange={handleChange}
-            placeholder="0.9"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Dropout <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="dropout"
-            value={formData.dropout}
-            onChange={handleChange}
-            placeholder="1"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        {renderFormField("spectralRadius", "Spectral Radius", "0.9")}
+        {renderFormField("dropout", "Dropout", "1")}
       </div>
 
-      {/* Third Row */}
       <div className="flex space-x-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Sparsity <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="sparsity"
-            value={formData.sparsity}
-            onChange={handleChange}
-            placeholder="1.0"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Lags <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="lags"
-            value={formData.lags}
-            onChange={handleChange}
-            placeholder="1"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        {renderFormField("sparsity", "Sparsity", "1.0")}
+        {renderFormField("lags", "Lags", "1")}
       </div>
 
-      {/* Fourth Row */}
       <div className="flex space-x-4">
-        <div className="flex-1">
-          <label className="block text-sm font-medium mb-1">
-            Input Scaling{" "}
-            <span className="text-gray-500 cursor-pointer">ⓘ</span>
-          </label>
-          <input
-            type="text"
-            name="inputScaling"
-            value={formData.inputScaling}
-            onChange={handleChange}
-            placeholder="0.3"
-            className="w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+        {renderFormField("inputScaling", "Input Scaling", "0.3")}
         <div className="flex-1">{/* Empty div for alignment */}</div>
       </div>
 
-      {/* Buttons */}
       <div className="flex justify-end space-x-4 mt-6">
         <button
           type="button"

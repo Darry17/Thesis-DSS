@@ -21,7 +21,7 @@ const ForecastResult = () => {
           throw new Error("Missing forecast ID");
         }
 
-        // First fetch the forecast basic data
+        // Fetch the forecast basic data
         const forecastResponse = await fetch(
           `http://localhost:8000/api/forecasts/${forecastId}`
         );
@@ -32,35 +32,27 @@ const ForecastResult = () => {
         const forecastData = await forecastResponse.json();
         setForecastData(forecastData);
 
-        // Use the model from forecast data
+        // Determine configuration endpoint based on model type
         const model = forecastData.model;
+        const configEndpoints = {
+          DHR: `/api/dhr-configurations/${forecastId}`,
+          ESN: `/api/esn-configurations/${forecastId}`,
+          "DHR-ESN": `/api/hybrid-configurations/${forecastId}`,
+        };
 
-        // Then fetch the configuration based on model type
-        let configEndpoint;
-        switch (model) {
-          case "DHR":
-            configEndpoint = `/api/dhr-configurations/${forecastId}`;
-            break;
-          case "ESN":
-            configEndpoint = `/api/esn-configurations/${forecastId}`;
-            break;
-          case "DHR-ESN":
-            configEndpoint = `/api/hybrid-configurations/${forecastId}`;
-            break;
-          default:
-            throw new Error(`Unknown model type: ${model}`);
+        const configEndpoint = configEndpoints[model];
+        if (!configEndpoint) {
+          throw new Error(`Unknown model type: ${model}`);
         }
 
         const configResponse = await fetch(
           `http://localhost:8000${configEndpoint}`
         );
-
         if (!configResponse.ok) {
           throw new Error(`Failed to fetch ${model} configuration`);
         }
 
         const configData = await configResponse.json();
-
         setConfiguration(configData);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -77,46 +69,28 @@ const ForecastResult = () => {
   const getStepLabel = (steps, granularity) => {
     if (!steps || !granularity) return "No steps available";
 
-    switch (granularity) {
-      case "Hourly":
-        switch (steps) {
-          case "1-hour":
-            return "1 Step (1-Hour Horizon)";
-          case "24-hour":
-            return "24 Steps (1-Day Horizon)";
-          case "168-hour":
-            return "168 Steps (1-Week Horizon)";
-          default:
-            return steps;
-        }
-      case "Daily":
-        switch (steps) {
-          case "1-day":
-            return "1 Step (1-Day Horizon)";
-          case "7-day":
-            return "7 Steps (1-Week Horizon)";
-          case "30-day":
-            return "30 Steps (1-Month Horizon)";
-          default:
-            return steps;
-        }
-      case "Weekly":
-        switch (steps) {
-          case "1-week":
-            return "1 Step (1-Week Horizon)";
-          case "4-week":
-            return "4 Steps (1-Month Horizon)";
-          case "52-week":
-            return "52 Steps (1-Year Horizon)";
-          default:
-            return steps;
-        }
-      default:
-        return steps || "No steps available";
-    }
+    const stepLabels = {
+      Hourly: {
+        "1-hour": "1 Step (1-Hour Horizon)",
+        "24-hour": "24 Steps (1-Day Horizon)",
+        "168-hour": "168 Steps (1-Week Horizon)",
+      },
+      Daily: {
+        "1-day": "1 Step (1-Day Horizon)",
+        "7-day": "7 Steps (1-Week Horizon)",
+        "30-day": "30 Steps (1-Month Horizon)",
+      },
+      Weekly: {
+        "1-week": "1 Step (1-Week Horizon)",
+        "4-week": "4 Steps (1-Month Horizon)",
+        "52-week": "52 Steps (1-Year Horizon)",
+      },
+    };
+
+    return stepLabels[granularity]?.[steps] || steps || "No steps available";
   };
 
-  // Updated renderConfigSection to handle hybrid model
+  // Render configuration section based on model type
   const renderConfigSection = () => {
     if (!configuration) return <div>Loading configuration...</div>;
 
@@ -398,7 +372,7 @@ const ForecastResult = () => {
   const handleEdit = () => {
     // Navigate to the appropriate configuration page based on model type
     if (forecastData.model === "DHR-ESN") {
-      navigate("/HybridModelConfiguration", {
+      navigate("/hybrid-model-config", {
         state: {
           forecastId,
           isEditing: true,
@@ -406,7 +380,7 @@ const ForecastResult = () => {
         },
       });
     } else {
-      navigate("/SingleModelConfiguration", {
+      navigate("/single-model-config", {
         state: {
           forecastId,
           model: forecastData.model,
@@ -418,11 +392,8 @@ const ForecastResult = () => {
   };
 
   const handleViewGraphs = () => {
-    // Navigate to graphs view with forecastId
-    navigate("/ViewGraph", {
-      state: {
-        forecastId,
-      },
+    navigate("/view-graph", {
+      state: { forecastId },
     });
   };
 

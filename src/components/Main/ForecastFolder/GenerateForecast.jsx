@@ -8,15 +8,6 @@ const GenerateForecast = () => {
   const [error, setError] = useState(null);
   const [fileData, setFileData] = useState(null);
 
-  // Get data type from filename
-  const getDataType = (filename) => {
-    if (filename?.includes("weekly")) return "weekly";
-    if (filename?.includes("daily")) return "daily";
-    if (filename?.includes("hourly")) return "hourly";
-    return null;
-  };
-
-  // Determine granularity from filename
   const getGranularityFromFilename = (filename) => {
     if (!filename) return "Hourly";
     if (filename.includes("hourly")) return "Hourly";
@@ -25,7 +16,6 @@ const GenerateForecast = () => {
     return "Hourly";
   };
 
-  // Get step options based on granularity
   const getStepOptions = (granularity) => {
     switch (granularity) {
       case "Hourly":
@@ -47,7 +37,7 @@ const GenerateForecast = () => {
           { value: "52-week", label: "52 Steps (1-Year Horizon)" },
         ];
       default:
-        return null;
+        return [];
     }
   };
 
@@ -57,30 +47,28 @@ const GenerateForecast = () => {
   const [formData, setFormData] = useState({
     filename: null,
     granularity: initialGranularity,
-    steps: initialStepOptions ? initialStepOptions[0].value : "1",
+    steps: initialStepOptions.length ? initialStepOptions[0].value : "",
     modelType: "",
     model: "",
   });
 
-  // Update steps when granularity changes
   useEffect(() => {
     const stepOptions = getStepOptions(formData.granularity);
-    setFormData((prev) => ({
-      ...prev,
-      steps: stepOptions[0].value,
-    }));
+    if (stepOptions.length) {
+      setFormData((prev) => ({
+        ...prev,
+        steps: stepOptions[0].value,
+      }));
+    }
   }, [formData.granularity]);
 
   useEffect(() => {
     const fetchFileData = async () => {
       try {
         setLoading(true);
-
-        // Get the data type from the URL or default to hourly
         const urlParams = new URLSearchParams(location.search);
         const dataType = urlParams.get("type") || "hourly";
 
-        // Fetch the latest file of the specific type
         const response = await fetch(
           `http://localhost:8000/storage/latest-file/?data_type=${dataType}`
         );
@@ -112,12 +100,8 @@ const GenerateForecast = () => {
     fetchFileData();
   }, [location.search]);
 
-  // Validate form before submission
   const isFormValid = () => {
-    if (!fileData) return false;
-    if (!formData.modelType) return false;
-    if (!formData.model) return false;
-    return true;
+    return fileData && formData.modelType && formData.model;
   };
 
   const handleChange = (e) => {
@@ -125,7 +109,6 @@ const GenerateForecast = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      // Reset model selection when model type changes
       ...(name === "modelType" && { model: "" }),
     }));
   };
@@ -145,7 +128,6 @@ const GenerateForecast = () => {
 
       const data = await fileResponse.json();
 
-      // Create forecast entry in database
       const forecastData = {
         filename: fileData.filename,
         forecast_model: formData.model,
@@ -153,7 +135,6 @@ const GenerateForecast = () => {
         granularity: formData.granularity,
       };
 
-      // Send POST request to create forecast record
       const createForecastResponse = await fetch(
         "http://localhost:8000/api/forecasts",
         {
@@ -171,24 +152,18 @@ const GenerateForecast = () => {
 
       const createdForecast = await createForecastResponse.json();
 
-      // Navigate with the forecast ID
-      if (formData.modelType === "Hybrid") {
-        navigate("/HybridModelConfiguration", {
+      navigate(
+        formData.modelType === "Hybrid"
+          ? "/hybrid-model-config"
+          : "/single-model-config",
+        {
           state: {
             ...formData,
             forecastData: data,
             forecastId: createdForecast.id,
           },
-        });
-      } else {
-        navigate("/SingleModelConfiguration", {
-          state: {
-            ...formData,
-            forecastData: data,
-            forecastId: createdForecast.id,
-          },
-        });
-      }
+        }
+      );
     } catch (err) {
       setError(err.message);
       console.error("Error:", err);
