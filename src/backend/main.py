@@ -12,6 +12,8 @@ import pandas as pd
 import logging
 from dotenv import load_dotenv
 from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -621,6 +623,28 @@ async def get_hybrid_configuration(forecast_id: int, db: Session = Depends(get_d
     except HTTPException:
         raise
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/forecasts/{forecast_id}")
+async def get_forecast(forecast_id: int, db: Session = Depends(get_db)):
+    try:
+        # Query forecast using regular SQLAlchemy session
+        forecast = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+        
+        if not forecast:
+            raise HTTPException(status_code=404, detail=f"Forecast {forecast_id} not found")
+        
+        # Convert SQLAlchemy model to dictionary
+        return {
+            "id": forecast.id,
+            "filename": forecast.filename,
+            "model": forecast.forecast_model,
+            "steps": forecast.steps,
+            "granularity": forecast.granularity,
+            "created_at": forecast.created_at
+        }
+    except Exception as e:
+        logger.error(f"Error fetching forecast {forecast_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # Test endpoint to verify API is working

@@ -114,11 +114,6 @@ const SingleModelConfiguration = () => {
         navigate("/ForecastResult", {
           state: {
             forecastId: location.state?.forecastId,
-            filename: location.state?.filename,
-            model: selectedModel,
-            steps: location.state?.steps,
-            granularity: location.state?.granularity,
-            // Add any other data you need
           },
         });
       } else if (selectedModel === "ESN") {
@@ -152,11 +147,6 @@ const SingleModelConfiguration = () => {
         navigate("/ForecastResult", {
           state: {
             forecastId: location.state?.forecastId,
-            filename: location.state?.filename,
-            forecast_model: selectedModel,
-            steps: location.state?.steps,
-            granularity: location.state?.granularity,
-            // Add any other data you need
           },
         });
       }

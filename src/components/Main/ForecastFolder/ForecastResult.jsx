@@ -3,47 +3,74 @@ import { useLocation } from "react-router-dom";
 
 const ForecastResult = () => {
   const location = useLocation();
-  const { filename, model, steps, granularity, forecastId } =
-    location.state || {};
+  const { forecastId } = location.state || {};
   const [configuration, setConfiguration] = useState(null);
+  const [forecastData, setForecastData] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [recommendations, setRecommendations] = useState({
     batteryStorage: true,
     bidStrategically: true,
   });
 
-  // Updated fetchConfiguration to handle hybrid model
   useEffect(() => {
-    const fetchConfiguration = async () => {
+    const fetchData = async () => {
       try {
-        if (!forecastId) return;
+        if (!forecastId) {
+          throw new Error("Missing forecast ID");
+        }
 
-        let endpoint;
+        // First fetch the forecast basic data
+        const forecastResponse = await fetch(
+          `http://localhost:8000/api/forecasts/${forecastId}`
+        );
+        if (!forecastResponse.ok) {
+          throw new Error("Failed to fetch forecast data");
+        }
+
+        const forecastData = await forecastResponse.json();
+        setForecastData(forecastData);
+
+        // Use the model from forecast data
+        const model = forecastData.model;
+
+        // Then fetch the configuration based on model type
+        let configEndpoint;
         switch (model) {
           case "DHR":
-            endpoint = `/api/dhr-configurations/${forecastId}`;
+            configEndpoint = `/api/dhr-configurations/${forecastId}`;
             break;
           case "ESN":
-            endpoint = `/api/esn-configurations/${forecastId}`;
+            configEndpoint = `/api/esn-configurations/${forecastId}`;
             break;
           case "DHR-ESN":
-            endpoint = `/api/hybrid-configurations/${forecastId}`;
+            configEndpoint = `/api/hybrid-configurations/${forecastId}`;
             break;
           default:
             throw new Error(`Unknown model type: ${model}`);
         }
 
-        const response = await fetch(`http://localhost:8000${endpoint}`);
-        if (!response.ok) throw new Error("Failed to fetch configuration");
+        const configResponse = await fetch(
+          `http://localhost:8000${configEndpoint}`
+        );
 
-        const data = await response.json();
-        setConfiguration(data);
+        if (!configResponse.ok) {
+          throw new Error(`Failed to fetch ${model} configuration`);
+        }
+
+        const configData = await configResponse.json();
+
+        setConfiguration(configData);
       } catch (error) {
-        console.error("Error fetching configuration:", error);
+        console.error("Error fetching data:", error);
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchConfiguration();
-  }, [forecastId, model]);
+    fetchData();
+  }, [forecastId]);
 
   // Function to get step label
   const getStepLabel = (steps, granularity) => {
@@ -92,7 +119,7 @@ const ForecastResult = () => {
   const renderConfigSection = () => {
     if (!configuration) return <div>Loading configuration...</div>;
 
-    if (model === "DHR-ESN") {
+    if (forecastData.model === "DHR-ESN") {
       return (
         <div className="space-y-8">
           {/* DHR Section */}
@@ -229,7 +256,7 @@ const ForecastResult = () => {
           </div>
         </div>
       );
-    } else if (model === "DHR") {
+    } else if (forecastData.model === "DHR") {
       return (
         <div className="mb-8">
           <h3 className="text-lg font-semibold mb-4">
@@ -293,7 +320,7 @@ const ForecastResult = () => {
           </div>
         </div>
       );
-    } else if (model === "ESN") {
+    } else if (forecastData.model === "ESN") {
       return (
         <div>
           <h3 className="text-lg font-semibold mb-4">Echo State Networks</h3>
@@ -367,6 +394,14 @@ const ForecastResult = () => {
     }
   };
 
+  if (loading) {
+    return <div className="p-6 text-center">Loading forecast data...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-500">Error: {error}</div>;
+  }
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="grid grid-cols-2 gap-6">
@@ -375,10 +410,11 @@ const ForecastResult = () => {
           {/* Graph Card */}
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm text-gray-500 mb-2">
-              {filename || "No filename available"}
+              {forecastData?.filename || "No filename available"}
             </h3>
-            <h2 className="font-bold mb-4">{model || "No model selected"}</h2>
-            {/* Replace with actual graph component */}
+            <h2 className="font-bold mb-4">
+              {forecastData?.model || "No model selected"}
+            </h2>
             <div className="h-48 bg-gray-100 rounded mb-4">
               {/* Graph will go here */}
             </div>
@@ -391,7 +427,7 @@ const ForecastResult = () => {
               Generated Forecast
             </h3>
             <p className="text-xl font-bold">
-              {getStepLabel(steps, granularity)}
+              {getStepLabel(forecastData?.steps, forecastData?.granularity)}
             </p>
           </div>
 
@@ -450,7 +486,11 @@ const ForecastResult = () => {
         {/* Right Column - Configurations */}
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-2xl font-bold mb-6">Configurations</h2>
-          {renderConfigSection()}
+          {configuration ? (
+            renderConfigSection()
+          ) : (
+            <div>Loading configuration...</div>
+          )}
           {/* Edit Button */}
           <button className="mt-8 bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 w-full">
             Edit

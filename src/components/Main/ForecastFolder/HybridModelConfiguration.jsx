@@ -79,7 +79,6 @@ const HybridModelConfiguration = () => {
           state: {
             forecastId,
             model: "DHR-ESN",
-            ...location.state, // Preserve other state data
           },
         });
       } catch (error) {
