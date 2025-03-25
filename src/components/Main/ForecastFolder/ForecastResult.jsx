@@ -417,6 +417,15 @@ const ForecastResult = () => {
     }
   };
 
+  const handleViewGraphs = () => {
+    // Navigate to graphs view with forecastId
+    navigate("/ViewGraph", {
+      state: {
+        forecastId,
+      },
+    });
+  };
+
   if (loading) {
     return <div className="p-6 text-center">Loading forecast data...</div>;
   }
@@ -441,7 +450,12 @@ const ForecastResult = () => {
             <div className="h-48 bg-gray-100 rounded mb-4">
               {/* Graph will go here */}
             </div>
-            <div className="text-sm">View Results</div>
+
+            <button
+              onClick={handleViewGraphs}
+              className="w-30 mt-2 py-2 bg-white text-black rounded-md hover:bg-gray-50 border-b-2 border-green-500">
+              View Graphs
+            </button>
           </div>
 
           {/* Forecast Period */}
@@ -514,12 +528,18 @@ const ForecastResult = () => {
           ) : (
             <div>Loading configuration...</div>
           )}
-          {/* Edit Button */}
-          <button
-            onClick={handleEdit}
-            className="mt-8 bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 w-full">
-            Edit
-          </button>
+          <div className="flex space-x-4 mt-8">
+            <button
+              onClick={handleViewGraphs}
+              className="flex-1 bg-white text-black px-6 py-2 rounded-md hover:bg-gray-50 border-b-2 border-green-500">
+              View Graphs
+            </button>
+            <button
+              onClick={handleEdit}
+              className="flex-1 bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+              Edit
+            </button>
+          </div>
         </div>
       </div>
     </div>
