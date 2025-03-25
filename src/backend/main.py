@@ -652,6 +652,137 @@ async def get_forecast(forecast_id: int, db: Session = Depends(get_db)):
 async def root():
     return {"message": "API is running"}
 
+#for edit dhr config
+@app.put("/api/dhr-configurations/{forecast_id}")
+async def update_dhr_configuration(forecast_id: int, config: DHRConfigurationCreate, db: Session = Depends(get_db)):
+    try:
+        # Check if forecast exists
+        forecast = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+        if not forecast:
+            raise HTTPException(status_code=404, detail="Forecast not found")
+            
+        # Find existing configuration
+        existing_config = db.query(DHRConfiguration).filter(
+            DHRConfiguration.forecast_id == forecast_id
+        ).first()
+        
+        if not existing_config:
+            raise HTTPException(status_code=404, detail="DHR configuration not found")
+        
+        # Update fields
+        existing_config.fourier_order = config.fourier_order
+        existing_config.window_length = config.window_length
+        existing_config.seasonality_periods = config.seasonality_periods
+        existing_config.polyorder = config.polyorder
+        existing_config.regularization_dhr = config.regularization_dhr
+        existing_config.trend_components = config.trend_components
+        existing_config.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(existing_config)
+        
+        return {
+            "id": existing_config.id,
+            "message": "DHR configuration updated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating DHR configuration: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+#for edit esn config
+@app.put("/api/esn-configurations/{forecast_id}")
+async def update_esn_configuration(forecast_id: int, config: ESNConfigurationCreate, db: Session = Depends(get_db)):
+    try:
+        # Check if forecast exists
+        forecast = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+        if not forecast:
+            raise HTTPException(status_code=404, detail="Forecast not found")
+            
+        # Find existing configuration
+        existing_config = db.query(ESNConfiguration).filter(
+            ESNConfiguration.forecast_id == forecast_id
+        ).first()
+        
+        if not existing_config:
+            raise HTTPException(status_code=404, detail="ESN configuration not found")
+        
+        # Update fields
+        existing_config.reservoir_size = config.reservoir_size
+        existing_config.spectral_radius = config.spectral_radius
+        existing_config.sparsity = config.sparsity
+        existing_config.input_scaling = config.input_scaling
+        existing_config.dropout = config.dropout
+        existing_config.lags = config.lags
+        existing_config.regularization_esn = config.regularization_esn
+        existing_config.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(existing_config)
+        
+        return {
+            "id": existing_config.id,
+            "message": "ESN configuration updated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating ESN configuration: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+#For edit hybrid config 
+@app.put("/api/hybrid-configurations/{forecast_id}")
+async def update_hybrid_configuration(forecast_id: int, config: HybridConfigurationCreate, db: Session = Depends(get_db)):
+    try:
+        # Check if forecast exists
+        forecast = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+        if not forecast:
+            raise HTTPException(status_code=404, detail="Forecast not found")
+            
+        # Find existing configuration
+        existing_config = db.query(HybridConfiguration).filter(
+            HybridConfiguration.forecast_id == forecast_id
+        ).first()
+        
+        if not existing_config:
+            raise HTTPException(status_code=404, detail="Hybrid configuration not found")
+        
+        # Update all fields
+        existing_config.fourier_order = config.fourier_order
+        existing_config.window_length = config.window_length
+        existing_config.seasonality_periods = config.seasonality_periods
+        existing_config.polyorder = config.polyorder
+        existing_config.regularization_dhr = config.regularization_dhr
+        existing_config.trend_components = config.trend_components
+        existing_config.reservoir_size = config.reservoir_size
+        existing_config.spectral_radius = config.spectral_radius
+        existing_config.sparsity = config.sparsity
+        existing_config.input_scaling = config.input_scaling
+        existing_config.dropout = config.dropout
+        existing_config.lags = config.lags
+        existing_config.regularization_esn = config.regularization_esn
+        existing_config.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(existing_config)
+        
+        return {
+            "id": existing_config.id,
+            "message": "Hybrid configuration updated successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating hybrid configuration: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0000", port=8000)

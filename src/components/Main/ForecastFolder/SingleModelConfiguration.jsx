@@ -6,6 +6,8 @@ const SingleModelConfiguration = () => {
   const navigate = useNavigate();
   const selectedModel = location.state?.model;
   const forecastId = location.state?.forecastId;
+  const isEditing = location.state?.isEditing;
+  const existingConfig = location.state?.existingConfig;
 
   // Redirect if no model is selected
   React.useEffect(() => {
@@ -22,27 +24,46 @@ const SingleModelConfiguration = () => {
     }
   }, [forecastId, navigate]);
 
-  // Initialize form data based on selected model
+  // Initialize form data based on selected model and existing config
   const getInitialFormData = () => {
     if (selectedModel === "DHR") {
-      return {
-        fourierOrder: "",
-        windowLength: "",
-        seasonalityPeriods: "",
-        polyorder: "",
-        regularization: "",
-        trendComponents: "",
-      };
+      return isEditing
+        ? {
+            fourierOrder: existingConfig.fourier_order.toString(),
+            windowLength: existingConfig.window_length.toString(),
+            seasonalityPeriods: existingConfig.seasonality_periods,
+            polyorder: existingConfig.polyorder.toString(),
+            regularization: existingConfig.regularization_dhr.toString(),
+            trendComponents: existingConfig.trend_components.toString(),
+          }
+        : {
+            fourierOrder: "",
+            windowLength: "",
+            seasonalityPeriods: "",
+            polyorder: "",
+            regularization: "",
+            trendComponents: "",
+          };
     } else if (selectedModel === "ESN") {
-      return {
-        reservoirSize: "",
-        spectralRadius: "",
-        sparsity: "",
-        inputScaling: "",
-        regularization: "",
-        dropout: "",
-        lags: "",
-      };
+      return isEditing
+        ? {
+            reservoirSize: existingConfig.reservoir_size.toString(),
+            spectralRadius: existingConfig.spectral_radius.toString(),
+            sparsity: existingConfig.sparsity.toString(),
+            inputScaling: existingConfig.input_scaling.toString(),
+            regularization: existingConfig.regularization_esn.toString(),
+            dropout: existingConfig.dropout.toString(),
+            lags: existingConfig.lags.toString(),
+          }
+        : {
+            reservoirSize: "",
+            spectralRadius: "",
+            sparsity: "",
+            inputScaling: "",
+            regularization: "",
+            dropout: "",
+            lags: "",
+          };
     }
     return {};
   };
@@ -79,7 +100,7 @@ const SingleModelConfiguration = () => {
     try {
       if (selectedModel === "DHR") {
         const dhrConfig = {
-          forecast_id: parseInt(location.state?.forecastId),
+          forecast_id: parseInt(forecastId),
           fourier_order: parseInt(formData.fourierOrder),
           window_length: parseInt(formData.windowLength),
           seasonality_periods: formData.seasonalityPeriods,
@@ -88,16 +109,18 @@ const SingleModelConfiguration = () => {
           trend_components: parseInt(formData.trendComponents),
         };
 
-        const response = await fetch(
-          "http://localhost:8000/api/dhr-configurations",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(dhrConfig),
-          }
-        );
+        // Remove the forecast_id from PUT URL path if isEditing
+        const endpoint = isEditing
+          ? `http://localhost:8000/api/dhr-configurations/${forecastId}`
+          : "http://localhost:8000/api/dhr-configurations";
+
+        const response = await fetch(endpoint, {
+          method: isEditing ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dhrConfig),
+        });
 
         if (!response.ok) {
           // Get the error details from the response
@@ -113,12 +136,12 @@ const SingleModelConfiguration = () => {
         // Navigate to forecast result page instead of going back
         navigate("/ForecastResult", {
           state: {
-            forecastId: location.state?.forecastId,
+            forecastId,
           },
         });
       } else if (selectedModel === "ESN") {
         const esnConfig = {
-          forecast_id: parseInt(location.state?.forecastId),
+          forecast_id: parseInt(forecastId),
           reservoir_size: parseInt(formData.reservoirSize),
           spectral_radius: parseFloat(formData.spectralRadius),
           sparsity: parseFloat(formData.sparsity),
@@ -128,16 +151,18 @@ const SingleModelConfiguration = () => {
           regularization_esn: parseFloat(formData.regularization),
         };
 
-        const response = await fetch(
-          "http://localhost:8000/api/esn-configurations",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(esnConfig),
-          }
-        );
+        // Remove the forecast_id from PUT URL path if isEditing
+        const endpoint = isEditing
+          ? `http://localhost:8000/api/esn-configurations/${forecastId}`
+          : "http://localhost:8000/api/esn-configurations";
+
+        const response = await fetch(endpoint, {
+          method: isEditing ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(esnConfig),
+        });
 
         if (!response.ok) {
           throw new Error("Failed to save ESN configuration");
@@ -146,7 +171,7 @@ const SingleModelConfiguration = () => {
         // Navigate to forecast result page instead of going back
         navigate("/ForecastResult", {
           state: {
-            forecastId: location.state?.forecastId,
+            forecastId,
           },
         });
       }

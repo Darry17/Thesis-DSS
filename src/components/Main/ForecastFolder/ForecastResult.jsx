@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const ForecastResult = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { forecastId } = location.state || {};
   const [configuration, setConfiguration] = useState(null);
   const [forecastData, setForecastData] = useState(null);
@@ -394,6 +395,28 @@ const ForecastResult = () => {
     }
   };
 
+  const handleEdit = () => {
+    // Navigate to the appropriate configuration page based on model type
+    if (forecastData.model === "DHR-ESN") {
+      navigate("/HybridModelConfiguration", {
+        state: {
+          forecastId,
+          isEditing: true,
+          existingConfig: configuration,
+        },
+      });
+    } else {
+      navigate("/SingleModelConfiguration", {
+        state: {
+          forecastId,
+          model: forecastData.model,
+          isEditing: true,
+          existingConfig: configuration,
+        },
+      });
+    }
+  };
+
   if (loading) {
     return <div className="p-6 text-center">Loading forecast data...</div>;
   }
@@ -492,7 +515,9 @@ const ForecastResult = () => {
             <div>Loading configuration...</div>
           )}
           {/* Edit Button */}
-          <button className="mt-8 bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 w-full">
+          <button
+            onClick={handleEdit}
+            className="mt-8 bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600 w-full">
             Edit
           </button>
         </div>

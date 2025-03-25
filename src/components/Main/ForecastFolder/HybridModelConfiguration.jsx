@@ -4,25 +4,45 @@ import { useLocation, useNavigate } from "react-router-dom";
 const HybridModelConfiguration = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { forecastId } = location.state || {}; // Get forecastId from location state
+  const { forecastId, isEditing, existingConfig } = location.state || {};
   const [step, setStep] = useState(1); // 1 for DHR, 2 for ESN
-  const [formData, setFormData] = useState({
-    // DHR fields
-    fourierOrder: "",
-    windowLength: "",
-    seasonalityPeriods: "",
-    polyorder: "",
-    regularizationDHR: "",
-    trendComponents: "",
-    // ESN fields
-    reservoirSize: "",
-    spectralRadius: "",
-    sparsity: "",
-    inputScaling: "",
-    dropout: "",
-    lags: "",
-    regularizationESN: "",
-  });
+  const [formData, setFormData] = useState(
+    isEditing
+      ? {
+          // DHR fields
+          fourierOrder: existingConfig.fourier_order.toString(),
+          windowLength: existingConfig.window_length.toString(),
+          seasonalityPeriods: existingConfig.seasonality_periods,
+          polyorder: existingConfig.polyorder.toString(),
+          regularizationDHR: existingConfig.regularization_dhr.toString(),
+          trendComponents: existingConfig.trend_components.toString(),
+          // ESN fields
+          reservoirSize: existingConfig.reservoir_size.toString(),
+          spectralRadius: existingConfig.spectral_radius.toString(),
+          sparsity: existingConfig.sparsity.toString(),
+          inputScaling: existingConfig.input_scaling.toString(),
+          dropout: existingConfig.dropout.toString(),
+          lags: existingConfig.lags.toString(),
+          regularizationESN: existingConfig.regularization_esn.toString(),
+        }
+      : {
+          // DHR fields
+          fourierOrder: "",
+          windowLength: "",
+          seasonalityPeriods: "",
+          polyorder: "",
+          regularizationDHR: "",
+          trendComponents: "",
+          // ESN fields
+          reservoirSize: "",
+          spectralRadius: "",
+          sparsity: "",
+          inputScaling: "",
+          dropout: "",
+          lags: "",
+          regularizationESN: "",
+        }
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,28 +77,33 @@ const HybridModelConfiguration = () => {
           regularization_esn: parseFloat(formData.regularizationESN),
         };
 
-        const response = await fetch(
-          "http://localhost:8000/api/hybrid-configurations",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(hybridConfig),
-          }
-        );
+        // Choose the correct endpoint based on whether we're editing or creating
+        const endpoint = isEditing
+          ? `http://localhost:8000/api/hybrid-configurations/${forecastId}`
+          : "http://localhost:8000/api/hybrid-configurations";
+
+        const response = await fetch(endpoint, {
+          method: isEditing ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(hybridConfig),
+        });
 
         if (!response.ok) {
           const errorData = await response.json();
           console.error("Server error:", errorData);
-          throw new Error("Failed to save hybrid configuration");
+          throw new Error(
+            `Failed to ${isEditing ? "update" : "save"} hybrid configuration: ${
+              errorData.detail
+            }`
+          );
         }
 
         // Navigate to forecast result page with necessary data
         navigate("/ForecastResult", {
           state: {
             forecastId,
-            model: "DHR-ESN",
           },
         });
       } catch (error) {
