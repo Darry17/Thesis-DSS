@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navigation from "@/components/Navigation/Navigation";
 import {
+  Login,
   Dashboard,
   History,
   Forecast,
@@ -11,6 +12,7 @@ import {
   HybridModelConfiguration,
   ForecastResult,
   ViewGraph,
+  ViewLogs,
 } from "@/components/Main";
 
 const App = () => {
@@ -19,7 +21,8 @@ const App = () => {
       <Navigation />
       <Routes>
         {/* Main routes */}
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/history" element={<History />} />
 
@@ -36,6 +39,7 @@ const App = () => {
         />
         <Route path="/result" element={<ForecastResult />} />
         <Route path="/view-graph" element={<ViewGraph />} />
+        <Route path="/view-logs" element={<ViewLogs />} />
       </Routes>
     </Router>
   );

@@ -82,7 +82,13 @@ const ViewGraph = () => {
   // Action handlers
   const handleSaveForecast = async () => {
     try {
-      console.log("Saving forecast:", forecastId);
+      console.log("Saving forecast with ID:", forecastId);
+
+      if (!forecastId) {
+        console.error("Missing forecastId - cannot save history log");
+        alert("Error: Missing forecast ID. Cannot save to history log.");
+        return;
+      }
 
       // First, fetch the forecast details to get the model type
       const response = await fetch(
@@ -94,7 +100,19 @@ const ViewGraph = () => {
       }
 
       const forecastData = await response.json();
-      const modelType = forecastData.model.toLowerCase(); // Get the model type (esn, dhr, hybrid)
+      let modelType = forecastData.model.toLowerCase(); // Get the model type (esn, dhr, hybrid)
+
+      // For file naming purposes
+      let fileModelType = modelType;
+
+      // For the model column in history logs
+      let displayModelType = modelType.toUpperCase();
+
+      // If the model is dhr-esn, set file naming to use "hybrid" but keep display as DHR-ESN
+      if (modelType === "dhr-esn") {
+        fileModelType = "hybrid";
+        displayModelType = "DHR-ESN";
+      }
 
       // Format the current date as YYYY-MM-DD
       const today = new Date();
@@ -103,9 +121,23 @@ const ViewGraph = () => {
       ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
       // Create the file_name in the required format: model-date
-      const fileName = `${modelType}-${formattedDate}`;
+      const fileName = `${fileModelType}-${formattedDate}`;
 
-      // Create the history log entry
+      // Get metric values (either from state or use defaults)
+      const rmseValue = parseFloat(metrics.rmse || "3");
+      const cvrmseValue = parseFloat(metrics.cvrmse || "3");
+      const maeValue = parseFloat(metrics.mae || "3");
+
+      console.log("Creating history log with metrics:", {
+        file_name: fileName,
+        model: displayModelType,
+        forecast_id: forecastId,
+        rmse: rmseValue,
+        cvrmse: cvrmseValue,
+        mae: maeValue,
+      });
+
+      // Create the history log entry with metrics
       const historyLogResponse = await fetch(
         "http://localhost:8000/api/history-logs",
         {
@@ -115,8 +147,11 @@ const ViewGraph = () => {
           },
           body: JSON.stringify({
             file_name: fileName,
-            model: modelType.toUpperCase(),
+            model: displayModelType,
             forecast_id: forecastId,
+            rmse: rmseValue,
+            cvrmse: cvrmseValue,
+            mae: maeValue,
           }),
         }
       );
@@ -128,6 +163,9 @@ const ViewGraph = () => {
           `Error creating history log: ${historyLogResponse.status} ${historyLogResponse.statusText} - ${errorText}`
         );
       }
+
+      const responseData = await historyLogResponse.json();
+      console.log("History log created successfully:", responseData);
 
       // Success message
       alert(`Forecast saved successfully as ${fileName}`);
@@ -151,38 +189,31 @@ const ViewGraph = () => {
 
   // Graph placeholder component
   const GraphPlaceholder = ({ title }) => (
-    <div className="border rounded-md p-4 bg-white shadow">
+    <div className="border rounded-md p-4 bg-white shadow mb-6">
       <h3 className="text-lg font-medium mb-2">{title}</h3>
-      <div className="aspect-square w-full bg-gray-100 relative">
-        {/* Graph axes */}
-        <div className="absolute left-8 top-0 h-full border-l border-gray-300"></div>
-        <div className="absolute left-0 bottom-8 w-full border-b border-gray-300"></div>
-
-        {/* Y-axis labels */}
-        <div className="absolute left-2 top-2 text-xs text-gray-500">100</div>
-        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-gray-500">
-          50
-        </div>
-        <div className="absolute left-2 bottom-4 text-xs text-gray-500">0</div>
-
-        {/* X-axis labels */}
-        <div className="absolute left-8 bottom-2 text-xs text-gray-500">50</div>
-        <div className="absolute right-2 bottom-2 text-xs text-gray-500">
-          100
-        </div>
-
-        {/* Example SVG line graph */}
-        <svg
-          className="absolute inset-0 p-8"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none">
-          <path
-            d="M0,20 C10,15 20,35 30,25 C40,15 50,25 60,20 C70,15 80,30 90,40 L90,100 L0,100 Z"
+      <div className="h-60 bg-gray-50 flex justify-center items-center">
+        <div className="text-gray-500">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-16 w-16 mx-auto mb-4"
             fill="none"
-            stroke="green"
-            strokeWidth="2"
-          />
-        </svg>
+            viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+            />
+          </svg>
+          <p className="text-xl font-medium">
+            Graph Visualization Not Available
+          </p>
+          <p className="mt-2">
+            Real-time graph data would be displayed here in a production
+            environment.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -190,10 +221,10 @@ const ViewGraph = () => {
   // Evaluation metrics component
   const EvaluationMetrics = () => (
     <div className="border rounded-md p-4 bg-white shadow">
-      <h3 className="text-lg font-medium mb-3">Evaluation Metrics</h3>
+      <h3 className="text-2xl font-bold mb-6">Evaluation Metrics</h3>
       <div className="space-y-4">
         <div>
-          <label className="block text-sm text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Root Mean Squared Error (RMSE)
           </label>
           <input
@@ -205,7 +236,7 @@ const ViewGraph = () => {
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Coefficient Variation of the RMSE (CV(RMSE))
           </label>
           <input
@@ -217,7 +248,7 @@ const ViewGraph = () => {
           />
         </div>
         <div>
-          <label className="block text-sm text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Mean Absolute Error (MAE)
           </label>
           <input

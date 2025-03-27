@@ -58,8 +58,10 @@ class HistoryLog(Base):
     forecast_id = Column(Integer, nullable=True)
     file_name = Column(String(255), nullable=False)
     model = Column(String(50), nullable=False)
-    action = Column(String(100), nullable=False)
     date = Column(DateTime, default=datetime.now)
+    rmse = Column(Float, nullable=False, default=0)
+    cvrmse = Column(Float, nullable=False, default=0)
+    mae = Column(Float, nullable=False, default=0)
 
 class JsonData(BaseDataModel):
     __tablename__ = "json_data"
@@ -159,8 +161,11 @@ class JsonDataResponse(BaseModel):
 class HistoryLogCreate(BaseModel):
     file_name: str
     model: str
-    action: str
+    action: Optional[str] = "Saved Forecast"
     forecast_id: Optional[int] = None
+    rmse: Optional[float] = 0
+    cvrmse: Optional[float] = 0
+    mae: Optional[float] = 0
     
     model_config = {
         'from_attributes': True
@@ -171,8 +176,10 @@ class HistoryLogResponse(BaseModel):
     forecast_id: Optional[int] = None
     file_name: str
     model: str
-    action: str
     date: datetime
+    rmse: float = 0
+    cvrmse: float = 0
+    mae: float = 0
     
     model_config = {
         'from_attributes': True
@@ -876,6 +883,9 @@ async def create_history_log(log: HistoryLogCreate, db: Session = Depends(get_db
     try:
         logger.info(f"Creating history log with data: {log.dict()}")
         
+        # Debug log the metric values specifically
+        logger.info(f"Metrics received - RMSE: {log.rmse}, CVRMSE: {log.cvrmse}, MAE: {log.mae}")
+        
         # Convert to integer if provided as string
         forecast_id = None
         if log.forecast_id:
@@ -885,15 +895,17 @@ async def create_history_log(log: HistoryLogCreate, db: Session = Depends(get_db
                 logger.warning(f"Invalid forecast_id format: {log.forecast_id}, setting to None")
                 forecast_id = None
         
-        # Create the log entry
+        # Create the log entry with metric values explicitly cast to float
         db_log = HistoryLog(
             file_name=log.file_name,
             model=log.model,
-            action=log.action,
-            forecast_id=forecast_id
+            forecast_id=forecast_id,
+            rmse=float(log.rmse or 0),
+            cvrmse=float(log.cvrmse or 0),
+            mae=float(log.mae or 0)
         )
         
-        logger.info(f"Attempting to add history log to database: {db_log.__dict__}")
+        logger.info(f"History log object created with metrics - RMSE: {db_log.rmse}, CVRMSE: {db_log.cvrmse}, MAE: {db_log.mae}")
         db.add(db_log)
         
         try:
@@ -910,8 +922,11 @@ async def create_history_log(log: HistoryLogCreate, db: Session = Depends(get_db
             "forecast_id": db_log.forecast_id,
             "file_name": db_log.file_name,
             "model": db_log.model,
-            "action": db_log.action,
-            "date": db_log.date
+            "date": db_log.date,
+            "rmse": db_log.rmse,
+            "cvrmse": db_log.cvrmse,
+            "mae": db_log.mae
+            # action is not included in response
         }
 
     except Exception as e:
@@ -936,8 +951,10 @@ async def get_history_log(log_id: int, db: Session = Depends(get_db)):
             "forecast_id": log.forecast_id,
             "file_name": log.file_name,
             "model": log.model,
-            "action": log.action,
-            "date": log.date
+            "date": log.date,
+            "rmse": log.rmse,
+            "cvrmse": log.cvrmse,
+            "mae": log.mae
         }
     except Exception as e:
         logger.error(f"Error fetching history log {log_id}: {str(e)}")

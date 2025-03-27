@@ -278,10 +278,20 @@ const SingleModelConfiguration = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          `Failed to save configuration: ${errorData.detail || "Unknown error"}`
-        );
+        const errorText = await response.text();
+        let errorMessage = "Unknown error";
+
+        try {
+          // Try to parse as JSON
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.detail || JSON.stringify(errorData);
+        } catch (e) {
+          // If not valid JSON, use the raw text
+          errorMessage = errorText || `Server returned ${response.status}`;
+        }
+
+        console.error("API Error:", errorMessage);
+        throw new Error(`Failed to save configuration: ${errorMessage}`);
       }
 
       navigate("/result", {

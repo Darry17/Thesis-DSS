@@ -216,8 +216,6 @@ const Forecast = () => {
       formData.append("file", blob, newFilename);
       formData.append("original_filename", originalFilename);
 
-      console.log("Uploading file with original filename:", originalFilename);
-
       const response = await fetch(
         "http://localhost:8000/storage/upload_csv/",
         {

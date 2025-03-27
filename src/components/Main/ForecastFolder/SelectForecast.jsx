@@ -34,7 +34,6 @@ const SelectForecast = () => {
       }
 
       const jsonData = await jsonDataResponse.json();
-      console.log("JSON data details:", jsonData);
 
       setFileData({
         filename: data.filename,
@@ -160,11 +159,6 @@ const SelectForecast = () => {
 
     // Pass the original filename to preserve data lineage
     formData.append("original_filename", fileData.original_filename);
-
-    console.log(
-      "Processing data with original filename:",
-      fileData.original_filename
-    );
 
     const response = await fetch(
       "http://localhost:8000/storage/process_model_data/",
