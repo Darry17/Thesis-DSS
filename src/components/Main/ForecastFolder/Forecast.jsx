@@ -177,7 +177,7 @@ const Forecast = () => {
   const uploadJsonToStorage = async (jsonData) => {
     try {
       const originalName = file.name.replace(/\.csv$/, "");
-      const originalFilename = file.name; // Store the original CSV filename
+      const originalFilename = file.name; // Keep the full original filename
 
       // Determine time format prefix
       const timeColumn = Object.keys(jsonData[0]).find((key) =>
@@ -227,9 +227,6 @@ const Forecast = () => {
       );
 
       if (response.ok) {
-        const responseData = await response.json();
-        console.log("Upload response:", responseData);
-
         // Create forecast entry with original filename
         const forecastResponse = await fetch(
           "http://localhost:8000/api/forecasts",
@@ -250,7 +247,6 @@ const Forecast = () => {
 
         if (!forecastResponse.ok) {
           const errorText = await forecastResponse.text();
-          console.error("Forecast creation failed:", errorText);
           throw new Error(`Failed to create forecast entry: ${errorText}`);
         }
 

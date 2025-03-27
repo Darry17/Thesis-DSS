@@ -51,6 +51,16 @@ class BaseDataModel(Base):
     upload_date = Column(DateTime, default=datetime.now)
     original_filename = Column(String(255), nullable=True)
 
+class HistoryLog(Base):
+    __tablename__ = "history_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    forecast_id = Column(Integer, nullable=True)
+    file_name = Column(String(255), nullable=False)
+    model = Column(String(50), nullable=False)
+    action = Column(String(100), nullable=False)
+    date = Column(DateTime, default=datetime.now)
+
 class JsonData(BaseDataModel):
     __tablename__ = "json_data"
 
@@ -141,6 +151,28 @@ class JsonDataResponse(BaseModel):
     filename: str
     original_filename: Optional[str] = None
     upload_date: datetime
+    
+    model_config = {
+        'from_attributes': True
+    }
+
+class HistoryLogCreate(BaseModel):
+    file_name: str
+    model: str
+    action: str
+    forecast_id: Optional[int] = None
+    
+    model_config = {
+        'from_attributes': True
+    }
+
+class HistoryLogResponse(BaseModel):
+    id: int
+    forecast_id: Optional[int] = None
+    file_name: str
+    model: str
+    action: str
+    date: datetime
     
     model_config = {
         'from_attributes': True
@@ -837,6 +869,87 @@ async def get_json_data(json_id: int, db: Session = Depends(get_db)):
         raise
     except Exception as e:
         logger.error(f"Error fetching JSON data: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/history-logs")
+async def create_history_log(log: HistoryLogCreate, db: Session = Depends(get_db)):
+    try:
+        logger.info(f"Creating history log with data: {log.dict()}")
+        
+        # Convert to integer if provided as string
+        forecast_id = None
+        if log.forecast_id:
+            try:
+                forecast_id = int(log.forecast_id)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid forecast_id format: {log.forecast_id}, setting to None")
+                forecast_id = None
+        
+        # Create the log entry
+        db_log = HistoryLog(
+            file_name=log.file_name,
+            model=log.model,
+            action=log.action,
+            forecast_id=forecast_id
+        )
+        
+        logger.info(f"Attempting to add history log to database: {db_log.__dict__}")
+        db.add(db_log)
+        
+        try:
+            db.commit()
+            db.refresh(db_log)
+            logger.info(f"Successfully created history log with ID: {db_log.id}")
+        except Exception as commit_error:
+            db.rollback()
+            logger.error(f"Database commit error: {str(commit_error)}")
+            raise commit_error
+
+        return {
+            "id": db_log.id,
+            "forecast_id": db_log.forecast_id,
+            "file_name": db_log.file_name,
+            "model": db_log.model,
+            "action": db_log.action,
+            "date": db_log.date
+        }
+
+    except Exception as e:
+        logger.error(f"Error creating history log: {str(e)}")
+        db.rollback()
+        # Return a detailed error message
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to create history log: {str(e)}"
+        )
+
+@app.get("/api/history-logs/{log_id}", response_model=HistoryLogResponse)
+async def get_history_log(log_id: int, db: Session = Depends(get_db)):
+    try:
+        log = db.query(HistoryLog).filter(HistoryLog.id == log_id).first()
+        
+        if not log:
+            raise HTTPException(status_code=404, detail=f"History log with ID {log_id} not found")
+        
+        return {
+            "id": log.id,
+            "forecast_id": log.forecast_id,
+            "file_name": log.file_name,
+            "model": log.model,
+            "action": log.action,
+            "date": log.date
+        }
+    except Exception as e:
+        logger.error(f"Error fetching history log {log_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/history-logs", response_model=list[HistoryLogResponse])
+async def get_all_history_logs(db: Session = Depends(get_db)):
+    try:
+        logs = db.query(HistoryLog).order_by(desc(HistoryLog.date)).all()
+        return logs
+    except Exception as e:
+        logger.error(f"Error fetching history logs: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
