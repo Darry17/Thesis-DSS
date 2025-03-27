@@ -24,6 +24,13 @@ const Navigation = () => {
             History
           </Link>
         </li>
+        <li>
+          <Link
+            to="/settings"
+            className="block py-2 px-4 hover:bg-gray-700 rounded">
+            Settings
+          </Link>
+        </li>
       </ul>
     </div>
   );
