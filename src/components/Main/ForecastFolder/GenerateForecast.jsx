@@ -46,6 +46,7 @@ const GenerateForecast = () => {
 
   const [formData, setFormData] = useState({
     filename: null,
+    original_filename: null,
     granularity: initialGranularity,
     steps: initialStepOptions.length ? initialStepOptions[0].value : "",
     modelType: "",
@@ -81,12 +82,14 @@ const GenerateForecast = () => {
 
         setFileData({
           filename: latestFile.filename,
+          original_filename: latestFile.original_filename,
           upload_date: latestFile.upload_date,
         });
 
         setFormData((prev) => ({
           ...prev,
           filename: latestFile.filename,
+          original_filename: latestFile.original_filename,
           granularity: getGranularityFromFilename(latestFile.filename),
         }));
       } catch (err) {
@@ -130,6 +133,7 @@ const GenerateForecast = () => {
 
       const forecastData = {
         filename: fileData.filename,
+        original_filename: fileData.original_filename,
         forecast_model: formData.model,
         steps: formData.steps,
         granularity: formData.granularity,
@@ -192,7 +196,9 @@ const GenerateForecast = () => {
           </label>
           <div className="p-3 bg-gray-50 rounded-md">
             <p className="text-sm text-gray-600">
-              {fileData?.filename || "No file selected"}
+              {fileData?.original_filename ||
+                fileData?.filename ||
+                "No file selected"}
             </p>
             {fileData?.upload_date && (
               <p className="text-xs text-gray-500">

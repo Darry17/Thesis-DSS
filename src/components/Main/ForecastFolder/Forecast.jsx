@@ -177,6 +177,7 @@ const Forecast = () => {
   const uploadJsonToStorage = async (jsonData) => {
     try {
       const originalName = file.name.replace(/\.csv$/, "");
+      const originalFilename = file.name; // Store the original CSV filename
 
       // Determine time format prefix
       const timeColumn = Object.keys(jsonData[0]).find((key) =>
@@ -210,8 +211,12 @@ const Forecast = () => {
         type: "application/json",
       });
 
+      // Create form data with the original filename properly set
       const formData = new FormData();
       formData.append("file", blob, newFilename);
+      formData.append("original_filename", originalFilename);
+
+      console.log("Uploading file with original filename:", originalFilename);
 
       const response = await fetch(
         "http://localhost:8000/storage/upload_csv/",
@@ -222,6 +227,33 @@ const Forecast = () => {
       );
 
       if (response.ok) {
+        const responseData = await response.json();
+        console.log("Upload response:", responseData);
+
+        // Create forecast entry with original filename
+        const forecastResponse = await fetch(
+          "http://localhost:8000/api/forecasts",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              filename: newFilename,
+              original_filename: originalFilename,
+              forecast_model: "pending", // This will be updated when the model is selected
+              steps: "pending",
+              granularity: prefix,
+            }),
+          }
+        );
+
+        if (!forecastResponse.ok) {
+          const errorText = await forecastResponse.text();
+          console.error("Forecast creation failed:", errorText);
+          throw new Error(`Failed to create forecast entry: ${errorText}`);
+        }
+
         setMessage("File uploaded successfully!");
         setTimeout(() => {
           navigate("/select-forecast");

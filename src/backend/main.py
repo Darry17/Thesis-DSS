@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine, Column, Integer, String, desc, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
@@ -49,6 +49,7 @@ class BaseDataModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String(255), nullable=False)
     upload_date = Column(DateTime, default=datetime.now)
+    original_filename = Column(String(255), nullable=True)
 
 class JsonData(BaseDataModel):
     __tablename__ = "json_data"
@@ -67,6 +68,7 @@ class Forecast(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String(255), nullable=False)
+    original_filename = Column(String(255), nullable=True)
     forecast_model = Column(String(50), nullable=False)
     steps = Column(String(50), nullable=False)
     granularity = Column(String(50), nullable=False)
@@ -134,21 +136,36 @@ DATA_MODELS = {
 }
 
 # Pydantic models for request/response
+class JsonDataResponse(BaseModel):
+    id: int
+    filename: str
+    original_filename: Optional[str] = None
+    upload_date: datetime
+    
+    model_config = {
+        'from_attributes': True
+    }
+
 class FileResponse(BaseModel):
     status: str
     file_path: str
+    original_filename: Optional[str] = None
 
 class UploadResponse(BaseModel):
     status: str
     file_path: str
     filename: str
+    original_filename: Optional[str] = None
 
 class LatestFileResponse(BaseModel):
     id: int
     filename: str
+    original_filename: Optional[str] = None
+    upload_date: Optional[datetime] = None
 
 class ForecastCreate(BaseModel):
     filename: str
+    original_filename: Optional[str] = None
     forecast_model: str
     steps: str
     granularity: str
@@ -237,10 +254,8 @@ async def read_json_file(filename: str):
 
         with open(file_path, 'r') as f:
             content = f.read()
-            logger.info(f"Raw content: {content[:100]}...")
             data = json.loads(content)
         
-        logger.info(f"Parsed data: {data[:2] if isinstance(data, list) else data}")
         return data
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {str(e)}")
@@ -250,10 +265,14 @@ async def read_json_file(filename: str):
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
 @app.post("/storage/process_model_data/")
-async def process_model_data(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def process_model_data(
+    file: UploadFile = File(...), 
+    original_filename: str = Form(None),
+    db: Session = Depends(get_db)
+):
     try:
         filename = file.filename
-        logger.info(f"Processing file: {filename}")
+        logger.info(f"Processing file: {filename}, Original file: {original_filename}")
         
         # Determine subfolder and data model
         if "hourly" in filename:
@@ -277,17 +296,20 @@ async def process_model_data(file: UploadFile = File(...), db: Session = Depends
         with open(file_path, "wb") as f:
             f.write(content)
 
-        # Save to database
-        db_entry = data_model(filename=filename)
+        # Save to database with original filename
+        db_entry = data_model(
+            filename=filename,
+            original_filename=original_filename or "Unknown"
+        )
         db.add(db_entry)
         db.commit()
         db.refresh(db_entry)
-
-        logger.info(f"File saved to: {file_path} and database table: {data_model.__tablename__}")
+        
         return {
             "status": "File processed", 
             "file_path": file_path,
             "filename": filename,
+            "original_filename": original_filename,
             "table": data_model.__tablename__,
             "upload_date": db_entry.upload_date
         }
@@ -298,10 +320,14 @@ async def process_model_data(file: UploadFile = File(...), db: Session = Depends
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/storage/upload/", response_model=FileResponse)
-async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_file(
+    file: UploadFile = File(...), 
+    original_filename: str = Form(None),
+    db: Session = Depends(get_db)
+):
     try:
         filename = file.filename
-        logger.info(f"Received file: {filename}")
+        logger.info(f"Received file: {filename}, Original file: {original_filename}")
 
         # Determine data type from filename
         pattern = r"^(hourly|daily|weekly)_(solar|wind)_data_\d{4}_\d{2}_\d{2}T\d{2}_\d{2}_\d{2}_\d{3}Z\.json$"
@@ -326,17 +352,28 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
 
         # Create DB entry if valid model type
         if data_model:
-            db_entry = data_model(filename=filename)
+            db_entry = data_model(
+                filename=filename,
+                original_filename=original_filename or "Unknown"
+            )
             db.add(db_entry)
             db.commit()
 
-        return {"status": "File uploaded successfully", "file_path": file_location}
+        return {
+            "status": "File uploaded successfully", 
+            "file_path": file_location,
+            "original_filename": original_filename
+        }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/storage/upload_csv/", response_model=UploadResponse)
-async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_csv(
+    file: UploadFile = File(...), 
+    original_filename: str = Form(...),
+    db: Session = Depends(get_db)
+):
     try:
         filename = file.filename
         file_location = os.path.join(BASE_STORAGE_PATH, "json", filename)
@@ -346,17 +383,26 @@ async def upload_csv(file: UploadFile = File(...), db: Session = Depends(get_db)
         with open(file_location, "wb") as f:
             f.write(content)
 
-        db_entry = JsonData(filename=filename)
+        # Store the original CSV filename in the database
+        db_entry = JsonData(
+            filename=filename, 
+            original_filename=original_filename
+        )
         db.add(db_entry)
         db.commit()
+        db.refresh(db_entry)
+
+        logger.info(f"Uploaded JSON file: {filename}, Original CSV: {original_filename}")
 
         return {
             "status": "File uploaded successfully", 
             "file_path": file_location,
-            "filename": filename
+            "filename": filename,
+            "original_filename": original_filename
         }
 
     except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/storage/latest-file/", response_model=LatestFileResponse)
@@ -370,7 +416,12 @@ async def get_latest_file(data_type: str, db: Session = Depends(get_db)):
         if not latest_file:
             raise HTTPException(status_code=404, detail=f"No files found in the {data_model.__tablename__} table.")
 
-        return {"id": latest_file.id, "filename": latest_file.filename}
+        return {
+            "id": latest_file.id, 
+            "filename": latest_file.filename, 
+            "original_filename": latest_file.original_filename,
+            "upload_date": latest_file.upload_date
+        }
 
     except HTTPException:
         raise
@@ -401,6 +452,7 @@ async def get_latest_by_pattern(filename: str, db: Session = Depends(get_db)):
         return {
             "id": latest_file.id, 
             "filename": latest_file.filename,
+            "original_filename": latest_file.original_filename,
             "upload_date": latest_file.upload_date
         }
 
@@ -416,6 +468,7 @@ async def create_forecast(forecast: ForecastCreate, db: Session = Depends(get_db
         
         db_forecast = Forecast(
             filename=forecast.filename,
+            original_filename=forecast.original_filename,
             forecast_model=forecast.forecast_model,
             steps=forecast.steps,
             granularity=forecast.granularity
@@ -430,6 +483,7 @@ async def create_forecast(forecast: ForecastCreate, db: Session = Depends(get_db
         return {
             "id": db_forecast.id,
             "filename": db_forecast.filename,
+            "original_filename": db_forecast.original_filename,
             "forecast_model": db_forecast.forecast_model,
             "steps": db_forecast.steps,
             "granularity": db_forecast.granularity,
@@ -452,6 +506,7 @@ async def get_forecast(forecast_id: int, db: Session = Depends(get_db)):
         return {
             "id": forecast.id,
             "filename": forecast.filename,
+            "original_filename": forecast.original_filename,
             "model": forecast.forecast_model,
             "steps": forecast.steps,
             "granularity": forecast.granularity,
@@ -484,8 +539,6 @@ async def create_dhr_configuration(config: DHRConfigurationCreate, db: Session =
         db.add(db_config)
         db.commit()
         db.refresh(db_config)
-
-        logger.info(f"Created DHR configuration with ID: {db_config.id}")
 
         return {
             "id": db_config.id,
@@ -575,9 +628,7 @@ async def create_esn_configuration(config: ESNConfigurationCreate, db: Session =
         db.add(db_config)
         db.commit()
         db.refresh(db_config)
-
-        logger.info(f"Created ESN configuration with ID: {db_config.id}")
-
+        
         return {
             "id": db_config.id,
             "message": "ESN configuration created successfully"
@@ -676,8 +727,6 @@ async def create_hybrid_configuration(config: HybridConfigurationCreate, db: Ses
         db.commit()
         db.refresh(db_config)
         
-        logger.info(f"Created hybrid configuration with ID: {db_config.id}")
-        
         return {
             "id": db_config.id,
             "message": "Hybrid configuration created successfully"
@@ -773,6 +822,21 @@ async def update_hybrid_configuration(forecast_id: int, config: HybridConfigurat
     except Exception as e:
         logger.error(f"Error updating hybrid configuration: {str(e)}")
         db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/storage/json-data/{json_id}", response_model=JsonDataResponse)
+async def get_json_data(json_id: int, db: Session = Depends(get_db)):
+    try:
+        json_data = db.query(JsonData).filter(JsonData.id == json_id).first()
+        if not json_data:
+            raise HTTPException(status_code=404, detail=f"JSON data with ID {json_id} not found")
+        
+        logger.info(f"Retrieved JSON data: {json_data.filename}, Original file: {json_data.original_filename}")
+        return json_data
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching JSON data: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

@@ -413,7 +413,7 @@ const ForecastResult = () => {
           {/* Graph Card */}
           <div className="bg-white p-4 rounded-lg shadow">
             <h3 className="text-sm text-gray-500 mb-2">
-              {forecastData?.filename || "No filename available"}
+              {forecastData?.original_filename || "No filename available"}
             </h3>
             <h2 className="font-bold mb-4">
               {forecastData?.model || "No model selected"}

@@ -5,6 +5,7 @@ const SelectForecast = () => {
   const navigate = useNavigate();
   const [fileData, setFileData] = useState({
     filename: "No file selected",
+    original_filename: "",
     upload_date: null,
   });
   const [loading, setLoading] = useState(true);
@@ -23,8 +24,22 @@ const SelectForecast = () => {
         throw new Error("Failed to fetch latest file");
       }
       const data = await response.json();
+
+      const jsonDataResponse = await fetch(
+        `http://localhost:8000/storage/json-data/${data.id}`
+      );
+
+      if (!jsonDataResponse.ok) {
+        throw new Error("Failed to fetch original filename");
+      }
+
+      const jsonData = await jsonDataResponse.json();
+      console.log("JSON data details:", jsonData);
+
       setFileData({
         filename: data.filename,
+        original_filename:
+          jsonData.original_filename || "Unknown original file",
         upload_date: new Date(data.upload_date).toLocaleString(),
       });
     } catch (err) {
@@ -143,6 +158,14 @@ const SelectForecast = () => {
       newFilename
     );
 
+    // Pass the original filename to preserve data lineage
+    formData.append("original_filename", fileData.original_filename);
+
+    console.log(
+      "Processing data with original filename:",
+      fileData.original_filename
+    );
+
     const response = await fetch(
       "http://localhost:8000/storage/process_model_data/",
       {
@@ -161,7 +184,7 @@ const SelectForecast = () => {
   return (
     <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
       {error && <p className="text-red-500 mb-4">{error}</p>}
-      <h1 className="text-2xl font-bold mb-6">Dataset Selection</h1>
+
       <div className="flex gap-4">
         {[
           { name: "Solar", color: "blue" },
