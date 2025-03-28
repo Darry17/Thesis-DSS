@@ -12,22 +12,22 @@ const Settings = () => {
     const fetchAccounts = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:8000/users", {
+        const response = await fetch("http://localhost:8000/users/", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        if (!response.ok) {
-          throw new Error("Failed to fetch accounts");
-        }
+
+        if (!response.ok) throw new Error("Failed to fetch accounts");
+
         const data = await response.json();
-        const formattedData = data.map((user) => ({
-          id: user.id,
-          username: user.username,
-          accessControl: user.access_control,
-          date: user.created_at,
-        }));
-        setAccounts(formattedData);
+        setAccounts(
+          data.map((user) => ({
+            ...user,
+            accessControl: user.access_control, // Map backend field to frontend
+            date: user.created_at, // Map created_at to date
+          }))
+        );
       } catch (error) {
         console.error("Error fetching accounts:", error);
       }

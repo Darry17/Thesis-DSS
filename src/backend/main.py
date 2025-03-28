@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import create_engine, Column, Integer, String, desc, DateTime, Float
@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import Optional, List
+
 import os
 import re
 import json
@@ -140,9 +141,10 @@ class HybridConfiguration(Base):
 # New: User Model for Authentication
 class User(Base):
     __tablename__ = "users"
-    id = Column(Integer, primary_key=True, index=True)
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)  # This is key
     username = Column(String(50), unique=True, nullable=False)
-    password = Column(String(255), nullable=False)  # Stores hashed password
+    password = Column(String(255), nullable=False)
     access_control = Column(String(20), nullable=False)
     created_at = Column(DateTime, default=datetime.now)
 
@@ -384,10 +386,33 @@ def get_admin_user(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
-# Get all users (accessible to all authenticated users)
+@app.get("/api/validate-token")
+async def validate_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user = db.query(User).filter(User.username == payload.get("sub")).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "id": user.id,
+            "username": user.username,
+            "access_control": user.access_control
+        }
+    except jwt.PyJWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
 @app.get("/users", response_model=List[UserResponse])
-async def read_users(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+async def read_users(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)  # Add authentication
+):
     users = db.query(User).all()
+    if not users:
+        raise HTTPException(status_code=404, detail="No users found")
     return users
 
 # Create a new user (admin-only)

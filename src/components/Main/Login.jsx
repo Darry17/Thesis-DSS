@@ -16,8 +16,7 @@ const Login = () => {
         password,
       });
       // Store the token in localStorage
-      const { access_token } = response.data;
-      localStorage.setItem("token", access_token);
+      localStorage.setItem("token", response.data.access_token);
       // Redirect to dashboard
       navigate("/dashboard");
     } catch (error) {
