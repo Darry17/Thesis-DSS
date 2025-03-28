@@ -4,13 +4,15 @@ from sqlalchemy import create_engine, Column, Integer, String, desc, DateTime, F
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import re
 import json
 import logging
 from dotenv import load_dotenv
 from typing import Optional
+import jwt  # For JWT token generation
+from passlib.context import CryptContext  # For password hashing
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +45,7 @@ os.makedirs(BASE_STORAGE_PATH, exist_ok=True)
 
 FOLDERS = ["hourly", "daily", "weekly", "others", "json"]
 
-# SQLAlchemy models
+# SQLAlchemy Models
 class BaseDataModel(Base):
     __abstract__ = True
     id = Column(Integer, primary_key=True, index=True)
@@ -53,7 +55,6 @@ class BaseDataModel(Base):
 
 class HistoryLog(Base):
     __tablename__ = "history_logs"
-    
     id = Column(Integer, primary_key=True, index=True)
     forecast_id = Column(Integer, nullable=True)
     file_name = Column(String(255), nullable=False)
@@ -77,7 +78,6 @@ class WeeklyData(BaseDataModel):
 
 class Forecast(Base):
     __tablename__ = "forecasts"
-    
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String(255), nullable=False)
     original_filename = Column(String(255), nullable=True)
@@ -88,7 +88,6 @@ class Forecast(Base):
 
 class DHRConfiguration(Base):
     __tablename__ = "dhr_configurations"
-    
     id = Column(Integer, primary_key=True, index=True)
     forecast_id = Column(Integer, nullable=False)
     fourier_order = Column(Integer, nullable=False)
@@ -102,7 +101,6 @@ class DHRConfiguration(Base):
 
 class ESNConfiguration(Base):
     __tablename__ = "esn_configurations"
-    
     id = Column(Integer, primary_key=True, index=True)
     forecast_id = Column(Integer, nullable=False)
     reservoir_size = Column(Integer, nullable=False)
@@ -117,7 +115,6 @@ class ESNConfiguration(Base):
 
 class HybridConfiguration(Base):
     __tablename__ = "hybrid_configurations"
-    
     id = Column(Integer, primary_key=True, index=True)
     forecast_id = Column(Integer, nullable=False)
     fourier_order = Column(Integer, nullable=False)
@@ -136,8 +133,37 @@ class HybridConfiguration(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
-# Create all tables
+# New: User Model for Authentication
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)  # Stores hashed password
+    access_control = Column(String(20), nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+
+# Create all tables in the database
 Base.metadata.create_all(bind=engine)
+
+# New: Password Hashing Setup
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# New: JWT Configuration
+SECRET_KEY = os.getenv('SECRET_KEY')  # Add to .env file
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# New: Helper Function to Verify Password
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+# New: Helper Function to Create JWT Token
+def create_access_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 # Data model mapping
 DATA_MODELS = {
@@ -147,16 +173,13 @@ DATA_MODELS = {
     "json": JsonData
 }
 
-# Pydantic models for request/response
+# Pydantic Models
 class JsonDataResponse(BaseModel):
     id: int
     filename: str
     original_filename: Optional[str] = None
     upload_date: datetime
-    
-    model_config = {
-        'from_attributes': True
-    }
+    model_config = {'from_attributes': True}
 
 class HistoryLogCreate(BaseModel):
     file_name: str
@@ -166,10 +189,7 @@ class HistoryLogCreate(BaseModel):
     rmse: Optional[float] = 0
     cvrmse: Optional[float] = 0
     mae: Optional[float] = 0
-    
-    model_config = {
-        'from_attributes': True
-    }
+    model_config = {'from_attributes': True}
 
 class HistoryLogResponse(BaseModel):
     id: int
@@ -180,10 +200,7 @@ class HistoryLogResponse(BaseModel):
     rmse: float = 0
     cvrmse: float = 0
     mae: float = 0
-    
-    model_config = {
-        'from_attributes': True
-    }
+    model_config = {'from_attributes': True}
 
 class FileResponse(BaseModel):
     status: str
@@ -208,10 +225,7 @@ class ForecastCreate(BaseModel):
     forecast_model: str
     steps: str
     granularity: str
-
-    model_config = {
-        'from_attributes': True
-    }
+    model_config = {'from_attributes': True}
 
 class DHRConfigurationCreate(BaseModel):
     forecast_id: int
@@ -221,10 +235,7 @@ class DHRConfigurationCreate(BaseModel):
     polyorder: float
     regularization_dhr: float
     trend_components: int
-
-    model_config = {
-        'from_attributes': True
-    }
+    model_config = {'from_attributes': True}
 
 class ESNConfigurationCreate(BaseModel):
     forecast_id: int
@@ -235,10 +246,7 @@ class ESNConfigurationCreate(BaseModel):
     dropout: float
     lags: int
     regularization_esn: float
-
-    model_config = {
-        'from_attributes': True
-    }
+    model_config = {'from_attributes': True}
 
 class HybridConfigurationCreate(BaseModel):
     forecast_id: int
@@ -255,10 +263,12 @@ class HybridConfigurationCreate(BaseModel):
     dropout: float
     lags: int
     regularization_esn: float
+    model_config = {'from_attributes': True}
 
-    model_config = {
-        'from_attributes': True
-    }
+# New: Pydantic Model for Login Request
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 # Database session dependency
 def get_db():
@@ -286,15 +296,12 @@ async def read_json_file(filename: str):
     try:
         logger.info(f"Reading file: {filename}")
         file_path = get_file_path(filename)
-        
         if not file_path:
             logger.error(f"File not found: {filename}")
             raise HTTPException(status_code=404, detail="File not found")
-
         with open(file_path, 'r') as f:
             content = f.read()
             data = json.loads(content)
-        
         return data
     except json.JSONDecodeError as e:
         logger.error(f"JSON decode error: {str(e)}")
@@ -302,6 +309,20 @@ async def read_json_file(filename: str):
     except Exception as e:
         logger.error(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+# New: Login Endpoint
+@app.post("/login")
+async def login(request: LoginRequest, db: Session = Depends(get_db)):
+    """Authenticate a user and return a JWT token."""
+    user = db.query(User).filter(User.username == request.username).first()
+    if user and verify_password(request.password, user.password):
+        access_token = create_access_token(data={
+            "sub": user.username,
+            "access_control": user.access_control
+        })
+        return {"access_token": access_token, "token_type": "bearer"}
+    else:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
 @app.post("/storage/process_model_data/")
 async def process_model_data(

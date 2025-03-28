@@ -1,16 +1,29 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // In a real application, you would validate credentials here
-    // For now, just navigate to dashboard
-    navigate("/dashboard");
+    try {
+      // Send login request to FastAPI backend
+      const response = await axios.post("http://localhost:8000/login", {
+        username,
+        password,
+      });
+      // Store the token in localStorage
+      const { access_token } = response.data;
+      localStorage.setItem("token", access_token);
+      // Redirect to dashboard
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login failed:", error);
+      alert("Invalid credentials");
+    }
   };
 
   return (
