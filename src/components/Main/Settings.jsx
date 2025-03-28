@@ -1,95 +1,147 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const Settings = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [accessControl, setAccessControl] = useState("USER");
   const [editingId, setEditingId] = useState(null);
-  const [accounts, setAccounts] = useState([
-    {
-      id: 1,
-      username: "Darry Diaz",
-      accessControl: "ADMIN",
-      date: "2024/01/01",
-    },
-    {
-      id: 2,
-      username: "Mykel Santos",
-      accessControl: "ADMIN",
-      date: "2024/01/01",
-    },
-    {
-      id: 3,
-      username: "Rian Buhay",
-      accessControl: "ADMIN",
-      date: "2024/01/01",
-    },
-    {
-      id: 4,
-      username: "Juan Dela Cruz",
-      accessControl: "USER",
-      date: "2024/01/01",
-    },
-    {
-      id: 5,
-      username: "Isabella Rodriguez",
-      accessControl: "USER",
-      date: "2024/01/02",
-    },
-    {
-      id: 6,
-      username: "Justine Campos",
-      accessControl: "USER",
-      date: "2024/01/02",
-    },
-  ]);
+  const [accounts, setAccounts] = useState([]);
 
-  const handleAddAccount = (e) => {
+  // Fetch users from backend on component mount
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:8000/users", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Failed to fetch accounts");
+        }
+        const data = await response.json();
+        const formattedData = data.map((user) => ({
+          id: user.id,
+          username: user.username,
+          accessControl: user.access_control,
+          date: user.created_at,
+        }));
+        setAccounts(formattedData);
+      } catch (error) {
+        console.error("Error fetching accounts:", error);
+      }
+    };
+    fetchAccounts();
+  }, []);
+
+  // Handle form submission for adding or updating users
+  const handleAddAccount = async (e) => {
     e.preventDefault();
-    if (!username || !password) return;
+    if (!username) return; // Username is required
+    const token = localStorage.getItem("token");
 
-    const currentDate = new Date()
-      .toISOString()
-      .split("T")[0]
-      .replace(/-/g, "/");
-
-    if (editingId) {
-      // Update existing account
-      setAccounts(
-        accounts.map((account) =>
-          account.id === editingId
-            ? { ...account, username, accessControl, date: currentDate }
-            : account
-        )
-      );
-      setEditingId(null);
-    } else {
-      // Add new account
-      const newAccount = {
-        id: accounts.length + 1,
-        username,
-        accessControl,
-        date: currentDate,
-      };
-      setAccounts([...accounts, newAccount]);
+    try {
+      if (editingId) {
+        // Update existing user
+        const updateData = { username, access_control: accessControl };
+        if (password) updateData.password = password; // Include password only if provided
+        const response = await fetch(
+          `http://localhost:8000/users/${editingId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(updateData),
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to update account");
+        }
+        const updatedUser = await response.json();
+        setAccounts(
+          accounts.map((account) =>
+            account.id === editingId
+              ? {
+                  ...account,
+                  username: updatedUser.username,
+                  accessControl: updatedUser.access_control,
+                }
+              : account
+          )
+        );
+        setEditingId(null);
+      } else {
+        // Add new user
+        if (!password) return; // Password required for new users
+        const newUserData = {
+          username,
+          password,
+          access_control: accessControl,
+        };
+        const response = await fetch("http://localhost:8000/users", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(newUserData),
+        });
+        if (!response.ok) {
+          throw new Error("Failed to add account");
+        }
+        const newUser = await response.json();
+        setAccounts([
+          ...accounts,
+          {
+            id: newUser.id,
+            username: newUser.username,
+            accessControl: newUser.access_control,
+            date: newUser.created_at,
+          },
+        ]);
+      }
+      // Reset form
+      setUsername("");
+      setPassword("");
+      setAccessControl("USER");
+    } catch (error) {
+      console.error("Error:", error);
     }
-
-    // Reset form
-    setUsername("");
-    setPassword("");
-    setAccessControl("USER");
   };
 
+  // Set form fields for editing
   const handleEdit = (account) => {
     setEditingId(account.id);
     setUsername(account.username);
     setAccessControl(account.accessControl);
-    setPassword(""); // Clear password field for security
+    setPassword(""); // Clear password field
   };
 
-  const handleDelete = (accountId) => {
+  // Handle user deletion
+  const handleDelete = async (accountId) => {
     if (window.confirm("Are you sure you want to delete this account?")) {
-      setAccounts(accounts.filter((account) => account.id !== accountId));
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `http://localhost:8000/users/${accountId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        if (!response.ok) {
+          throw new Error("Failed to delete account");
+        }
+        setAccounts(accounts.filter((account) => account.id !== accountId));
+      } catch (error) {
+        console.error("Error deleting account:", error);
+      }
     }
   };
 
@@ -127,7 +179,9 @@ const Settings = () => {
                         DELETE
                       </button>
                     </td>
-                    <td className="py-3">{account.date}</td>
+                    <td className="py-3">
+                      {new Date(account.date).toLocaleDateString()}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -165,17 +219,6 @@ const Settings = () => {
                 }
                 required={!editingId}
               />
-            </div>
-            <div>
-              <label className="block mb-1">Access Control</label>
-              <select
-                value={accessControl}
-                onChange={(e) => setAccessControl(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
-                required>
-                <option value="ADMIN">ADMIN</option>
-                <option value="USER">USER</option>
-              </select>
             </div>
             <div className="flex gap-2">
               <button

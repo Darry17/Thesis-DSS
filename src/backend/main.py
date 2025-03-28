@@ -1,18 +1,22 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import create_engine, Column, Integer, String, desc, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
+from typing import Optional, List
 import os
 import re
 import json
 import logging
 from dotenv import load_dotenv
-from typing import Optional
 import jwt  # For JWT token generation
 from passlib.context import CryptContext  # For password hashing
+
+# OAuth2 scheme for token authentication
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -270,6 +274,25 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+# Pydantic models for user requests
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    access_control: str
+
+class UserUpdate(BaseModel):
+    username: str
+    password: Optional[str] = None
+    access_control: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    access_control: str
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
 # Database session dependency
 def get_db():
     db = SessionLocal()
@@ -323,6 +346,105 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         return {"access_token": access_token, "token_type": "bearer"}
     else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+# Pydantic models for user requests
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    access_control: str
+
+class UserUpdate(BaseModel):
+    username: str
+    password: Optional[str] = None
+    access_control: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    access_control: str
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+# Dependency to get current user from token
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        access_control: str = payload.get("access_control")
+        if username is None or access_control is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return {"username": username, "access_control": access_control}
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+# Dependency to ensure admin access
+def get_admin_user(current_user: dict = Depends(get_current_user)):
+    if current_user["access_control"] != "ADMIN":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+# Get all users (accessible to all authenticated users)
+@app.get("/users", response_model=List[UserResponse])
+async def read_users(db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    users = db.query(User).all()
+    return users
+
+# Create a new user (admin-only)
+@app.post("/users", response_model=UserResponse)
+async def create_user(
+    user: UserCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)
+):
+    # Check if username already exists
+    if db.query(User).filter(User.username == user.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    hashed_password = pwd_context.hash(user.password)
+    db_user = User(
+        username=user.username,
+        password=hashed_password,
+        access_control=user.access_control,
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+# Update a user (admin-only)
+@app.put("/users/{user_id}", response_model=UserResponse)
+async def update_user(
+    user_id: int,
+    user: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_admin_user),
+):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Check for username conflict
+    if (
+        user.username != db_user.username
+        and db.query(User).filter(User.username == user.username).first()
+    ):
+        raise HTTPException(status_code=400, detail="Username already exists")
+    db_user.username = user.username
+    db_user.access_control = user.access_control
+    if user.password:  # Update password only if provided
+        db_user.password = pwd_context.hash(user.password)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+# Delete a user (admin-only)
+@app.delete("/users/{user_id}")
+async def delete_user(
+    user_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)
+):
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(db_user)
+    db.commit()
+    return {"message": "User deleted successfully"}
 
 @app.post("/storage/process_model_data/")
 async def process_model_data(
