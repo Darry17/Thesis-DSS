@@ -1,29 +1,65 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Navigation from "@/components/Navigation/Navigation";
-import { Dashboard, Forecast, History } from "@/components/Main";
 import {
-  ModelOption,
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
+import Navigation from "@/components/Navigation/Navigation";
+import {
+  Login,
+  Dashboard,
+  History,
+  Forecast,
+  Settings,
   SelectForecast,
   GenerateForecast,
+  SingleModelConfiguration,
+  HybridModelConfiguration,
   ForecastResult,
-} from "./components/Main";
+  ViewGraph,
+  ViewLogs,
+} from "@/components/Main";
+
+// Wrapper component that conditionally renders Navigation
+const AppContent = () => {
+  const location = useLocation();
+  const isLoginPage = location.pathname === "/";
+
+  return (
+    <>
+      {!isLoginPage && <Navigation />}
+      <Routes>
+        {/* Main routes */}
+        <Route path="/" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/forecast" element={<Forecast />} />
+        <Route path="/history" element={<History />} />
+        <Route path="/settings" element={<Settings />} />
+
+        {/* Forecast and model configuration routes */}
+        <Route path="/select-forecast" element={<SelectForecast />} />
+        <Route path="/generate" element={<GenerateForecast />} />
+        <Route
+          path="/single-model-config"
+          element={<SingleModelConfiguration />}
+        />
+        <Route
+          path="/hybrid-model-config"
+          element={<HybridModelConfiguration />}
+        />
+        <Route path="/result" element={<ForecastResult />} />
+        <Route path="/view-graph" element={<ViewGraph />} />
+        <Route path="/view-logs" element={<ViewLogs />} />
+      </Routes>
+    </>
+  );
+};
 
 const App = () => {
   return (
     <Router>
-      <Navigation />
-      <Routes>
-        {/* Main routes */}
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/forecast" element={<Forecast />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/ForecastResult" element={<ForecastResult />} />
-        {/* Forecast and model configuration routes */}
-        <Route path="/ModelOption" element={<ModelOption />} />
-        <Route path="/SelectForecast" element={<SelectForecast />} />
-        <Route path="/GenerateForecast" element={<GenerateForecast />} />
-      </Routes>
+      <AppContent />
     </Router>
   );
 };

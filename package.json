@@ -10,29 +10,30 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.0.15",
+    "@tailwindcss/vite": "^4.0.17",
     "axios": "^1.8.4",
     "comlink": "^4.4.2",
     "csv-parse": "^5.6.0",
     "csv-parser": "^3.2.0",
     "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-dropzone": "^14.3.8",
-    "react-router-dom": "^7.4.0",
-    "tailwindcss": "^4.0.15"
+    "react-router-dom": "^7.4.1",
+    "tailwindcss": "^4.0.17"
   },
   "devDependencies": {
-    "@eslint/js": "^9.22.0",
-    "@types/react": "^18.3.19",
+    "@eslint/js": "^9.23.0",
+    "@types/react": "^18.3.20",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
-    "eslint": "^9.22.0",
+    "eslint": "^9.23.0",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
-    "vite": "^6.2.2",
+    "vite": "^6.2.4",
     "worker-loader": "^3.0.8"
   }
 }

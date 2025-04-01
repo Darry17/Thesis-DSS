@@ -8,15 +8,6 @@ const GenerateForecast = () => {
   const [error, setError] = useState(null);
   const [fileData, setFileData] = useState(null);
 
-  // Get data type from filename
-  const getDataType = (filename) => {
-    if (filename?.includes("weekly")) return "weekly";
-    if (filename?.includes("daily")) return "daily";
-    if (filename?.includes("hourly")) return "hourly";
-    return null;
-  };
-
-  // Determine granularity from filename
   const getGranularityFromFilename = (filename) => {
     if (!filename) return "Hourly";
     if (filename.includes("hourly")) return "Hourly";
@@ -25,29 +16,28 @@ const GenerateForecast = () => {
     return "Hourly";
   };
 
-  // Get step options based on granularity
   const getStepOptions = (granularity) => {
     switch (granularity) {
       case "Hourly":
         return [
-          { value: "1", label: "1 Step (1-Hour Horizon)" },
-          { value: "24", label: "24 Steps (1-Day Horizon)" },
-          { value: "168", label: "168 Steps (1-Week Horizon)" },
+          { value: "1-hour", label: "1 Step (1-Hour Horizon)" },
+          { value: "24-hour", label: "24 Steps (1-Day Horizon)" },
+          { value: "168-hour", label: "168 Steps (1-Week Horizon)" },
         ];
       case "Daily":
         return [
-          { value: "1", label: "1 (1-Day Horizon)" },
-          { value: "7", label: "7 Steps (1-Week Horizon)" },
-          { value: "30", label: "30 Steps (1-Month Horizon)" },
+          { value: "1-day", label: "1 Step (1-Day Horizon)" },
+          { value: "7-day", label: "7 Steps (1-Week Horizon)" },
+          { value: "30-day", label: "30 Steps (1-Month Horizon)" },
         ];
       case "Weekly":
         return [
-          { value: "1", label: "1 Step (1-Week Horizon)" },
-          { value: "4", label: "4 Steps (1-Month Horizon)" },
-          { value: "52", label: "52 Steps (1-Year Horizon)" },
+          { value: "1-week", label: "1 Step (1-Week Horizon)" },
+          { value: "4-week", label: "4 Steps (1-Month Horizon)" },
+          { value: "52-week", label: "52 Steps (1-Year Horizon)" },
         ];
       default:
-        return null;
+        return [];
     }
   };
 
@@ -56,32 +46,30 @@ const GenerateForecast = () => {
 
   const [formData, setFormData] = useState({
     filename: null,
+    original_filename: null,
     granularity: initialGranularity,
-    steps: initialStepOptions ? initialStepOptions[0].value : "1",
+    steps: initialStepOptions.length ? initialStepOptions[0].value : "",
     modelType: "",
-    singleModel: "",
-    hybridModel: "",
+    model: "",
   });
 
-  // Update steps when granularity changes
   useEffect(() => {
     const stepOptions = getStepOptions(formData.granularity);
-    setFormData((prev) => ({
-      ...prev,
-      steps: stepOptions[0].value,
-    }));
+    if (stepOptions.length) {
+      setFormData((prev) => ({
+        ...prev,
+        steps: stepOptions[0].value,
+      }));
+    }
   }, [formData.granularity]);
 
   useEffect(() => {
     const fetchFileData = async () => {
       try {
         setLoading(true);
-
-        // Get the data type from the URL or default to hourly
         const urlParams = new URLSearchParams(location.search);
         const dataType = urlParams.get("type") || "hourly";
 
-        // Fetch the latest file of the specific type
         const response = await fetch(
           `http://localhost:8000/storage/latest-file/?data_type=${dataType}`
         );
@@ -94,12 +82,14 @@ const GenerateForecast = () => {
 
         setFileData({
           filename: latestFile.filename,
+          original_filename: latestFile.original_filename,
           upload_date: latestFile.upload_date,
         });
 
         setFormData((prev) => ({
           ...prev,
           filename: latestFile.filename,
+          original_filename: latestFile.original_filename,
           granularity: getGranularityFromFilename(latestFile.filename),
         }));
       } catch (err) {
@@ -113,13 +103,8 @@ const GenerateForecast = () => {
     fetchFileData();
   }, [location.search]);
 
-  // Validate form before submission
   const isFormValid = () => {
-    if (!fileData) return false;
-    if (!formData.modelType) return false;
-    if (formData.modelType === "Single" && !formData.singleModel) return false;
-    if (formData.modelType === "Hybrid" && !formData.hybridModel) return false;
-    return true;
+    return fileData && formData.modelType && formData.model;
   };
 
   const handleChange = (e) => {
@@ -127,11 +112,7 @@ const GenerateForecast = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      // Reset model selections when model type changes
-      ...(name === "modelType" && {
-        singleModel: value === "Single" ? "" : prev.singleModel,
-        hybridModel: value === "Hybrid" ? "" : prev.hybridModel,
-      }),
+      ...(name === "modelType" && { model: "" }),
     }));
   };
 
@@ -140,23 +121,56 @@ const GenerateForecast = () => {
     if (!fileData) return;
 
     try {
-      // Fetch the actual file content
-      const response = await fetch(
+      const fileResponse = await fetch(
         `http://localhost:8000/storage/read/${fileData.filename}`
       );
 
-      if (!response.ok) {
+      if (!fileResponse.ok) {
         throw new Error("Failed to read file data");
       }
 
-      const data = await response.json();
+      const data = await fileResponse.json();
 
-      // Navigate to result page with the data
-      navigate("/forecast-result", {
-        state: { ...formData, forecastData: data },
-      });
+      const forecastData = {
+        filename: fileData.filename,
+        original_filename: fileData.original_filename,
+        forecast_model: formData.model,
+        steps: formData.steps,
+        granularity: formData.granularity,
+      };
+
+      const createForecastResponse = await fetch(
+        "http://localhost:8000/api/forecasts",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(forecastData),
+        }
+      );
+
+      if (!createForecastResponse.ok) {
+        throw new Error("Failed to create forecast record");
+      }
+
+      const createdForecast = await createForecastResponse.json();
+
+      navigate(
+        formData.modelType === "Hybrid"
+          ? "/hybrid-model-config"
+          : "/single-model-config",
+        {
+          state: {
+            ...formData,
+            forecastData: data,
+            forecastId: createdForecast.id,
+          },
+        }
+      );
     } catch (err) {
       setError(err.message);
+      console.error("Error:", err);
     }
   };
 
@@ -169,10 +183,10 @@ const GenerateForecast = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen flex justify-center items-center">
+    <div className="p-6 flex justify-center items-center">
       <form
         onSubmit={handleGenerate}
-        className="bg-white p-6 rounded-lg shadow-md w-full max-w-md">
+        className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-md">
         <h1 className="text-2xl font-bold mb-6">Generate</h1>
 
         {/* File Information */}
@@ -182,7 +196,9 @@ const GenerateForecast = () => {
           </label>
           <div className="p-3 bg-gray-50 rounded-md">
             <p className="text-sm text-gray-600">
-              {fileData?.filename || "No file selected"}
+              {fileData?.original_filename ||
+                fileData?.filename ||
+                "No file selected"}
             </p>
             {fileData?.upload_date && (
               <p className="text-xs text-gray-500">
@@ -259,42 +275,28 @@ const GenerateForecast = () => {
           )}
         </div>
 
-        {/* Single Model Options */}
-        {formData.modelType === "Single" && (
+        {/* Model Selection */}
+        {formData.modelType && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Single Model
+              Model
             </label>
             <select
-              name="singleModel"
-              value={formData.singleModel}
+              name="model"
+              value={formData.model}
               onChange={handleChange}
               className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">Select a model</option>
-              <option value="DHR">DHR</option>
-              <option value="ESN">ESN</option>
+              {formData.modelType === "Single" ? (
+                <>
+                  <option value="DHR">DHR</option>
+                  <option value="ESN">ESN</option>
+                </>
+              ) : (
+                <option value="DHR-ESN">DHR-ESN</option>
+              )}
             </select>
-            {formData.modelType === "Single" && !formData.singleModel && (
-              <p className="text-sm text-red-500 mt-1">Please select a model</p>
-            )}
-          </div>
-        )}
-
-        {/* Hybrid Model Options */}
-        {formData.modelType === "Hybrid" && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Hybrid Model
-            </label>
-            <select
-              name="hybridModel"
-              value={formData.hybridModel}
-              onChange={handleChange}
-              className="block w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <option value="">Select a model</option>
-              <option value="DHR-ESN">DHR-ESN</option>
-            </select>
-            {formData.modelType === "Hybrid" && !formData.hybridModel && (
+            {!formData.model && (
               <p className="text-sm text-red-500 mt-1">Please select a model</p>
             )}
           </div>

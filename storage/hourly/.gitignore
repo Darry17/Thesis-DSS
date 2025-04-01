@@ -1,0 +1,4 @@
+# Ignore everything inside the hourly folder
+*
+# Except this .gitignore file
+!.gitignore

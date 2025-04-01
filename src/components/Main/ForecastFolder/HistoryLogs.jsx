@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const History = () => {
+const HistoryLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -109,4 +109,4 @@ const History = () => {
   );
 };
 
-export default History;
+export default HistoryLogs;
