@@ -1,15 +1,14 @@
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const Navigation = () => {
   const navigate = useNavigate();
-  const [userRole, setUserRole] = React.useState("USER"); // Default to USER
+  const [userRole, setUserRole] = React.useState("USER");
 
-  // Get user role on component mount
+  // Effect to decode user role from token (example logic)
   React.useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-      // Decode the JWT token to get user info
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setUserRole(payload.access_control || "USER");
@@ -19,50 +18,66 @@ const Navigation = () => {
     }
   }, []);
 
+  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem("token");
     navigate("/");
   };
 
+  // Base styling for all navigation links
+  const linkClass = "block py-2 px-4 rounded";
+
   return (
-    <div className="bg-gray-800 text-white p-4">
+    <div className="top-0 left-0 right-0 text-white p-4">
       <div className="flex justify-between items-center">
-        {/* Left-aligned navigation links */}
         <ul className="flex space-x-6">
           <li>
-            <Link
+            <NavLink
               to="/dashboard"
-              className="block py-2 px-4 hover:bg-gray-700 rounded">
+              className={({ isActive }) =>
+                `${linkClass} ${
+                  isActive ? "border-b-2 pb-0 rounded-none border-white" : ""
+                }`
+              }>
               Dashboard
-            </Link>
+            </NavLink>
           </li>
           <li>
-            <Link
+            <NavLink
               to="/forecast"
-              className="block py-2 px-4 hover:bg-gray-700 rounded">
+              className={({ isActive }) =>
+                `${linkClass} ${
+                  isActive ? "border-b-2 pb-0 rounded-none border-white" : ""
+                }`
+              }>
               Forecast
-            </Link>
+            </NavLink>
           </li>
           <li>
-            <Link
+            <NavLink
               to="/history"
-              className="block py-2 px-4 hover:bg-gray-700 rounded">
+              className={({ isActive }) =>
+                `${linkClass} ${
+                  isActive ? "border-b-2 pb-0 rounded-none border-white" : ""
+                }`
+              }>
               History
-            </Link>
+            </NavLink>
           </li>
-          {/* Only show Settings for non-USER roles */}
           {userRole !== "USER" && (
             <li>
-              <Link
+              <NavLink
                 to="/settings"
-                className="block py-2 px-4 hover:bg-gray-700 rounded">
+                className={({ isActive }) =>
+                  `${linkClass} ${
+                    isActive ? "border-b-2 pb-0 rounded-none border-white" : ""
+                  }`
+                }>
                 Settings
-              </Link>
+              </NavLink>
             </li>
           )}
         </ul>
-
-        {/* Right-aligned logout button */}
         <button onClick={handleLogout} className="py-2 px-4">
           Logout
         </button>

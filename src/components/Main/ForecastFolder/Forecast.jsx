@@ -268,47 +268,64 @@ const Forecast = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
+    <div className="relative min-h-screen flex">
       <div
-        {...getRootProps()}
-        className={`w-full max-w-md p-6 mb-4 border-2 border-dashed rounded-lg ${
-          isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
-        } cursor-pointer text-center hover:bg-gray-50 transition-colors`}>
-        <input {...getInputProps()} />
-        {isDragActive ? (
-          <p className="text-blue-500">Drop the CSV file here...</p>
-        ) : (
-          <div>
-            <p className="mb-2">
-              Drag & drop a CSV file here, or click to select a file
-            </p>
-            <p className="text-sm text-gray-500">Only CSV files are accepted</p>
-            {file && (
-              <p className="mt-2 text-green-600">Selected: {file.name}</p>
-            )}
-          </div>
+        className="fixed inset-0"
+        style={{
+          backgroundImage: `url(/wind-img.png), url(/solar-img.png)`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundBlendMode: "overlay",
+          zIndex: -1,
+        }}
+      />
+      <div className="fixed inset-0 bg-black/60" style={{ zIndex: -1 }} />
+      <div className="relative z-10 flex-1 flex items-center justify-center p-8 text-white">
+        <div
+          {...getRootProps()}
+          className={`w-full max-w-md p-6 mb-4 border-2 border-dashed rounded-lg ${
+            isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
+          } cursor-pointer text-center`}>
+          <input {...getInputProps()} />
+          {isDragActive ? (
+            <p className="text-blue-500">Drop the CSV file here...</p>
+          ) : (
+            <div>
+              <p className="mb-2">
+                Drag & drop a CSV file here, or click to select a file
+              </p>
+              <p className="text-sm text-gray-500">
+                Only CSV files are accepted
+              </p>
+              {file && (
+                <p className="mt-2 text-green-600">Selected: {file.name}</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={handleUpload}
+          disabled={isUploadDisabled || isProcessing}
+          className={`w-full max-w-md py-2 px-4 rounded-lg text-white whitespace-nowrap ${
+            isUploadDisabled || isProcessing
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-500 hover:bg-blue-600"
+          } transition-colors`}>
+          {isProcessing ? "Processing..." : "Upload"}
+        </button>
+
+        {message && (
+          <p
+            className={`mt-4 ${
+              message.includes("successfully")
+                ? "text-green-500"
+                : "text-red-500"
+            }`}>
+            {message}
+          </p>
         )}
       </div>
-
-      <button
-        onClick={handleUpload}
-        disabled={isUploadDisabled || isProcessing}
-        className={`w-full max-w-md py-2 px-4 rounded-lg text-white ${
-          isUploadDisabled || isProcessing
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-blue-500 hover:bg-blue-600"
-        } transition-colors`}>
-        {isProcessing ? "Processing..." : "Upload"}
-      </button>
-
-      {message && (
-        <p
-          className={`mt-4 ${
-            message.includes("successfully") ? "text-green-500" : "text-red-500"
-          }`}>
-          {message}
-        </p>
-      )}
     </div>
   );
 };
