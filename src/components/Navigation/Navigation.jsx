@@ -28,7 +28,7 @@ const Navigation = () => {
   const linkClass = "block py-2 px-4 rounded";
 
   return (
-    <div className="top-0 left-0 right-0 text-white p-4">
+    <div className="top-0 left-0 right-0 text-white p-4 font-bold">
       <div className="flex justify-between items-center">
         <ul className="flex space-x-6">
           <li>

@@ -32,7 +32,6 @@ const Forecast = () => {
           .slice(1)
           .map((line) => line.split(",").map((v) => v.trim()));
 
-        // Validate time column
         const timeColumns = ["date", "week", "time"];
         const foundTimeColumns = timeColumns.filter((col) =>
           headers.includes(col)
@@ -49,20 +48,13 @@ const Forecast = () => {
         const timeIndex = headers.indexOf(foundTimeColumns[0]);
         const timeColumn = foundTimeColumns[0];
 
-        // Validate timestamps format
         const formats = {
-          date: {
-            regex: /^\d{4}-\d{2}-\d{2}$/,
-            example: "2024-02-05",
-          },
+          date: { regex: /^\d{4}-\d{2}-\d{2}$/, example: "2024-02-05" },
           time: {
             regex: /^\d{4}-\d{2}-\d{2}T\d{2}:00:00$/,
             example: "2024-02-05T14:00:00",
           },
-          week: {
-            regex: /^\d{4}-W\d{2}$/,
-            example: "2018-W01",
-          },
+          week: { regex: /^\d{4}-W\d{2}$/, example: "2018-W01" },
         };
 
         for (let i = 0; i < rows.length; i++) {
@@ -82,7 +74,6 @@ const Forecast = () => {
           }
         }
 
-        // Check for required columns
         const requiredColumns = [
           "solar_power",
           "dhi",
@@ -123,26 +114,44 @@ const Forecast = () => {
         return;
       }
 
+      // Clear previous file state
+      if (file) {
+        setFile(null);
+        setIsUploadDisabled(true);
+      }
+
       const selectedFile = acceptedFiles[0];
       const isValid = await validateFile(selectedFile);
-
       if (isValid) {
         setFile(selectedFile);
         setMessage("");
         setIsUploadDisabled(false);
       }
     },
-    [validateFile]
+    [validateFile, file]
   );
+
+  const handleDropzoneClick = useCallback(() => {
+    // If a file is already selected, we need to manually clear it first
+    if (file) {
+      setFile(null);
+      setIsUploadDisabled(true);
+      setMessage("");
+    }
+  }, [file]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "text/csv": [".csv"] },
     disabled: isProcessing,
     maxFiles: 1,
+    onClick: handleDropzoneClick,
   });
 
-  const handleUpload = () => {
+  const handleUpload = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
     if (!file) {
       setMessage("Please select a file before uploading.");
       return;
@@ -177,9 +186,8 @@ const Forecast = () => {
   const uploadJsonToStorage = async (jsonData) => {
     try {
       const originalName = file.name.replace(/\.csv$/, "");
-      const originalFilename = file.name; // Keep the full original filename
+      const originalFilename = file.name;
 
-      // Determine time format prefix
       const timeColumn = Object.keys(jsonData[0]).find((key) =>
         ["time", "week", "date"].includes(key)
       );
@@ -192,13 +200,11 @@ const Forecast = () => {
 
       const prefix = prefixMap[timeColumn] || "";
 
-      // Get the latest ID from json_data table
       const latestFileResponse = await fetch(
         `http://localhost:8000/storage/latest-file/?data_type=json`
       );
 
-      let nextId = 1; // Default to 1 if no files exist
-
+      let nextId = 1;
       if (latestFileResponse.ok) {
         const latestFile = await latestFileResponse.json();
         if (latestFile && typeof latestFile.id === "number") {
@@ -211,7 +217,6 @@ const Forecast = () => {
         type: "application/json",
       });
 
-      // Create form data with the original filename properly set
       const formData = new FormData();
       formData.append("file", blob, newFilename);
       formData.append("original_filename", originalFilename);
@@ -225,18 +230,15 @@ const Forecast = () => {
       );
 
       if (response.ok) {
-        // Create forecast entry with original filename
         const forecastResponse = await fetch(
           "http://localhost:8000/api/forecasts",
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               filename: newFilename,
               original_filename: originalFilename,
-              forecast_model: "pending", // This will be updated when the model is selected
+              forecast_model: "pending",
               steps: "pending",
               granularity: prefix,
             }),
@@ -247,11 +249,7 @@ const Forecast = () => {
           const errorText = await forecastResponse.text();
           throw new Error(`Failed to create forecast entry: ${errorText}`);
         }
-
-        setMessage("File uploaded successfully!");
-        setTimeout(() => {
-          navigate("/select-forecast");
-        }, 2000);
+        navigate("/select-forecast");
       } else {
         const errorText = await response.text();
         console.error("Upload failed:", errorText);
@@ -268,7 +266,7 @@ const Forecast = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex">
+    <div className="relative min-h-screen flex flex-col items-center justify-center">
       <div
         className="fixed inset-0"
         style={{
@@ -280,51 +278,68 @@ const Forecast = () => {
         }}
       />
       <div className="fixed inset-0 bg-black/60" style={{ zIndex: -1 }} />
-      <div className="relative z-10 flex-1 flex items-center justify-center p-8 text-white">
+
+      <div className="w-full max-w-2xl px-4 flex flex-col items-center">
+        <div className="max-w-2xl">
+          <h1 className="text-[50px] font-bold mb-5 flex justify-center text-white">
+            Upload CSV File
+          </h1>
+        </div>
+        {/* Dropzone centered horizontally */}
         <div
           {...getRootProps()}
-          className={`w-full max-w-md p-6 mb-4 border-2 border-dashed rounded-lg ${
+          className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600 dark:hover:border-gray-500 p-6 text-center ${
             isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
-          } cursor-pointer text-center`}>
+          }`}>
+          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+            <svg
+              className="w-8 h-8 mb-4 text-gray-500 dark:text-gray-400"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 20 16">
+              <path
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+              />
+            </svg>
+            {file ? (
+              <>
+                <p className="mb-2 text-sm text-green-600">
+                  Selected file: {file.name}
+                </p>
+                <p className="mb-5 text-sm text-gray-500 dark:text-gray-400">
+                  <span className="font-semibold">Click to change file</span> or
+                  drag and drop
+                </p>
+                <button
+                  onClick={handleUpload}
+                  disabled={isUploadDisabled || isProcessing}
+                  className={`py-2 px-4 rounded-lg text-white whitespace-nowrap ${
+                    isUploadDisabled || isProcessing
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-blue-500 hover:bg-blue-600"
+                  } transition-colors`}>
+                  {isProcessing ? "Processing..." : "Proceed"}
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                  <span className="font-semibold">Click to upload</span> or drag
+                  and drop
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Only CSV files are accepted
+                </p>
+              </>
+            )}
+          </div>
           <input {...getInputProps()} />
-          {isDragActive ? (
-            <p className="text-blue-500">Drop the CSV file here...</p>
-          ) : (
-            <div>
-              <p className="mb-2">
-                Drag & drop a CSV file here, or click to select a file
-              </p>
-              <p className="text-sm text-gray-500">
-                Only CSV files are accepted
-              </p>
-              {file && (
-                <p className="mt-2 text-green-600">Selected: {file.name}</p>
-              )}
-            </div>
-          )}
         </div>
-
-        <button
-          onClick={handleUpload}
-          disabled={isUploadDisabled || isProcessing}
-          className={`w-full max-w-md py-2 px-4 rounded-lg text-white whitespace-nowrap ${
-            isUploadDisabled || isProcessing
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-blue-500 hover:bg-blue-600"
-          } transition-colors`}>
-          {isProcessing ? "Processing..." : "Upload"}
-        </button>
-
-        {message && (
-          <p
-            className={`mt-4 ${
-              message.includes("successfully")
-                ? "text-green-500"
-                : "text-red-500"
-            }`}>
-            {message}
-          </p>
-        )}
       </div>
     </div>
   );
