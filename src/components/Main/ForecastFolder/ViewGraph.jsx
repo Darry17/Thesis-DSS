@@ -5,30 +5,22 @@ const ViewGraph = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { forecastId, filename } = location.state || {};
-  const [metrics, setMetrics] = useState({
-    rmse: "",
-    cvrmse: "",
-    mae: "",
-  });
+  const [forecastData, setForecastData] = useState(null); // State for forecast data
+  const [loading, setLoading] = useState(true); // Optional: Add loading state
+  const [error, setError] = useState(null); // Optional: Add error state
 
   // Add print stylesheet
   useEffect(() => {
-    // Create a style element
     const style = document.createElement("style");
     style.id = "print-style";
     style.innerHTML = `
       @media print {
-        /* Hide everything by default */
         body * {
           visibility: hidden;
         }
-        
-        /* Only show the print container and its contents */
         .print-container, .print-container * {
           visibility: visible;
         }
-        
-        /* Additional specificity for elements we want to hide */
         .no-print, 
         nav, 
         header, 
@@ -47,22 +39,16 @@ const ViewGraph = () => {
         div:has(> a[href="/history"]) {
           display: none !important;
         }
-        
-        /* Position the print container at the top of the page */
         .print-container {
           position: absolute;
           left: 0;
           top: 0;
           width: 100%;
         }
-        
-        /* Reset any margins or padding for clean print */
         body {
           margin: 0;
           padding: 0;
         }
-        
-        /* Remove background colors */
         body, .print-container {
           background-color: white !important;
         }
@@ -70,7 +56,6 @@ const ViewGraph = () => {
     `;
     document.head.appendChild(style);
 
-    // Cleanup function
     return () => {
       const styleElement = document.getElementById("print-style");
       if (styleElement) {
@@ -79,7 +64,47 @@ const ViewGraph = () => {
     };
   }, []);
 
-  // Action handlers
+  // Fetch forecast data on mount
+  useEffect(() => {
+    const fetchForecastData = async () => {
+      try {
+        if (!forecastId) {
+          throw new Error("No forecast ID provided");
+        }
+
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        setLoading(true);
+        const response = await fetch(
+          `http://localhost:8000/api/forecasts/${forecastId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`Error fetching forecast: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setForecastData(data);
+      } catch (err) {
+        console.error("Error fetching forecast data:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchForecastData();
+  }, [forecastId, navigate]);
+
   const handleSaveForecast = async () => {
     try {
       console.log("Saving forecast with ID:", forecastId);
@@ -90,68 +115,48 @@ const ViewGraph = () => {
         return;
       }
 
-      // First, fetch the forecast details to get the model type
-      const response = await fetch(
-        `http://localhost:8000/api/forecasts/${forecastId}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Error fetching forecast: ${response.statusText}`);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found. Redirecting to login.");
+        navigate("/login");
+        return;
       }
 
-      const forecastData = await response.json();
-      let modelType = forecastData.model.toLowerCase(); // Get the model type (esn, dhr, hybrid)
-
-      // For file naming purposes
+      // Use the already fetched forecastData
+      let modelType = forecastData.model.toLowerCase();
       let fileModelType = modelType;
-
-      // For the model column in history logs
       let displayModelType = modelType.toUpperCase();
 
-      // If the model is dhr-esn, set file naming to use "hybrid" but keep display as DHR-ESN
       if (modelType === "dhr-esn") {
         fileModelType = "hybrid";
         displayModelType = "DHR-ESN";
       }
 
-      // Format the current date as YYYY-MM-DD
       const today = new Date();
       const formattedDate = `${today.getFullYear()}-${String(
         today.getMonth() + 1
       ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-      // Create the file_name in the required format: model-date
       const fileName = `${fileModelType}-${formattedDate}`;
-
-      // Get metric values (either from state or use defaults)
-      const rmseValue = parseFloat(metrics.rmse || "3");
-      const cvrmseValue = parseFloat(metrics.cvrmse || "3");
-      const maeValue = parseFloat(metrics.mae || "3");
 
       console.log("Creating history log with metrics:", {
         file_name: fileName,
         model: displayModelType,
         forecast_id: forecastId,
-        rmse: rmseValue,
-        cvrmse: cvrmseValue,
-        mae: maeValue,
       });
 
-      // Create the history log entry with metrics
       const historyLogResponse = await fetch(
         "http://localhost:8000/api/history-logs",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             file_name: fileName,
             model: displayModelType,
             forecast_id: forecastId,
-            rmse: rmseValue,
-            cvrmse: cvrmseValue,
-            mae: maeValue,
           }),
         }
       );
@@ -167,7 +172,6 @@ const ViewGraph = () => {
       const responseData = await historyLogResponse.json();
       console.log("History log created successfully:", responseData);
 
-      // Success message
       alert(`Forecast saved successfully as ${fileName}`);
     } catch (error) {
       console.error("Error saving forecast:", error);
@@ -177,15 +181,6 @@ const ViewGraph = () => {
 
   const handleBack = () => navigate(-1);
   const handlePrint = () => window.print();
-
-  // Handle metrics change
-  const handleMetricsChange = (e) => {
-    const { name, value } = e.target;
-    setMetrics((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
 
   // Graph placeholder component
   const GraphPlaceholder = ({ title }) => (
@@ -218,43 +213,40 @@ const ViewGraph = () => {
     </div>
   );
 
-  // Evaluation metrics component
-  const EvaluationMetrics = () => (
+  // DatasetDetails component
+  const DatasetDetails = () => (
     <div className="border rounded-md p-4 bg-white shadow">
-      <h3 className="text-2xl font-bold mb-6">Evaluation Metrics</h3>
+      <h3 className="text-2xl font-bold mb-6">Dataset Details</h3>
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Root Mean Squared Error (RMSE)
+            Dataset
           </label>
           <input
             type="text"
-            name="rmse"
-            value={metrics.rmse || "3"}
+            value={forecastData?.original_filename || "N/A"}
             readOnly
             className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Coefficient Variation of the RMSE (CV(RMSE))
+            Granularity
           </label>
           <input
             type="text"
-            name="cvrmse"
-            value={metrics.cvrmse || "3"}
+            value={forecastData?.granularity || "N/A"}
             readOnly
             className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Mean Absolute Error (MAE)
+            Steps
           </label>
           <input
             type="text"
-            name="mae"
-            value={metrics.mae || "3"}
+            value={forecastData?.steps || "24 (1-day Horizon)"}
             readOnly
             className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
@@ -266,9 +258,16 @@ const ViewGraph = () => {
   // Graph types
   const graphTypes = ["Generated Power"];
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
   return (
     <div className="p-6 max-w-7xl mx-auto print-container">
-      {/* Action buttons - will be hidden when printing */}
       <div className="flex justify-between mb-6 no-print">
         <button
           onClick={handleSaveForecast}
@@ -289,24 +288,14 @@ const ViewGraph = () => {
         </div>
       </div>
 
-      {/* Main content layout */}
       <div className="space-y-6">
-        {/* Graphs section */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {graphTypes.map((type, index) => (
             <GraphPlaceholder key={index} title={type} />
           ))}
         </div>
-
-        {/* Metrics section - positioned at the bottom left */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="md:col-span-1">
-            <EvaluationMetrics />
-          </div>
-          <div className="md:col-span-2 no-print">
-            {/* Empty space to ensure metrics are on the left */}
-          </div>
-        </div>
+        {/* Add DatasetDetails after the graph */}
+        <DatasetDetails />
       </div>
     </div>
   );

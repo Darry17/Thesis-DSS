@@ -96,7 +96,6 @@ const SelectForecast = () => {
       Wind: ["wind_power", "wind_speed", "dew_point"],
     };
 
-    // Determine time field and folder prefix
     const firstRow = data[0];
     let selectedTimeField = null;
     let folderPrefix = null;
@@ -114,7 +113,6 @@ const SelectForecast = () => {
       throw new Error("No valid time-related field found in data");
     }
 
-    // Filter data to include only required fields
     const filteredData = data.map((row) => ({
       [selectedTimeField]: row[selectedTimeField],
       ...Object.fromEntries(
@@ -132,12 +130,11 @@ const SelectForecast = () => {
   };
 
   const uploadProcessedData = async (filteredData, folderPrefix, modelType) => {
-    // Get the latest ID from the appropriate table
     const latestFileResponse = await fetch(
       `http://localhost:8000/storage/latest-file/?data_type=${folderPrefix}`
     );
 
-    let nextId = 1; // Default to 1 if no files exist
+    let nextId = 1;
 
     if (latestFileResponse.ok) {
       const latestFile = await latestFileResponse.json();
@@ -156,8 +153,6 @@ const SelectForecast = () => {
       }),
       newFilename
     );
-
-    // Pass the original filename to preserve data lineage
     formData.append("original_filename", fileData.original_filename);
 
     const response = await fetch(
@@ -176,7 +171,7 @@ const SelectForecast = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex">
+    <div className="relative min-h-screen flex items-center justify-center">
       <div
         className="fixed inset-0 overflow-hidden"
         style={{
@@ -187,24 +182,36 @@ const SelectForecast = () => {
           zIndex: -1,
         }}
       />
-      <div className="p-6min-h-screen flex flex-col items-center">
+      <div className="p-6 flex flex-col items-center w-full">
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
-        <div className="flex gap-4">
-          {[
-            { name: "Solar", color: "blue" },
-            { name: "Wind", color: "green" },
-          ].map((button, index) => (
+        <div className="flex justify-between w-full max-w-2xl">
+          <div className="flex flex-col items-center">
+            <span className="text-white text-lg font-semibold mb-2">
+              Solar Energy
+            </span>
             <button
-              key={index}
-              onClick={() => handleModelSelect(button.name)}
+              onClick={() => handleModelSelect("Solar")}
               disabled={loading}
-              className={`px-6 py-3 bg-${button.color}-500 text-white rounded-md 
-              hover:bg-${button.color}-600 transition-colors
-              disabled:opacity-50 disabled:cursor-not-allowed`}>
-              {button.name}
+              className="px-6 py-3 bg-blue-500 text-white rounded-md 
+                hover:bg-blue-600 transition-colors
+                disabled:opacity-50 disabled:cursor-not-allowed">
+              Solar
             </button>
-          ))}
+          </div>
+          <div className="flex flex-col items-center">
+            <span className="text-white text-lg font-semibold mb-2">
+              Wind Energy
+            </span>
+            <button
+              onClick={() => handleModelSelect("Wind")}
+              disabled={loading}
+              className="px-6 py-3 bg-green-500 text-white rounded-md 
+                hover:bg-green-600 transition-colors
+                disabled:opacity-50 disabled:cursor-not-allowed">
+              Wind
+            </button>
+          </div>
         </div>
       </div>
     </div>

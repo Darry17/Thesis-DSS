@@ -65,9 +65,7 @@ class HistoryLog(Base):
     file_name = Column(String(255), nullable=False)
     model = Column(String(50), nullable=False)
     date = Column(DateTime, default=datetime.now)
-    rmse = Column(Float, nullable=False, default=0)
-    cvrmse = Column(Float, nullable=False, default=0)
-    mae = Column(Float, nullable=False, default=0)
+    username = Column(String(255), nullable=True)
 
 class JsonData(BaseDataModel):
     __tablename__ = "json_data"
@@ -192,9 +190,6 @@ class HistoryLogCreate(BaseModel):
     model: str
     action: Optional[str] = "Saved Forecast"
     forecast_id: Optional[int] = None
-    rmse: Optional[float] = 0
-    cvrmse: Optional[float] = 0
-    mae: Optional[float] = 0
     model_config = {'from_attributes': True}
 
 class HistoryLogResponse(BaseModel):
@@ -203,9 +198,7 @@ class HistoryLogResponse(BaseModel):
     file_name: str
     model: str
     date: datetime
-    rmse: float = 0
-    cvrmse: float = 0
-    mae: float = 0
+    username: str  # Already present, just confirming
     model_config = {'from_attributes': True}
 
 class FileResponse(BaseModel):
@@ -1047,14 +1040,14 @@ async def get_json_data(json_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/history-logs")
-async def create_history_log(log: HistoryLogCreate, db: Session = Depends(get_db)):
+async def create_history_log(
+    log: HistoryLogCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)  # Add authentication dependency
+):
     try:
         logger.info(f"Creating history log with data: {log.dict()}")
         
-        # Debug log the metric values specifically
-        logger.info(f"Metrics received - RMSE: {log.rmse}, CVRMSE: {log.cvrmse}, MAE: {log.mae}")
-        
-        # Convert to integer if provided as string
         forecast_id = None
         if log.forecast_id:
             try:
@@ -1063,17 +1056,14 @@ async def create_history_log(log: HistoryLogCreate, db: Session = Depends(get_db
                 logger.warning(f"Invalid forecast_id format: {log.forecast_id}, setting to None")
                 forecast_id = None
         
-        # Create the log entry with metric values explicitly cast to float
+        # Create the log entry including the username from the authenticated user
         db_log = HistoryLog(
             file_name=log.file_name,
             model=log.model,
             forecast_id=forecast_id,
-            rmse=float(log.rmse or 0),
-            cvrmse=float(log.cvrmse or 0),
-            mae=float(log.mae or 0)
+            username=current_user["username"]  # Get username from token
         )
         
-        logger.info(f"History log object created with metrics - RMSE: {db_log.rmse}, CVRMSE: {db_log.cvrmse}, MAE: {db_log.mae}")
         db.add(db_log)
         
         try:
@@ -1091,11 +1081,16 @@ async def create_history_log(log: HistoryLogCreate, db: Session = Depends(get_db
             "file_name": db_log.file_name,
             "model": db_log.model,
             "date": db_log.date,
-            "rmse": db_log.rmse,
-            "cvrmse": db_log.cvrmse,
-            "mae": db_log.mae
-            # action is not included in response
+            "username": db_log.username  # Include username in response
         }
+
+    except Exception as e:
+        logger.error(f"Error creating history log: {str(e)}")
+        db.rollback()
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to create history log: {str(e)}"
+        )
 
     except Exception as e:
         logger.error(f"Error creating history log: {str(e)}")
@@ -1120,9 +1115,7 @@ async def get_history_log(log_id: int, db: Session = Depends(get_db)):
             "file_name": log.file_name,
             "model": log.model,
             "date": log.date,
-            "rmse": log.rmse,
-            "cvrmse": log.cvrmse,
-            "mae": log.mae
+            "username": log.username  # Add username to response
         }
     except Exception as e:
         logger.error(f"Error fetching history log {log_id}: {str(e)}")

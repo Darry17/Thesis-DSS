@@ -119,9 +119,13 @@ const Navigation = () => {
             </li>
           )}
         </ul>
-        <button onClick={handleLogout} className="py-2 px-4 text-white">
+        <NavLink
+          onClick={handleLogout}
+          className={`flex space-x-6 ${
+            isWhiteText ? "text-white" : "text-black"
+          }`}>
           Logout
-        </button>
+        </NavLink>
       </div>
     </div>
   );

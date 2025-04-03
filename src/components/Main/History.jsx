@@ -75,6 +75,7 @@ const History = () => {
               <th className="py-3 px-4 text-left border-b">Model</th>
               <th className="py-3 px-4 text-left border-b">Action</th>
               <th className="py-3 px-4 text-left border-b">Date</th>
+              <th className="py-3 px-4 text-left border-b">Username</th>
             </tr>
           </thead>
           <tbody>
@@ -99,6 +100,7 @@ const History = () => {
                     </button>
                   </td>
                   <td className="py-3 px-4 border-b">{formatDate(log.date)}</td>
+                  <td className="py-3 px-4 border-b">{log.username}</td>
                 </tr>
               ))
             )}

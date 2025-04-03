@@ -7,11 +7,6 @@ const ViewLogs = () => {
   const { forecastId } = location.state || {};
   const [forecastData, setForecastData] = useState(null);
   const [historyLog, setHistoryLog] = useState(null);
-  const [metrics, setMetrics] = useState({
-    rmse: "3.42",
-    cvrmse: "2.18",
-    mae: "1.97",
-  });
   const [esnConfig, setEsnConfig] = useState(null);
   const [dhrConfig, setDhrConfig] = useState(null);
 
@@ -25,18 +20,6 @@ const ViewLogs = () => {
       console.error("No forecast ID provided");
     }
   }, [forecastId]);
-
-  // Update metrics when history log is loaded
-  useEffect(() => {
-    if (historyLog) {
-      // Update metrics from history log if available
-      setMetrics({
-        rmse: historyLog.rmse?.toString() || "3.42",
-        cvrmse: historyLog.cvrmse?.toString() || "2.18",
-        mae: historyLog.mae?.toString() || "1.97",
-      });
-    }
-  }, [historyLog]);
 
   const fetchForecastData = async () => {
     try {
@@ -154,51 +137,6 @@ const ViewLogs = () => {
             Real-time graph data would be displayed here in a production
             environment.
           </p>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Evaluation metrics component
-  const EvaluationMetrics = () => (
-    <div className="border rounded-md p-4 bg-white shadow">
-      <h3 className="text-2xl font-bold mb-6">Evaluation Metrics</h3>
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Root Mean Squared Error (RMSE)
-          </label>
-          <input
-            type="text"
-            name="rmse"
-            value={metrics.rmse}
-            readOnly
-            className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Coefficient Variation of the RMSE (CV(RMSE))
-          </label>
-          <input
-            type="text"
-            name="cvrmse"
-            value={metrics.cvrmse}
-            readOnly
-            className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Mean Absolute Error (MAE)
-          </label>
-          <input
-            type="text"
-            name="mae"
-            value={metrics.mae}
-            readOnly
-            className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
-          />
         </div>
       </div>
     </div>
@@ -454,7 +392,6 @@ const ViewLogs = () => {
           {/* Metrics and details section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
             <DatasetDetails />
-            <EvaluationMetrics />
           </div>
 
           {/* Model configurations section */}
