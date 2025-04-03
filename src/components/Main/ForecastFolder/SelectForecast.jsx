@@ -176,24 +176,36 @@ const SelectForecast = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen flex flex-col items-center">
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+    <div className="relative min-h-screen flex">
+      <div
+        className="fixed inset-0 overflow-hidden"
+        style={{
+          backgroundImage: `url(/wind-img.png), url(/solar-img.png)`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundBlendMode: "overlay",
+          zIndex: -1,
+        }}
+      />
+      <div className="p-6min-h-screen flex flex-col items-center">
+        {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      <div className="flex gap-4">
-        {[
-          { name: "Solar", color: "blue" },
-          { name: "Wind", color: "green" },
-        ].map((button, index) => (
-          <button
-            key={index}
-            onClick={() => handleModelSelect(button.name)}
-            disabled={loading}
-            className={`px-6 py-3 bg-${button.color}-500 text-white rounded-md 
+        <div className="flex gap-4">
+          {[
+            { name: "Solar", color: "blue" },
+            { name: "Wind", color: "green" },
+          ].map((button, index) => (
+            <button
+              key={index}
+              onClick={() => handleModelSelect(button.name)}
+              disabled={loading}
+              className={`px-6 py-3 bg-${button.color}-500 text-white rounded-md 
               hover:bg-${button.color}-600 transition-colors
               disabled:opacity-50 disabled:cursor-not-allowed`}>
-            {button.name}
-          </button>
-        ))}
+              {button.name}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
