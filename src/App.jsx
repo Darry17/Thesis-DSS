@@ -19,6 +19,7 @@ import {
   ForecastResult,
   ViewGraph,
   ViewLogs,
+  Account,
 } from "@/components/Main";
 
 // Wrapper component that conditionally renders Navigation
@@ -36,6 +37,7 @@ const AppContent = () => {
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/history" element={<History />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/accounts" element={<Account />} />
 
         {/* Forecast and model configuration routes */}
         <Route path="/select-forecast" element={<SelectForecast />} />

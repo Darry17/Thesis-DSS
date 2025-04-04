@@ -67,7 +67,8 @@ const SelectForecast = () => {
       const { filteredData, folderPrefix } = processData(data, modelType);
       await uploadProcessedData(filteredData, folderPrefix, modelType);
 
-      navigate(`/generate?type=${folderPrefix}`);
+      // Pass modelType to GenerateForecast via navigation state
+      navigate(`/generate?type=${folderPrefix}`, { state: { modelType } });
     } catch (err) {
       console.error("Error details:", err);
       setError(`Error processing data: ${err.message}`);

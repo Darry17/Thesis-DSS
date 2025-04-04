@@ -64,7 +64,7 @@ const HistoryLogs = () => {
   }
 
   return (
-    <div className="p-6 bg-white min-h-screen">
+    <div className="p-6 bg-[F0F0F0] min-h-screen">
       <h1 className="text-3xl font-bold mb-6">Forecasted Logs</h1>
 
       <div className="overflow-x-auto">

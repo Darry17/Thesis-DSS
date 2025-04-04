@@ -113,7 +113,7 @@ const ViewLogs = () => {
 
   // Replace Dummy Graph component with a placeholder message
   const GraphPlaceholder = () => (
-    <div className="border rounded-md p-4 bg-white shadow mb-6">
+    <div className="bg-white p-4 rounded-lg border-gray-500 shadow mb-5">
       <h3 className="text-lg font-medium mb-2">Generated Power</h3>
       <div className="h-60 bg-gray-50 flex justify-center items-center">
         <div className="text-gray-500">
@@ -144,7 +144,7 @@ const ViewLogs = () => {
 
   // ESN Configuration component
   const EsnConfiguration = () => (
-    <div className="border rounded-md p-4 bg-white shadow mb-6">
+    <div className="p-4 bg-white mb-6">
       <h3 className="text-2xl font-bold mb-6">
         Configurations - Echo State Networks
       </h3>
@@ -232,7 +232,7 @@ const ViewLogs = () => {
 
   // DHR Configuration component
   const DhrConfiguration = () => (
-    <div className="border rounded-md p-4 bg-white shadow mb-6">
+    <div className="p-4 bg-whitemb-6">
       <h3 className="text-2xl font-bold mb-6">
         Configurations - Dynamic Harmonic Regression
       </h3>
@@ -309,7 +309,7 @@ const ViewLogs = () => {
 
   // DatasetDetails component
   const DatasetDetails = () => (
-    <div className="border rounded-md p-4 bg-white shadow">
+    <div className="p-4 bg-white">
       <h3 className="text-2xl font-bold mb-6">Dataset Details</h3>
       <div className="space-y-4">
         <div>

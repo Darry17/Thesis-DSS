@@ -411,7 +411,7 @@ const ForecastResult = () => {
         {/* Left Column */}
         <div className="space-y-6">
           {/* Graph Card */}
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div className="bg-white p-4 rounded-lg border-gray-500 shadow">
             <h3 className="text-sm text-gray-500 mb-2">
               {forecastData?.original_filename || "No filename available"}
             </h3>
@@ -424,13 +424,13 @@ const ForecastResult = () => {
 
             <button
               onClick={handleViewGraphs}
-              className="w-30 mt-2 py-2 bg-white text-black rounded-md hover:bg-gray-50 border-b-2 border-green-500">
+              className="w-30 mt-2 py-2 bg-gray-200 text-black rounded-md hover:bg-gray-300 border-b-2 border-green-500">
               View Graphs
             </button>
           </div>
 
           {/* Forecast Period */}
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div className="bg-white p-4 rounded-lg border-gray-500 shadow">
             <h3 className="text-gray-700 font-semibold mb-2">
               Generated Forecast
             </h3>
@@ -440,7 +440,7 @@ const ForecastResult = () => {
           </div>
 
           {/* Recommendations */}
-          <div className="bg-white p-4 rounded-lg shadow">
+          <div className="bg-white p-4">
             <h3 className="text-gray-700 font-semibold mb-4">
               Recommendations
             </h3>
@@ -465,7 +465,7 @@ const ForecastResult = () => {
                       batteryStorage: e.target.checked,
                     }))
                   }
-                  className="h-4 w-4 text-green-600 rounded border-green-600 focus:ring-green-500 cursor-pointer"
+                  className="h-4 w-4 text-green-600 border-green-600 focus:ring-green-500 cursor-pointer rounded accent-green-700"
                 />
               </div>
               <div className="flex items-center justify-between">
@@ -484,7 +484,7 @@ const ForecastResult = () => {
                       bidStrategically: e.target.checked,
                     }))
                   }
-                  className="h-4 w-4 text-green-600 rounded border-green-600 focus:ring-green-500 cursor-pointer"
+                  className="h-4 w-4 text-green-600 border-green-600 focus:ring-green-500 cursor-pointer rounded accent-green-700"
                 />
               </div>
             </div>
@@ -492,7 +492,7 @@ const ForecastResult = () => {
         </div>
 
         {/* Right Column - Configurations */}
-        <div className="bg-white p-6 rounded-lg shadow">
+        <div className="bg-white p-6">
           <h2 className="text-2xl font-bold mb-6">Configurations</h2>
           {configuration ? (
             renderConfigSection()
@@ -502,7 +502,7 @@ const ForecastResult = () => {
           <div className="flex space-x-4 mt-8">
             <button
               onClick={handleEdit}
-              className="bg-green-500 text-white px-6 py-2 rounded-md hover:bg-green-600">
+              className="bg-green-700 text-white px-6 py-2 rounded-md hover:bg-green-600">
               Edit
             </button>
           </div>

@@ -25,8 +25,10 @@ const Navigation = () => {
     navigate("/");
   };
 
-  // Determine if the current route requires black text
-  const isWhiteText = ["/dashboard", "/forecast"].includes(location.pathname);
+  // Determine if the current route requires white text
+  const isWhiteText = ["/dashboard", "/forecast", "/generate"].includes(
+    location.pathname
+  );
 
   const forecastRelatedPages = [
     "/select-forecast",
@@ -34,6 +36,11 @@ const Navigation = () => {
     "/forecast-result",
     "/view-graph",
   ];
+
+  const settingsRelatedPages = ["/accounts", "/dhr", "/esn", "/hybrid"];
+
+  const isSettingsRelated = settingsRelatedPages.includes(location.pathname);
+  const isHistoryRelated = ["/view-logs"].includes(location.pathname);
 
   // Check if the current page is one of the forecast-related pages
   const isForecastRelated = forecastRelatedPages.includes(location.pathname);
@@ -72,7 +79,7 @@ const Navigation = () => {
                 `${linkClass} ${
                   isActive || isForecastRelated
                     ? `border-b-2 pb-0 rounded-none ${
-                        isActive && !isForecastRelated
+                        (isActive && !isForecastRelated) || isWhiteText
                           ? "border-white"
                           : "border-black"
                       }`
@@ -87,11 +94,9 @@ const Navigation = () => {
               to="/history"
               className={({ isActive }) =>
                 `${linkClass} ${
-                  isActive
+                  isActive || isHistoryRelated
                     ? `border-b-2 pb-0 rounded-none ${
-                        isActive && !isForecastRelated
-                          ? "border-black"
-                          : "border-white"
+                        isWhiteText ? "border-white" : "border-black"
                       }`
                     : ""
                 }`
@@ -105,11 +110,9 @@ const Navigation = () => {
                 to="/settings"
                 className={({ isActive }) =>
                   `${linkClass} ${
-                    isActive
+                    isActive || isSettingsRelated
                       ? `border-b-2 pb-0 rounded-none ${
-                          isActive && !isForecastRelated
-                            ? "border-black"
-                            : "border-white"
+                          isWhiteText ? "border-white" : "border-black"
                         }`
                       : ""
                   }`

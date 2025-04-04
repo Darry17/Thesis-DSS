@@ -8,6 +8,8 @@ const GenerateForecast = () => {
   const [error, setError] = useState(null);
   const [fileData, setFileData] = useState(null);
 
+  const modelType = location.state?.modelType || ""; // Get modelType from navigation state
+
   const getGranularityFromFilename = (filename) => {
     if (!filename) return "Hourly";
     if (filename.includes("hourly")) return "Hourly";
@@ -165,6 +167,7 @@ const GenerateForecast = () => {
             ...formData,
             forecastData: data,
             forecastId: createdForecast.id,
+            modelType, // Pass modelType forward
           },
         }
       );
@@ -182,16 +185,31 @@ const GenerateForecast = () => {
     return <div className="p-6 text-red-500">Error: {error}</div>;
   }
 
+  // Set background based on modelType
+  const backgroundImage = modelType
+    ? `url(/${modelType.toLowerCase()}-bg.png)`
+    : "none";
+
   return (
-    <div className="p-6 flex justify-center items-center">
+    <div className="relative min-h-screen flex">
+      <div
+        className="fixed inset-0 overflow-hidden"
+        style={{
+          backgroundImage: backgroundImage,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          zIndex: -1,
+        }}
+      />
+      <div className="fixed inset-0 bg-black/60" style={{ zIndex: -1 }} />
       <form
         onSubmit={handleGenerate}
-        className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-md">
+        className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-md m-auto">
         <h1 className="text-2xl font-bold mb-6">Generate</h1>
 
         {/* File Information */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 mbIts-1">
             Current File
           </label>
           <div className="p-3 bg-gray-50 rounded-md">

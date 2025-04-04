@@ -4,9 +4,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative min-h-screen flex">
+    <div className="min-h-screen flex overflow-hidden">
+      {/* Background Images and Overlay */}
       <div
-        className="fixed inset-0 overflow-hidden"
+        className="fixed inset-0"
         style={{
           backgroundImage: `url(/wind-img.png), url(/solar-img.png)`,
           backgroundSize: "cover",
@@ -16,18 +17,18 @@ const Dashboard = () => {
         }}
       />
       <div className="fixed inset-0 bg-black/60" style={{ zIndex: -1 }} />
+
+      {/* Content */}
       <div className="relative z-10 flex-1 flex items-center justify-center p-8 text-white">
-        <div className="max-w-2xl">
-          <h1 className="text-[80px] font-bold mb-4 flex justify-center">
-            DHR - ESN
-          </h1>
-          <p className="text-[80px] font-bold mb-4 text-center whitespace-nowrap">
+        <div className="max-w-2xl text-center">
+          <h1 className="text-6xl md:text-7xl font-bold mb-4">DHR - ESN</h1>
+          <p className="text-5xl md:text-6xl font-bold mb-4 whitespace-nowrap">
             Forecasting Model
           </p>
-          <div className="flex justify-center mt-8">
+          <div className="flex justify-center mt-6">
             <button
               onClick={() => navigate("/forecast")}
-              className="bg-white w-[300px] h-[70px] text-black rounded-4xl px-4 py-2 font-bold text-2xl">
+              className="bg-white w-[300px] h-[70px] text-black rounded-4xl px-4 py-2 font-bold text-2xl hover:bg-gray-100 transition">
               Forecast
             </button>
           </div>

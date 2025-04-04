@@ -80,11 +80,11 @@ const SingleModelConfiguration = () => {
   const getModelTitle = () => {
     switch (selectedModel) {
       case "DHR":
-        return "DYNAMIC HARMONIC REGRESSION";
+        return "Dynamic Harmonic Regression";
       case "ESN":
-        return "ECHO STATE NETWORK";
+        return "Echo State Network";
       default:
-        return "MODEL CONFIGURATION";
+        return "Unknown Model";
     }
   };
 
@@ -308,7 +308,7 @@ const SingleModelConfiguration = () => {
   };
 
   const renderESNForm = () => (
-    <div className="p-6 flex justify-center items-center">
+    <div className="p-6 flex justify-center items-center bg-white">
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* First Row */}
         <div className="flex space-x-4">
@@ -755,12 +755,12 @@ const SingleModelConfiguration = () => {
         <button
           type="button"
           onClick={handleCancel}
-          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500">
+          className="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500">
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+          className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500">
           Submit
         </button>
       </div>
@@ -776,7 +776,9 @@ const SingleModelConfiguration = () => {
 
   return (
     <div className="max-w-md mx-auto p-6 bg-gray-50 rounded-lg shadow-md">
-      <h2 className="text-xl font-bold text-center mb-6">{getModelTitle()}</h2>
+      <h2 className="text-[40px] text-left font-bold mb-6">
+        {getModelTitle()}
+      </h2>
       {renderForm()}
     </div>
   );

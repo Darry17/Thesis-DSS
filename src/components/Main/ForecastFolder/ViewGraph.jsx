@@ -184,8 +184,8 @@ const ViewGraph = () => {
 
   // Graph placeholder component
   const GraphPlaceholder = ({ title }) => (
-    <div className="border rounded-md p-4 bg-white shadow mb-6">
-      <h3 className="text-lg font-medium mb-2">{title}</h3>
+    <div className="bg-white p-4 rounded-lg border-gray-500 shadow">
+      <h3 className="text-lg font-medium mb-2">Generated Power</h3>
       <div className="h-60 bg-gray-50 flex justify-center items-center">
         <div className="text-gray-500">
           <svg
@@ -215,7 +215,7 @@ const ViewGraph = () => {
 
   // DatasetDetails component
   const DatasetDetails = () => (
-    <div className="border rounded-md p-4 bg-white shadow">
+    <div className="p-4 bg-white">
       <h3 className="text-2xl font-bold mb-6">Dataset Details</h3>
       <div className="space-y-4">
         <div>
@@ -226,7 +226,7 @@ const ViewGraph = () => {
             type="text"
             value={forecastData?.original_filename || "N/A"}
             readOnly
-            className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
+            className="w-xl p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
         </div>
         <div>
@@ -237,7 +237,7 @@ const ViewGraph = () => {
             type="text"
             value={forecastData?.granularity || "N/A"}
             readOnly
-            className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
+            className="w-xl p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
         </div>
         <div>
@@ -248,7 +248,7 @@ const ViewGraph = () => {
             type="text"
             value={forecastData?.steps || "24 (1-day Horizon)"}
             readOnly
-            className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
+            className="w-xl p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
         </div>
       </div>
@@ -289,11 +289,9 @@ const ViewGraph = () => {
       </div>
 
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {graphTypes.map((type, index) => (
-            <GraphPlaceholder key={index} title={type} />
-          ))}
-        </div>
+        {graphTypes.map((type, index) => (
+          <GraphPlaceholder key={index} title={type} />
+        ))}
         {/* Add DatasetDetails after the graph */}
         <DatasetDetails />
       </div>

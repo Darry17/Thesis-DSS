@@ -13,3 +13,4 @@ export { default as HybridModelConfiguration } from "./ForecastFolder/HybridMode
 export { default as ForecastResult } from "./ForecastFolder/ForecastResult";
 export { default as ViewGraph } from "./ForecastFolder/ViewGraph";
 export { default as ViewLogs } from "./ForecastFolder/ViewLogs";
+export { default as Account } from "./ForecastFolder/Accounts";
