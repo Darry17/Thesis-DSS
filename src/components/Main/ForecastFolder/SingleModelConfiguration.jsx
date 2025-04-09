@@ -166,8 +166,6 @@ const SingleModelConfiguration = () => {
 
   const handleSaveForecast = async () => {
     try {
-      console.log("Saving forecast with ID:", forecastId);
-
       if (!forecastId) {
         console.error("Missing forecastId - cannot save history log");
         alert("Error: Missing forecast ID. Cannot save to history log.");
@@ -200,12 +198,6 @@ const SingleModelConfiguration = () => {
         ? `${originalFileName}-${fileModelType}-${formattedDate}-${forecastId}`
         : `${fileModelType}-${formattedDate}-${forecastId}`; // Fallback if originalFileName is missing
 
-      console.log("Creating history log with metrics:", {
-        file_name: fileName,
-        model: displayModelType,
-        forecast_id: forecastId,
-      });
-
       const historyLogResponse = await fetch(
         "http://localhost:8000/api/history-logs",
         {
@@ -231,7 +223,6 @@ const SingleModelConfiguration = () => {
       }
 
       const responseData = await historyLogResponse.json();
-      console.log("History log created successfully:", responseData);
     } catch (error) {
       console.error("Error saving forecast:", error);
       alert(`Error saving forecast: ${error.message}`);
