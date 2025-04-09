@@ -30,8 +30,13 @@ const Settings = () => {
           <div>
             <NavLink
               to="/accounts"
-              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-300 transition">
+              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-300 transition mb-3">
               Accounts
+            </NavLink>
+            <NavLink
+              to="/recovery-logs"
+              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-300 transition">
+              Recovery Logs
             </NavLink>
           </div>
         </div>

@@ -40,9 +40,11 @@ const Navigation = () => {
     "/view-graph",
     "/single-model-config",
     "/hybrid-model-config",
+    "/result",
+    "/view-logs",
   ];
 
-  const settingsRelatedPages = ["/accounts", "/dhr", "/esn", "/hybrid"];
+  const settingsRelatedPages = ["/accounts", "/recovery-logs"];
 
   const isSettingsRelated = settingsRelatedPages.includes(location.pathname);
   const isHistoryRelated = ["/view-logs"].includes(location.pathname);
@@ -52,7 +54,7 @@ const Navigation = () => {
   const linkClass = "block py-2 px-4 rounded";
 
   return (
-    <div className="top-0 left-0 right-0 text-white p-4 font-bold">
+    <div className="top-0 left-0 right-0 text-white p-4 font-medium">
       <div className="flex justify-between items-center">
         <ul
           className={`flex space-x-4 ${
@@ -126,7 +128,7 @@ const Navigation = () => {
           )}
         </ul>
         <div
-          className={`flex space-x-4 items-center ${
+          className={`flex space-x-10 items-center ${
             isWhiteText ? "text-white" : "text-black"
           }`}>
           <span>{username}</span> {/* Display username from token */}

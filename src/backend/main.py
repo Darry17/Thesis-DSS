@@ -67,6 +67,16 @@ class HistoryLog(Base):
     date = Column(DateTime, default=datetime.now)
     username = Column(String(255), nullable=True)
 
+class DeletedForecast(Base):
+    __tablename__ = "deleted_forecasts"
+    id = Column(Integer, primary_key=True, index=True)
+    forecast_id = Column(Integer, nullable=True)
+    file_name = Column(String(255), nullable=False)
+    model = Column(String(50), nullable=False)
+    date = Column(DateTime, default=datetime.now)
+    username = Column(String(255), nullable=False)
+    deleted_by = Column(String(255), nullable=False)
+
 class JsonData(BaseDataModel):
     __tablename__ = "json_data"
 
@@ -88,6 +98,7 @@ class Forecast(Base):
     steps = Column(String(50), nullable=False)
     granularity = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=datetime.now)
+    # Removed: username column
 
 class DHRConfiguration(Base):
     __tablename__ = "dhr_configurations"
@@ -136,11 +147,9 @@ class HybridConfiguration(Base):
     created_at = Column(DateTime, default=datetime.now)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
-# New: User Model for Authentication
 class User(Base):
     __tablename__ = "users"
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)  # This is key
+    id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     access_control = Column(String(20), nullable=False)
@@ -149,19 +158,19 @@ class User(Base):
 # Create all tables in the database
 Base.metadata.create_all(bind=engine)
 
-# New: Password Hashing Setup
+# Password Hashing Setup
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# New: JWT Configuration
-SECRET_KEY = os.getenv('SECRET_KEY')  # Add to .env file
+# JWT Configuration
+SECRET_KEY = os.getenv('SECRET_KEY')
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# New: Helper Function to Verify Password
+# Helper Function to Verify Password
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
-# New: Helper Function to Create JWT Token
+# Helper Function to Create JWT Token
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -198,7 +207,7 @@ class HistoryLogResponse(BaseModel):
     file_name: str
     model: str
     date: datetime
-    username: str  # Already present, just confirming
+    username: str
     model_config = {'from_attributes': True}
 
 class FileResponse(BaseModel):
@@ -264,12 +273,10 @@ class HybridConfigurationCreate(BaseModel):
     regularization_esn: float
     model_config = {'from_attributes': True}
 
-# New: Pydantic Model for Login Request
 class LoginRequest(BaseModel):
     username: str
     password: str
 
-# Pydantic models for user requests
 class UserCreate(BaseModel):
     username: str
     password: str
@@ -288,6 +295,16 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class DeletedForecastResponse(BaseModel):
+    id: int
+    forecast_id: Optional[int]
+    file_name: str
+    model: str
+    date: datetime
+    username: str
+    deleted_by: str
+    model_config = {'from_attributes': True}
+
 # Database session dependency
 def get_db():
     db = SessionLocal()
@@ -303,6 +320,24 @@ def get_file_path(filename: str) -> str:
         if os.path.exists(file_path):
             return file_path
     return None
+
+# Dependency to get current user from token
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        access_control: str = payload.get("access_control")
+        if username is None or access_control is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        return {"username": username, "access_control": access_control}
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+# Dependency to ensure admin access
+def get_admin_user(current_user: dict = Depends(get_current_user)):
+    if current_user["access_control"] != "ADMIN":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
 
 # API Routes
 @app.get("/")
@@ -328,7 +363,6 @@ async def read_json_file(filename: str):
         logger.error(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
 
-# New: Login Endpoint
 @app.post("/login")
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate a user and return a JWT token."""
@@ -341,43 +375,6 @@ async def login(request: LoginRequest, db: Session = Depends(get_db)):
         return {"access_token": access_token, "token_type": "bearer"}
     else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-
-# Pydantic models for user requests
-class UserCreate(BaseModel):
-    username: str
-    password: str
-    access_control: str
-
-class UserUpdate(BaseModel):
-    username: str
-    password: Optional[str] = None
-    access_control: str
-
-class UserResponse(BaseModel):
-    id: int
-    username: str
-    access_control: str
-    created_at: datetime
-    class Config:
-        from_attributes = True
-
-# Dependency to get current user from token
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        access_control: str = payload.get("access_control")
-        if username is None or access_control is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
-        return {"username": username, "access_control": access_control}
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-# Dependency to ensure admin access
-def get_admin_user(current_user: dict = Depends(get_current_user)):
-    if current_user["access_control"] != "ADMIN":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    return current_user
 
 @app.get("/api/validate-token")
 async def validate_token(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -401,19 +398,17 @@ async def validate_token(token: str = Depends(oauth2_scheme), db: Session = Depe
 @app.get("/users", response_model=List[UserResponse])
 async def read_users(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)  # Add authentication
+    current_user: dict = Depends(get_current_user)
 ):
     users = db.query(User).all()
     if not users:
         raise HTTPException(status_code=404, detail="No users found")
     return users
 
-# Create a new user (admin-only)
 @app.post("/users", response_model=UserResponse)
 async def create_user(
     user: UserCreate, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)
 ):
-    # Check if username already exists
     if db.query(User).filter(User.username == user.username).first():
         raise HTTPException(status_code=400, detail="Username already exists")
     hashed_password = pwd_context.hash(user.password)
@@ -427,7 +422,6 @@ async def create_user(
     db.refresh(db_user)
     return db_user
 
-# Update a user (admin-only)
 @app.put("/users/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: int,
@@ -438,7 +432,6 @@ async def update_user(
     db_user = db.query(User).filter(User.id == user_id).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
-    # Check for username conflict
     if (
         user.username != db_user.username
         and db.query(User).filter(User.username == user.username).first()
@@ -446,13 +439,12 @@ async def update_user(
         raise HTTPException(status_code=400, detail="Username already exists")
     db_user.username = user.username
     db_user.access_control = user.access_control
-    if user.password:  # Update password only if provided
+    if user.password:
         db_user.password = pwd_context.hash(user.password)
     db.commit()
     db.refresh(db_user)
     return db_user
 
-# Delete a user (admin-only)
 @app.delete("/users/{user_id}")
 async def delete_user(
     user_id: int, db: Session = Depends(get_db), current_user: dict = Depends(get_admin_user)
@@ -474,7 +466,6 @@ async def process_model_data(
         filename = file.filename
         logger.info(f"Processing file: {filename}, Original file: {original_filename}")
         
-        # Determine subfolder and data model
         if "hourly" in filename:
             subfolder = "hourly"
             data_model = HourlyData
@@ -488,7 +479,6 @@ async def process_model_data(
             logger.error(f"Invalid filename format: {filename}")
             raise HTTPException(status_code=400, detail="Invalid filename format")
         
-        # Save file to storage
         target_folder = os.path.join(BASE_STORAGE_PATH, subfolder)
         os.makedirs(target_folder, exist_ok=True)
         file_path = os.path.join(target_folder, filename)
@@ -496,7 +486,6 @@ async def process_model_data(
         with open(file_path, "wb") as f:
             f.write(content)
 
-        # Save to database with original filename
         db_entry = data_model(
             filename=filename,
             original_filename=original_filename or "Unknown"
@@ -529,7 +518,6 @@ async def upload_file(
         filename = file.filename
         logger.info(f"Received file: {filename}, Original file: {original_filename}")
 
-        # Determine data type from filename
         pattern = r"^(hourly|daily|weekly)_(solar|wind)_data_\d{4}_\d{2}_\d{2}T\d{2}_\d{2}_\d{2}_\d{3}Z\.json$"
         match = re.match(pattern, filename)
         
@@ -541,7 +529,6 @@ async def upload_file(
             subfolder = frequency
             data_model = DATA_MODELS[frequency]
 
-        # Save file
         target_folder = os.path.join(BASE_STORAGE_PATH, subfolder)
         os.makedirs(target_folder, exist_ok=True)
         file_location = os.path.join(target_folder, filename)
@@ -550,7 +537,6 @@ async def upload_file(
         with open(file_location, "wb") as f:
             f.write(content)
 
-        # Create DB entry if valid model type
         if data_model:
             db_entry = data_model(
                 filename=filename,
@@ -583,7 +569,6 @@ async def upload_csv(
         with open(file_location, "wb") as f:
             f.write(content)
 
-        # Store the original CSV filename in the database
         db_entry = JsonData(
             filename=filename, 
             original_filename=original_filename
@@ -631,7 +616,6 @@ async def get_latest_file(data_type: str, db: Session = Depends(get_db)):
 @app.get("/storage/get-latest-by-pattern/{filename}", response_model=LatestFileResponse)
 async def get_latest_by_pattern(filename: str, db: Session = Depends(get_db)):
     try:
-        # Determine data type from filename
         data_type = None
         if "weekly" in filename:
             data_type = "weekly"
@@ -662,7 +646,11 @@ async def get_latest_by_pattern(filename: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/forecasts")
-async def create_forecast(forecast: ForecastCreate, db: Session = Depends(get_db)):
+async def create_forecast(
+    forecast: ForecastCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     try:
         logger.info(f"Creating forecast: {forecast}")
         
@@ -716,12 +704,68 @@ async def get_forecast(forecast_id: int, db: Session = Depends(get_db)):
         logger.error(f"Error fetching forecast {forecast_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/api/forecasts/{forecast_id}")
+async def delete_forecast(
+    forecast_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        # Fetch the forecast to ensure it exists
+        forecast = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+        if not forecast:
+            raise HTTPException(status_code=404, detail="Forecast not found")
+
+        # Fetch the associated history log to get the username
+        history_log = db.query(HistoryLog).filter(HistoryLog.forecast_id == forecast_id).first()
+        if not history_log:
+            raise HTTPException(status_code=404, detail="History log not found for this forecast")
+
+        # Log the deletion in deleted_forecasts using the username from history_logs
+        deleted_forecast = DeletedForecast(
+            forecast_id=forecast_id,
+            file_name=history_log.file_name,
+            model=history_log.model,
+            username=history_log.username or "Unknown",  # Use username from history_logs, default to "Unknown" if None
+            deleted_by=current_user["username"]  # User who deleted it
+        )
+        db.add(deleted_forecast)
+
+        # Delete the history log entry with the matching forecast_id
+        db.query(HistoryLog).filter(HistoryLog.forecast_id == forecast_id).delete()
+
+        # Delete the forecast from the forecasts table
+        db.query(Forecast).filter(Forecast.id == forecast_id).delete()
+
+        # Commit the transaction
+        db.commit()
+
+        return {"message": "Forecast deleted successfully"}
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error deleting forecast {forecast_id}: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/deleted-forecasts", response_model=List[DeletedForecastResponse])
+async def get_deleted_forecasts(
+    db: Session = Depends(get_db), 
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        deleted_forecasts = db.query(DeletedForecast).order_by(desc(DeletedForecast.date)).all()
+        return deleted_forecasts
+    except Exception as e:
+        logger.error(f"Error fetching deleted forecasts: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/dhr-configurations")
 async def create_dhr_configuration(config: DHRConfigurationCreate, db: Session = Depends(get_db)):
     try:
         logger.info(f"Creating DHR configuration: {config}")
         
-        # Check if forecast exists
         forecast = db.query(Forecast).filter(Forecast.id == config.forecast_id).first()
         if not forecast:
             raise HTTPException(status_code=404, detail="Forecast not found")
@@ -767,12 +811,10 @@ async def get_dhr_configuration(forecast_id: int, db: Session = Depends(get_db))
 @app.put("/api/dhr-configurations/{forecast_id}")
 async def update_dhr_configuration(forecast_id: int, config: DHRConfigurationCreate, db: Session = Depends(get_db)):
     try:
-        # Check if forecast exists
         forecast = db.query(Forecast).filter(Forecast.id == forecast_id).first()
         if not forecast:
             raise HTTPException(status_code=404, detail="Forecast not found")
             
-        # Find existing configuration
         existing_config = db.query(DHRConfiguration).filter(
             DHRConfiguration.forecast_id == forecast_id
         ).first()
@@ -780,7 +822,6 @@ async def update_dhr_configuration(forecast_id: int, config: DHRConfigurationCre
         if not existing_config:
             raise HTTPException(status_code=404, detail="DHR configuration not found")
         
-        # Update fields
         existing_config.fourier_order = config.fourier_order
         existing_config.window_length = config.window_length
         existing_config.seasonality_periods = config.seasonality_periods
@@ -809,7 +850,6 @@ async def create_esn_configuration(config: ESNConfigurationCreate, db: Session =
     try:
         logger.info(f"Creating ESN configuration: {config}")
         
-        # Check if forecast exists
         forecast = db.query(Forecast).filter(Forecast.id == config.forecast_id).first()
         if not forecast:
             raise HTTPException(status_code=404, detail="Forecast not found")
@@ -856,12 +896,10 @@ async def get_esn_configuration(forecast_id: int, db: Session = Depends(get_db))
 @app.put("/api/esn-configurations/{forecast_id}")
 async def update_esn_configuration(forecast_id: int, config: ESNConfigurationCreate, db: Session = Depends(get_db)):
     try:
-        # Check if forecast exists
         forecast = db.query(Forecast).filter(Forecast.id == forecast_id).first()
         if not forecast:
             raise HTTPException(status_code=404, detail="Forecast not found")
             
-        # Find existing configuration
         existing_config = db.query(ESNConfiguration).filter(
             ESNConfiguration.forecast_id == forecast_id
         ).first()
@@ -869,7 +907,6 @@ async def update_esn_configuration(forecast_id: int, config: ESNConfigurationCre
         if not existing_config:
             raise HTTPException(status_code=404, detail="ESN configuration not found")
         
-        # Update fields
         existing_config.reservoir_size = config.reservoir_size
         existing_config.spectral_radius = config.spectral_radius
         existing_config.sparsity = config.sparsity
@@ -899,13 +936,11 @@ async def create_hybrid_configuration(config: HybridConfigurationCreate, db: Ses
     try:
         logger.info(f"Creating hybrid configuration for forecast_id: {config.forecast_id}")
         
-        # Check if forecast exists
         forecast = db.query(Forecast).filter(Forecast.id == config.forecast_id).first()
         if not forecast:
             logger.error(f"Forecast not found: {config.forecast_id}")
             raise HTTPException(status_code=404, detail=f"Forecast {config.forecast_id} not found")
             
-        # Create configuration object
         db_config = HybridConfiguration(
             forecast_id=config.forecast_id,
             fourier_order=config.fourier_order,
@@ -980,12 +1015,10 @@ async def get_hybrid_configuration(forecast_id: int, db: Session = Depends(get_d
 @app.put("/api/hybrid-configurations/{forecast_id}")
 async def update_hybrid_configuration(forecast_id: int, config: HybridConfigurationCreate, db: Session = Depends(get_db)):
     try:
-        # Check if forecast exists
         forecast = db.query(Forecast).filter(Forecast.id == forecast_id).first()
         if not forecast:
             raise HTTPException(status_code=404, detail="Forecast not found")
             
-        # Find existing configuration
         existing_config = db.query(HybridConfiguration).filter(
             HybridConfiguration.forecast_id == forecast_id
         ).first()
@@ -993,7 +1026,6 @@ async def update_hybrid_configuration(forecast_id: int, config: HybridConfigurat
         if not existing_config:
             raise HTTPException(status_code=404, detail="Hybrid configuration not found")
         
-        # Update all fields
         existing_config.fourier_order = config.fourier_order
         existing_config.window_length = config.window_length
         existing_config.seasonality_periods = config.seasonality_periods
@@ -1043,7 +1075,7 @@ async def get_json_data(json_id: int, db: Session = Depends(get_db)):
 async def create_history_log(
     log: HistoryLogCreate, 
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)  # Add authentication dependency
+    current_user: dict = Depends(get_current_user)
 ):
     try:
         logger.info(f"Creating history log with data: {log.dict()}")
@@ -1056,12 +1088,11 @@ async def create_history_log(
                 logger.warning(f"Invalid forecast_id format: {log.forecast_id}, setting to None")
                 forecast_id = None
         
-        # Create the log entry including the username from the authenticated user
         db_log = HistoryLog(
             file_name=log.file_name,
             model=log.model,
             forecast_id=forecast_id,
-            username=current_user["username"]  # Get username from token
+            username=current_user["username"]
         )
         
         db.add(db_log)
@@ -1081,21 +1112,12 @@ async def create_history_log(
             "file_name": db_log.file_name,
             "model": db_log.model,
             "date": db_log.date,
-            "username": db_log.username  # Include username in response
+            "username": db_log.username
         }
 
     except Exception as e:
         logger.error(f"Error creating history log: {str(e)}")
         db.rollback()
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to create history log: {str(e)}"
-        )
-
-    except Exception as e:
-        logger.error(f"Error creating history log: {str(e)}")
-        db.rollback()
-        # Return a detailed error message
         raise HTTPException(
             status_code=500, 
             detail=f"Failed to create history log: {str(e)}"
@@ -1115,7 +1137,7 @@ async def get_history_log(log_id: int, db: Session = Depends(get_db)):
             "file_name": log.file_name,
             "model": log.model,
             "date": log.date,
-            "username": log.username  # Add username to response
+            "username": log.username
         }
     except Exception as e:
         logger.error(f"Error fetching history log {log_id}: {str(e)}")

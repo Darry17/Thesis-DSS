@@ -194,16 +194,16 @@ const Accounts = () => {
 
   return (
     <div className="p-6 bg-gray-100">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
+        <h2 className="text-4xl font-bold mb-4">Accounts</h2>
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-2xl font-bold mb-4">Accounts</h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="text-left">
                   <th className="pb-3">Username</th>
                   <th className="pb-3">Access Control</th>
-                  <th className="pb-3">Actions</th>
+                  <th className="pb-3"></th>
                   <th className="pb-3">Date</th>
                 </tr>
               </thead>
@@ -217,7 +217,7 @@ const Accounts = () => {
                     <td className="py-3">
                       <button
                         onClick={() => handleEdit(account)}
-                        className="bg-green-100 text-green-600 px-4 py-1 rounded mr-2 hover:bg-green-200 font-medium">
+                        className="bg-green-100 text-green-600 px-4 py-1 rounded mr-10 hover:bg-green-200 font-medium">
                         EDIT
                       </button>
                       <button

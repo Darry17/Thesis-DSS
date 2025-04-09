@@ -105,80 +105,6 @@ const ViewGraph = () => {
     fetchForecastData();
   }, [forecastId, navigate]);
 
-  const handleSaveForecast = async () => {
-    try {
-      console.log("Saving forecast with ID:", forecastId);
-
-      if (!forecastId) {
-        console.error("Missing forecastId - cannot save history log");
-        alert("Error: Missing forecast ID. Cannot save to history log.");
-        return;
-      }
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("No authentication token found. Redirecting to login.");
-        navigate("/login");
-        return;
-      }
-
-      // Use the already fetched forecastData
-      let modelType = forecastData.model.toLowerCase();
-      let fileModelType = modelType;
-      let displayModelType = modelType.toUpperCase();
-
-      if (modelType === "dhr-esn") {
-        fileModelType = "hybrid";
-        displayModelType = "DHR-ESN";
-      }
-
-      const today = new Date();
-      const formattedDate = `${today.getFullYear()}-${String(
-        today.getMonth() + 1
-      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-
-      const fileName = `${fileModelType}-${formattedDate}`;
-
-      console.log("Creating history log with metrics:", {
-        file_name: fileName,
-        model: displayModelType,
-        forecast_id: forecastId,
-      });
-
-      const historyLogResponse = await fetch(
-        "http://localhost:8000/api/history-logs",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            file_name: fileName,
-            model: displayModelType,
-            forecast_id: forecastId,
-          }),
-        }
-      );
-
-      if (!historyLogResponse.ok) {
-        const errorText = await historyLogResponse.text();
-        console.error("Error response:", errorText);
-        throw new Error(
-          `Error creating history log: ${historyLogResponse.status} ${historyLogResponse.statusText} - ${errorText}`
-        );
-      }
-
-      const responseData = await historyLogResponse.json();
-      console.log("History log created successfully:", responseData);
-
-      alert(`Forecast saved successfully as ${fileName}`);
-    } catch (error) {
-      console.error("Error saving forecast:", error);
-      alert(`Error saving forecast: ${error.message}`);
-    }
-  };
-
   const handleBack = () => navigate(-1);
   const handlePrint = () => window.print();
 
@@ -268,21 +194,16 @@ const ViewGraph = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto print-container">
-      <div className="flex justify-between mb-6 no-print">
-        <button
-          onClick={handleSaveForecast}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-          Save Forecast
-        </button>
-        <div className="space-x-2">
+      <div className="flex justify-end mb-6 no-print">
+        <div className="space-x-8">
           <button
             onClick={handleBack}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+            className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600">
             Back
           </button>
           <button
             onClick={handlePrint}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+            className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700">
             Print
           </button>
         </div>

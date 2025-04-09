@@ -490,7 +490,7 @@ const ForecastResult = () => {
         </div>
 
         {/* Right Column - Configurations */}
-        <div className="bg-white p-6">
+        <div className="bg-white px-6 py-0">
           <h2 className="text-4xl font-bold mb-6">Configurations</h2>
           {configuration ? (
             renderConfigSection()

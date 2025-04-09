@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.5",
     "@tailwindcss/vite": "^4.0.17",
     "axios": "^1.8.4",
     "comlink": "^4.4.2",

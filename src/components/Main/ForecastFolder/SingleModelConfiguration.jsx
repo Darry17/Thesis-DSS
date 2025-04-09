@@ -9,19 +9,16 @@ const SingleModelConfiguration = () => {
     forecastId,
     isEditing,
     existingConfig,
+    originalFileName,
   } = location.state || {};
 
   const [errors, setErrors] = useState({});
   const [tooltipVisible, setTooltipVisible] = useState(null);
 
-  // Redirect if no model is selected
   useEffect(() => {
-    if (!selectedModel) {
-      navigate("/generate");
-    }
+    if (!selectedModel) navigate("/generate");
   }, [selectedModel, navigate]);
 
-  // Validate forecastId
   useEffect(() => {
     if (!forecastId) {
       console.error("No forecast ID provided");
@@ -29,7 +26,6 @@ const SingleModelConfiguration = () => {
     }
   }, [forecastId, navigate]);
 
-  // Initialize form data based on selected model and existing config
   const getInitialFormData = () => {
     if (!selectedModel) return {};
 
@@ -89,16 +85,14 @@ const SingleModelConfiguration = () => {
   };
 
   const validateField = (name, value) => {
-    if (!value.trim()) return null; // Skip validation for empty fields
+    if (!value.trim()) return null;
 
     if (name === "sparsity") {
       const numValue = parseFloat(value);
-      if (isNaN(numValue) || numValue < 0 || numValue > 1) {
+      if (isNaN(numValue) || numValue < 0 || numValue > 1)
         return "Sparsity must be between 0 and 1";
-      }
     }
 
-    // Validate numeric fields
     if (
       [
         "reservoirSize",
@@ -114,57 +108,46 @@ const SingleModelConfiguration = () => {
       ].includes(name)
     ) {
       const numValue = parseFloat(value);
-      if (isNaN(numValue)) {
+      if (isNaN(numValue))
         return `${
           name.charAt(0).toUpperCase() + name.slice(1)
         } must be a number`;
-      }
 
-      // Additional validation for specific fields
       if (
         name === "reservoirSize" &&
         (numValue <= 0 || !Number.isInteger(Number(value)))
-      ) {
+      )
         return "Reservoir Size must be a positive integer";
-      }
       if (
         name === "lags" &&
         (numValue <= 0 || !Number.isInteger(Number(value)))
-      ) {
+      )
         return "Lags must be a positive integer";
-      }
       if (
         name === "fourierOrder" &&
         (numValue <= 0 || !Number.isInteger(Number(value)))
-      ) {
+      )
         return "Fourier Order must be a positive integer";
-      }
       if (
         name === "windowLength" &&
         (numValue <= 0 || !Number.isInteger(Number(value)))
-      ) {
+      )
         return "Window Length must be a positive integer";
-      }
       if (
         name === "trendComponents" &&
         (numValue <= 0 || !Number.isInteger(Number(value)))
-      ) {
+      )
         return "Trend Components must be a positive integer";
-      }
-      if (name === "spectralRadius" && numValue <= 0) {
+      if (name === "spectralRadius" && numValue <= 0)
         return "Spectral Radius must be positive";
-      }
-      if (name === "inputScaling" && numValue <= 0) {
+      if (name === "inputScaling" && numValue <= 0)
         return "Input Scaling must be positive";
-      }
-      if (name === "dropout" && (numValue < 0 || numValue > 1)) {
+      if (name === "dropout" && (numValue < 0 || numValue > 1))
         return "Dropout must be between 0 and 1";
-      }
-      if ((name === "regularization" || name === "polyorder") && numValue < 0) {
+      if ((name === "regularization" || name === "polyorder") && numValue < 0)
         return `${
           name.charAt(0).toUpperCase() + name.slice(1)
         } must be non-negative`;
-      }
     }
 
     return null;
@@ -172,35 +155,97 @@ const SingleModelConfiguration = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-
-    // Validate field
+    setFormData((prevData) => ({ ...prevData, [name]: value }));
     const error = validateField(name, value);
-    setErrors((prev) => ({
-      ...prev,
-      [name]: error,
-    }));
+    setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  const showTooltip = (field) => {
-    setTooltipVisible(field);
-  };
+  const showTooltip = (field) => setTooltipVisible(field);
+  const hideTooltip = () => setTooltipVisible(null);
+  const handleCancel = () => navigate(-1);
 
-  const hideTooltip = () => {
-    setTooltipVisible(null);
+  const handleSaveForecast = async () => {
+    try {
+      console.log("Saving forecast with ID:", forecastId);
+
+      if (!forecastId) {
+        console.error("Missing forecastId - cannot save history log");
+        alert("Error: Missing forecast ID. Cannot save to history log.");
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        console.error("No authentication token found. Redirecting to login.");
+        navigate("/");
+        return;
+      }
+
+      let modelType = selectedModel.toLowerCase();
+      let fileModelType = modelType;
+      let displayModelType = modelType.toUpperCase();
+
+      if (modelType === "dhr-esn") {
+        fileModelType = "hybrid";
+        displayModelType = "DHR-ESN";
+      }
+
+      const today = new Date();
+      const formattedDate = `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+      // Filename format: [original-filename]-[model]-[date]-[forecastId]
+      const fileName = originalFileName
+        ? `${originalFileName}-${fileModelType}-${formattedDate}-${forecastId}`
+        : `${fileModelType}-${formattedDate}-${forecastId}`; // Fallback if originalFileName is missing
+
+      console.log("Creating history log with metrics:", {
+        file_name: fileName,
+        model: displayModelType,
+        forecast_id: forecastId,
+      });
+
+      const historyLogResponse = await fetch(
+        "http://localhost:8000/api/history-logs",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            file_name: fileName,
+            model: displayModelType,
+            forecast_id: forecastId,
+          }),
+        }
+      );
+
+      if (!historyLogResponse.ok) {
+        const errorText = await historyLogResponse.text();
+        console.error("Error response:", errorText);
+        throw new Error(
+          `Error creating history log: ${historyLogResponse.status} ${historyLogResponse.statusText} - ${errorText}`
+        );
+      }
+
+      const responseData = await historyLogResponse.json();
+      console.log("History log created successfully:", responseData);
+
+      alert(`Forecast saved successfully as ${fileName}`);
+    } catch (error) {
+      console.error("Error saving forecast:", error);
+      alert(`Error saving forecast: ${error.message}`);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate all fields before submitting
     const newErrors = {};
     let hasErrors = false;
 
-    // Determine which fields to validate based on the selected model
     const fieldsToValidate =
       selectedModel === "DHR"
         ? [
@@ -221,7 +266,6 @@ const SingleModelConfiguration = () => {
             "lags",
           ];
 
-    // Validate each field
     fieldsToValidate.forEach((field) => {
       const error = validateField(field, formData[field] || "");
       if (error) {
@@ -231,9 +275,7 @@ const SingleModelConfiguration = () => {
     });
 
     setErrors(newErrors);
-    if (hasErrors) {
-      return;
-    }
+    if (hasErrors) return;
 
     try {
       let config, endpoint;
@@ -248,7 +290,6 @@ const SingleModelConfiguration = () => {
           regularization_dhr: parseFloat(formData.regularization),
           trend_components: parseInt(formData.trendComponents),
         };
-
         endpoint = isEditing
           ? `http://localhost:8000/api/dhr-configurations/${forecastId}`
           : "http://localhost:8000/api/dhr-configurations";
@@ -263,7 +304,6 @@ const SingleModelConfiguration = () => {
           lags: parseInt(formData.lags),
           regularization_esn: parseFloat(formData.regularization),
         };
-
         endpoint = isEditing
           ? `http://localhost:8000/api/esn-configurations/${forecastId}`
           : "http://localhost:8000/api/esn-configurations";
@@ -271,46 +311,34 @@ const SingleModelConfiguration = () => {
 
       const response = await fetch(endpoint, {
         method: isEditing ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         let errorMessage = "Unknown error";
-
         try {
-          // Try to parse as JSON
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.detail || JSON.stringify(errorData);
         } catch (e) {
-          // If not valid JSON, use the raw text
           errorMessage = errorText || `Server returned ${response.status}`;
         }
-
         console.error("API Error:", errorMessage);
         throw new Error(`Failed to save configuration: ${errorMessage}`);
       }
 
-      navigate("/result", {
-        state: { forecastId },
-      });
+      await handleSaveForecast();
+      navigate("/result", { state: { forecastId } });
     } catch (error) {
       console.error("Error saving configuration:", error);
-      // Could add user-facing error message here
+      alert(`Error: ${error.message}`);
     }
-  };
-
-  const handleCancel = () => {
-    navigate(-1);
   };
 
   const renderESNForm = () => (
     <div className="p-6 flex justify-center items-center bg-white">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* First Row */}
         <div className="flex space-x-4">
           <div className="flex-1">
             <label className="block text-sm font-medium mb-1">
@@ -538,7 +566,6 @@ const SingleModelConfiguration = () => {
           <div className="flex-1">{/* Empty div for alignment */}</div>
         </div>
 
-        {/* Buttons */}
         <div className="flex justify-end space-x-4 mt-6">
           <button
             type="button"
@@ -751,8 +778,6 @@ const SingleModelConfiguration = () => {
           )}
         </div>
       </div>
-
-      {/* Buttons */}
       <div className="flex justify-end space-x-4 mt-10">
         <button
           type="button"
@@ -769,19 +794,12 @@ const SingleModelConfiguration = () => {
     </form>
   );
 
-  const renderForm = () => {
-    if (selectedModel === "ESN") {
-      return renderESNForm();
-    }
-    return renderDHRForm();
-  };
+  const renderForm = () =>
+    selectedModel === "ESN" ? renderESNForm() : renderDHRForm();
 
   return (
     <div className="min-h-screen relative">
-      {/* Background Layer */}
       <div className="fixed inset-0 bg-gray-100" style={{ zIndex: -1 }} />
-
-      {/* Content */}
       <div className="relative z-10 flex justify-center items-center flex-1 min-h-screen">
         <div className="w-150 h-150 p-10 px-15 bg-white rounded-lg shadow-md">
           <h2 className="text-4xl text-left font-bold mb-10">

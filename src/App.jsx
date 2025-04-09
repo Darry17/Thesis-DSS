@@ -20,6 +20,7 @@ import {
   ViewGraph,
   ViewLogs,
   Account,
+  RecoveryLogs,
 } from "@/components/Main";
 
 // Wrapper component that conditionally renders Navigation
@@ -38,6 +39,7 @@ const AppContent = () => {
         <Route path="/history" element={<History />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/accounts" element={<Account />} />
+        <Route path="/recovery-logs" element={<RecoveryLogs />} />
 
         {/* Forecast and model configuration routes */}
         <Route path="/select-forecast" element={<SelectForecast />} />

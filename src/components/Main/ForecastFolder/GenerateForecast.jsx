@@ -168,6 +168,7 @@ const GenerateForecast = () => {
             forecastData: data,
             forecastId: createdForecast.id,
             modelType, // Pass modelType forward
+            originalFileName: formData.original_filename, // Add originalFileName
           },
         }
       );

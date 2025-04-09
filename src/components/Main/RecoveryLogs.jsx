@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const History = () => {
+const RecoveryLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -137,7 +137,7 @@ const History = () => {
 
   return (
     <div className="px-40 py-0 bg-white min-h-screen">
-      <h1 className="text-4xl font-bold mb-6">Forecasted Logs</h1>
+      <h1 className="text-4xl font-bold mb-6">Recovery Logs</h1>
 
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200">
@@ -192,4 +192,4 @@ const History = () => {
   );
 };
 
-export default History;
+export default RecoveryLogs;
