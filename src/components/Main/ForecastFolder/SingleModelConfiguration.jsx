@@ -232,8 +232,6 @@ const SingleModelConfiguration = () => {
 
       const responseData = await historyLogResponse.json();
       console.log("History log created successfully:", responseData);
-
-      alert(`Forecast saved successfully as ${fileName}`);
     } catch (error) {
       console.error("Error saving forecast:", error);
       alert(`Error saving forecast: ${error.message}`);

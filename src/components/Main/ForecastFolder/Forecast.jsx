@@ -229,33 +229,55 @@ const Forecast = () => {
         }
       );
 
-      if (response.ok) {
-        const forecastResponse = await fetch(
-          "http://localhost:8000/api/forecasts",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              filename: newFilename,
-              original_filename: originalFilename,
-              forecast_model: "pending",
-              steps: "pending",
-              granularity: prefix,
-            }),
-          }
-        );
-
-        if (!forecastResponse.ok) {
-          const errorText = await forecastResponse.text();
-          throw new Error(`Failed to create forecast entry: ${errorText}`);
-        }
-        navigate("/select-forecast");
-      } else {
+      if (!response.ok) {
         const errorText = await response.text();
         console.error("Upload failed:", errorText);
         setMessage(`Upload failed: ${errorText}`);
         setIsUploadDisabled(false);
+        return;
       }
+
+      // Fetch the token from localStorage
+      const token = localStorage.getItem("token")?.trim();
+      if (!token) {
+        setMessage("You are not logged in. Please log in to continue.");
+        setIsProcessing(false);
+        setIsUploadDisabled(false);
+        navigate("/login");
+        return;
+      }
+
+      const forecastResponse = await fetch(
+        "http://localhost:8000/api/forecasts",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // Add the Authorization header
+          },
+          body: JSON.stringify({
+            filename: newFilename,
+            original_filename: originalFilename,
+            forecast_model: "pending",
+            steps: "pending",
+            granularity: prefix,
+          }),
+        }
+      );
+
+      if (!forecastResponse.ok) {
+        if (forecastResponse.status === 401) {
+          // Token is invalid or expired, redirect to login
+          setMessage("Your session has expired. Please log in again.");
+          localStorage.removeItem("token"); // Clear invalid token
+          navigate("/login");
+          return;
+        }
+        const errorText = await forecastResponse.text();
+        throw new Error(`Failed to create forecast entry: ${errorText}`);
+      }
+
+      navigate("/select-forecast");
     } catch (error) {
       console.error("Upload error:", error);
       setMessage(`Upload error: ${error.message}`);
@@ -337,6 +359,7 @@ const Forecast = () => {
                 </p>
               </>
             )}
+            {message && <p className="mt-4 text-sm text-red-500">{message}</p>}
           </div>
           <input {...getInputProps()} />
         </div>

@@ -1,31 +1,38 @@
-import React, { useEffect, useState } from "react"; // Added useState
+import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [userRole, setUserRole] = useState("USER");
-  const [username, setUsername] = useState(""); // Added to store username
+  const [username, setUsername] = useState("");
 
-  // Effect to decode user role and username from token, inspired by Login.jsx
+  // Effect to decode user role and username from token
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setUserRole(payload.access_control || "USER");
-        setUsername(payload.sub || "User"); // Assuming username is in "sub" field
+        setUsername(payload.sub || "User");
       } catch (e) {
         console.error("Error decoding token:", e);
-        setUsername("User"); // Fallback if token decoding fails
+        setUsername("User");
+      }
+    } else {
+      // If no token, redirect to login
+      if (location.pathname !== "/") {
+        navigate("/", { replace: true });
       }
     }
-  }, []);
+  }, [location.pathname, navigate]);
 
-  // Logout handler, aligned with Login.jsx
+  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/"); // Redirects to Login route
+    setUserRole("USER");
+    setUsername("");
+    navigate("/", { replace: true }); // Replace history entry
   };
 
   // Determine if the current route requires white text
@@ -41,7 +48,6 @@ const Navigation = () => {
     "/single-model-config",
     "/hybrid-model-config",
     "/result",
-    "/view-logs",
   ];
 
   const settingsRelatedPages = ["/accounts", "/recovery-logs"];
@@ -50,7 +56,6 @@ const Navigation = () => {
   const isHistoryRelated = ["/view-logs"].includes(location.pathname);
   const isForecastRelated = forecastRelatedPages.includes(location.pathname);
 
-  // Base styling for all navigation links
   const linkClass = "block py-2 px-4 rounded";
 
   return (
@@ -131,7 +136,7 @@ const Navigation = () => {
           className={`flex space-x-10 items-center ${
             isWhiteText ? "text-white" : "text-black"
           }`}>
-          <span>{username}</span> {/* Display username from token */}
+          <span>{username}</span>
           <button
             onClick={handleLogout}
             className={`cursor-pointer ${

@@ -16,13 +16,13 @@ const Settings = () => {
               Edit Preset Configuration
             </h3>
             <div className="flex gap-5">
-              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-300 transition">
+              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
                 DHR only
               </NavLink>
-              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-300 transition">
+              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
                 ESN only
               </NavLink>
-              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-300 transition">
+              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
                 DHR-ESN
               </NavLink>
             </div>
@@ -30,12 +30,12 @@ const Settings = () => {
           <div>
             <NavLink
               to="/accounts"
-              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-300 transition mb-3">
+              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-2xl hover:bg-gray-300 transition mb-3">
               Accounts
             </NavLink>
             <NavLink
               to="/recovery-logs"
-              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-full hover:bg-gray-300 transition">
+              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-2xl hover:bg-gray-300 transition">
               Recovery Logs
             </NavLink>
           </div>

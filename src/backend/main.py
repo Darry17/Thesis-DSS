@@ -98,7 +98,6 @@ class Forecast(Base):
     steps = Column(String(50), nullable=False)
     granularity = Column(String(50), nullable=False)
     created_at = Column(DateTime, default=datetime.now)
-    # Removed: username column
 
 class DHRConfiguration(Base):
     __tablename__ = "dhr_configurations"
@@ -734,9 +733,6 @@ async def delete_forecast(
         # Delete the history log entry with the matching forecast_id
         db.query(HistoryLog).filter(HistoryLog.forecast_id == forecast_id).delete()
 
-        # Delete the forecast from the forecasts table
-        db.query(Forecast).filter(Forecast.id == forecast_id).delete()
-
         # Commit the transaction
         db.commit()
 
@@ -746,6 +742,43 @@ async def delete_forecast(
         raise e
     except Exception as e:
         logger.error(f"Error deleting forecast {forecast_id}: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/recover-forecast/{forecast_id}")
+async def recover_forecast(
+    forecast_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_admin_user)
+):
+    try:
+        # Fetch the deleted forecast record
+        deleted_forecast = db.query(DeletedForecast).filter(DeletedForecast.forecast_id == forecast_id).first()
+        if not deleted_forecast:
+            raise HTTPException(status_code=404, detail="Deleted forecast not found")
+
+        # Create a new history log entry with the details from deleted_forecasts
+        recovered_log = HistoryLog(
+            forecast_id=deleted_forecast.forecast_id,
+            file_name=deleted_forecast.file_name,
+            model=deleted_forecast.model,
+            username=deleted_forecast.username,
+            date=datetime.now()  # Set the date to the current time
+        )
+        db.add(recovered_log)
+
+        # Delete the record from deleted_forecasts
+        db.query(DeletedForecast).filter(DeletedForecast.forecast_id == forecast_id).delete()
+
+        # Commit the transaction
+        db.commit()
+
+        return {"message": f"Forecast {forecast_id} recovered successfully"}
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error recovering forecast {forecast_id}: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -761,6 +794,33 @@ async def get_deleted_forecasts(
         logger.error(f"Error fetching deleted forecasts: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/api/deleted-forecasts/id/{id}")
+async def delete_deleted_forecast(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_admin_user)
+):
+    try:
+        # Fetch the deleted forecast record by id
+        deleted_forecast = db.query(DeletedForecast).filter(DeletedForecast.id == id).first()
+        if not deleted_forecast:
+            raise HTTPException(status_code=404, detail="Deleted forecast not found")
+
+        # Delete the record from deleted_forecasts
+        db.query(DeletedForecast).filter(DeletedForecast.id == id).delete()
+
+        # Commit the transaction
+        db.commit()
+
+        return {"message": f"Deleted forecast with ID {id} permanently removed"}
+
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error deleting deleted forecast with ID {id}: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.post("/api/dhr-configurations")
 async def create_dhr_configuration(config: DHRConfigurationCreate, db: Session = Depends(get_db)):
     try:

@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 const HybridModelConfiguration = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { forecastId, isEditing, existingConfig } = location.state || {};
+  const { forecastId, isEditing, existingConfig, originalFileName } =
+    location.state || {};
   const [step, setStep] = useState(1); // 1 for DHR, 2 for ESN
   const [errors, setErrors] = useState({});
   const [tooltipVisible, setTooltipVisible] = useState(null);
@@ -158,6 +159,81 @@ const HybridModelConfiguration = () => {
     setTooltipVisible(null);
   };
 
+  const handleSaveForecast = async () => {
+    try {
+      console.log("Saving forecast with ID:", forecastId);
+
+      if (!forecastId) {
+        console.error("Missing forecastId - cannot save history log");
+        alert("Error: Missing forecast ID. Cannot save to history log.");
+        return;
+      }
+
+      const token = localStorage.getItem("token")?.trim();
+      if (!token) {
+        console.error("No authentication token found. Redirecting to login.");
+        navigate("/login");
+        return;
+      }
+
+      const selectedModel = "DHR-ESN"; // Since this is the hybrid model configuration
+      let modelType = selectedModel.toLowerCase();
+      let fileModelType = modelType;
+      let displayModelType = modelType.toUpperCase();
+
+      if (modelType === "dhr-esn") {
+        fileModelType = "hybrid";
+        displayModelType = "DHR-ESN";
+      }
+
+      const today = new Date();
+      const formattedDate = `${today.getFullYear()}-${String(
+        today.getMonth() + 1
+      ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+      // Filename format: [original-filename]-[model]-[date]-[forecastId]
+      const fileName = originalFileName
+        ? `${originalFileName}-${fileModelType}-${formattedDate}-${forecastId}`
+        : `${fileModelType}-${formattedDate}-${forecastId}`; // Fallback if originalFileName is missing
+
+      console.log("Creating history log with metrics:", {
+        file_name: fileName,
+        model: displayModelType,
+        forecast_id: forecastId,
+      });
+
+      const historyLogResponse = await fetch(
+        "http://localhost:8000/api/history-logs",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            file_name: fileName,
+            model: displayModelType,
+            forecast_id: forecastId,
+          }),
+        }
+      );
+
+      if (!historyLogResponse.ok) {
+        const errorText = await historyLogResponse.text();
+        console.error("Error response:", errorText);
+        throw new Error(
+          `Error creating history log: ${historyLogResponse.status} ${historyLogResponse.statusText} - ${errorText}`
+        );
+      }
+
+      const responseData = await historyLogResponse.json();
+      console.log("History log created successfully:", responseData);
+    } catch (error) {
+      console.error("Error saving forecast:", error);
+      alert(`Error saving forecast: ${error.message}`);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -220,6 +296,14 @@ const HybridModelConfiguration = () => {
     }
 
     try {
+      // Fetch the token from localStorage
+      const token = localStorage.getItem("token")?.trim();
+      if (!token) {
+        console.error("No authentication token found. Redirecting to login.");
+        navigate("/login");
+        return;
+      }
+
       const hybridConfig = {
         forecast_id: parseInt(forecastId),
         // DHR part
@@ -247,11 +331,18 @@ const HybridModelConfiguration = () => {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`, // Add the Authorization header
         },
         body: JSON.stringify(hybridConfig),
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error("Session expired. Redirecting to login.");
+          localStorage.removeItem("token");
+          navigate("/login");
+          return;
+        }
         const errorData = await response.json();
         throw new Error(
           `Failed to ${isEditing ? "update" : "save"} hybrid configuration: ${
@@ -260,11 +351,15 @@ const HybridModelConfiguration = () => {
         );
       }
 
+      // Save the forecast to history logs
+      await handleSaveForecast();
+
       navigate("/result", {
         state: { forecastId },
       });
     } catch (error) {
       console.error("Error saving configuration:", error);
+      alert(`Error: ${error.message}`);
     }
   };
 

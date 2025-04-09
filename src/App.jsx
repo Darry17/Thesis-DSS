@@ -6,6 +6,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import Navigation from "@/components/Navigation/Navigation";
+import ProtectedRoute from "@/components/Main/Auth/ProtectedRoute";
 import {
   Login,
   Dashboard,
@@ -32,29 +33,33 @@ const AppContent = () => {
     <>
       {!isLoginPage && <Navigation />}
       <Routes>
-        {/* Main routes */}
+        {/* Public route */}
         <Route path="/" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/forecast" element={<Forecast />} />
-        <Route path="/history" element={<History />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/accounts" element={<Account />} />
-        <Route path="/recovery-logs" element={<RecoveryLogs />} />
 
-        {/* Forecast and model configuration routes */}
-        <Route path="/select-forecast" element={<SelectForecast />} />
-        <Route path="/generate" element={<GenerateForecast />} />
-        <Route
-          path="/single-model-config"
-          element={<SingleModelConfiguration />}
-        />
-        <Route
-          path="/hybrid-model-config"
-          element={<HybridModelConfiguration />}
-        />
-        <Route path="/result" element={<ForecastResult />} />
-        <Route path="/view-graph" element={<ViewGraph />} />
-        <Route path="/view-logs" element={<ViewLogs />} />
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/forecast" element={<Forecast />} />
+          <Route path="/history" element={<History />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/accounts" element={<Account />} />
+          <Route path="/recovery-logs" element={<RecoveryLogs />} />
+
+          {/* Forecast and model configuration routes */}
+          <Route path="/select-forecast" element={<SelectForecast />} />
+          <Route path="/generate" element={<GenerateForecast />} />
+          <Route
+            path="/single-model-config"
+            element={<SingleModelConfiguration />}
+          />
+          <Route
+            path="/hybrid-model-config"
+            element={<HybridModelConfiguration />}
+          />
+          <Route path="/result" element={<ForecastResult />} />
+          <Route path="/view-graph" element={<ViewGraph />} />
+          <Route path="/view-logs" element={<ViewLogs />} />
+        </Route>
       </Routes>
     </>
   );
