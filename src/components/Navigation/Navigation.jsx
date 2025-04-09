@@ -1,28 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react"; // Added useState
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [userRole, setUserRole] = React.useState("USER");
+  const [userRole, setUserRole] = useState("USER");
+  const [username, setUsername] = useState(""); // Added to store username
 
-  // Effect to decode user role from token (example logic)
-  React.useEffect(() => {
+  // Effect to decode user role and username from token, inspired by Login.jsx
+  useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setUserRole(payload.access_control || "USER");
+        setUsername(payload.sub || "User"); // Assuming username is in "sub" field
       } catch (e) {
         console.error("Error decoding token:", e);
+        setUsername("User"); // Fallback if token decoding fails
       }
     }
   }, []);
 
-  // Logout handler
+  // Logout handler, aligned with Login.jsx
   const handleLogout = () => {
     localStorage.removeItem("token");
-    navigate("/");
+    navigate("/"); // Redirects to Login route
   };
 
   // Determine if the current route requires white text
@@ -35,14 +38,14 @@ const Navigation = () => {
     "/generate",
     "/forecast-result",
     "/view-graph",
+    "/single-model-config",
+    "/hybrid-model-config",
   ];
 
   const settingsRelatedPages = ["/accounts", "/dhr", "/esn", "/hybrid"];
 
   const isSettingsRelated = settingsRelatedPages.includes(location.pathname);
   const isHistoryRelated = ["/view-logs"].includes(location.pathname);
-
-  // Check if the current page is one of the forecast-related pages
   const isForecastRelated = forecastRelatedPages.includes(location.pathname);
 
   // Base styling for all navigation links
@@ -52,7 +55,7 @@ const Navigation = () => {
     <div className="top-0 left-0 right-0 text-white p-4 font-bold">
       <div className="flex justify-between items-center">
         <ul
-          className={`flex space-x-6 ${
+          className={`flex space-x-4 ${
             isWhiteText ? "text-white" : "text-black"
           }`}>
           <li>
@@ -122,13 +125,19 @@ const Navigation = () => {
             </li>
           )}
         </ul>
-        <NavLink
-          onClick={handleLogout}
-          className={`flex space-x-6 ${
+        <div
+          className={`flex space-x-4 items-center ${
             isWhiteText ? "text-white" : "text-black"
           }`}>
-          Logout
-        </NavLink>
+          <span>{username}</span> {/* Display username from token */}
+          <button
+            onClick={handleLogout}
+            className={`cursor-pointer ${
+              isWhiteText ? "text-white" : "text-black"
+            }`}>
+            Logout
+          </button>
+        </div>
       </div>
     </div>
   );

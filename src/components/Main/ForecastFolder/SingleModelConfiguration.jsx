@@ -686,7 +686,7 @@ const SingleModelConfiguration = () => {
       </div>
 
       {/* Third Row: Regularization and Trend Components */}
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 w-58">
         <div className="flex-1 relative">
           <label className="block text-sm font-medium mb-1">
             Regularization{" "}
@@ -717,6 +717,8 @@ const SingleModelConfiguration = () => {
             <p className="text-red-500 text-xs mt-1">{errors.regularization}</p>
           )}
         </div>
+      </div>
+      <div className="flex space-x-4 w-58">
         <div className="flex-1 relative">
           <label className="block text-sm font-medium mb-1">
             Trend Components{" "}
@@ -751,7 +753,7 @@ const SingleModelConfiguration = () => {
       </div>
 
       {/* Buttons */}
-      <div className="flex justify-end space-x-4 mt-6">
+      <div className="flex justify-end space-x-4 mt-10">
         <button
           type="button"
           onClick={handleCancel}
@@ -775,11 +777,19 @@ const SingleModelConfiguration = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-gray-50 rounded-lg shadow-md">
-      <h2 className="text-[40px] text-left font-bold mb-6">
-        {getModelTitle()}
-      </h2>
-      {renderForm()}
+    <div className="min-h-screen relative">
+      {/* Background Layer */}
+      <div className="fixed inset-0 bg-gray-100" style={{ zIndex: -1 }} />
+
+      {/* Content */}
+      <div className="relative z-10 flex justify-center items-center flex-1 min-h-screen">
+        <div className="w-150 h-150 p-10 px-15 bg-white rounded-lg shadow-md">
+          <h2 className="text-4xl text-left font-bold mb-10">
+            {getModelTitle()}
+          </h2>
+          {renderForm()}
+        </div>
+      </div>
     </div>
   );
 };

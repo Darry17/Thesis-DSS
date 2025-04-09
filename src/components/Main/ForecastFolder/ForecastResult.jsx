@@ -109,7 +109,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.fourier_order || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -118,7 +118,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.window_length || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -127,7 +127,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.seasonality_periods || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -136,7 +136,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.polyorder || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -145,7 +145,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.regularization_dhr || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -154,7 +154,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.trend_components || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
             </div>
@@ -170,7 +170,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.reservoir_size || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -179,7 +179,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.spectral_radius || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -188,7 +188,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.sparsity || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -197,7 +197,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.input_scaling || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -206,7 +206,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.dropout || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -215,7 +215,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.lags || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
               <div>
@@ -224,7 +224,7 @@ const ForecastResult = () => {
                   type="text"
                   value={configuration?.regularization_esn || "-"}
                   disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
                 />
               </div>
             </div>
@@ -411,8 +411,8 @@ const ForecastResult = () => {
         {/* Left Column */}
         <div className="space-y-6">
           {/* Graph Card */}
-          <div className="bg-white p-4 rounded-lg border-gray-500 shadow">
-            <h3 className="text-sm text-gray-500 mb-2">
+          <div className="bg-white p-4 rounded-lg border-gray-500 shadow w-100">
+            <h3 className="text-sm mb-2">
               {forecastData?.original_filename || "No filename available"}
             </h3>
             <h2 className="font-bold mb-4">
@@ -430,11 +430,9 @@ const ForecastResult = () => {
           </div>
 
           {/* Forecast Period */}
-          <div className="bg-white p-4 rounded-lg border-gray-500 shadow">
-            <h3 className="text-gray-700 font-semibold mb-2">
-              Generated Forecast
-            </h3>
-            <p className="text-xl font-bold">
+          <div className="bg-white p-4 rounded-lg border-gray-500 shadow w-100">
+            <h3 className="font-semibold mb-2">Generated Forecast</h3>
+            <p className="text-sm font-semibold">
               {getStepLabel(forecastData?.steps, forecastData?.granularity)}
             </p>
           </div>
@@ -493,7 +491,7 @@ const ForecastResult = () => {
 
         {/* Right Column - Configurations */}
         <div className="bg-white p-6">
-          <h2 className="text-2xl font-bold mb-6">Configurations</h2>
+          <h2 className="text-4xl font-bold mb-6">Configurations</h2>
           {configuration ? (
             renderConfigSection()
           ) : (

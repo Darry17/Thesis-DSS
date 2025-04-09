@@ -204,8 +204,8 @@ const GenerateForecast = () => {
       <div className="fixed inset-0 bg-black/60" style={{ zIndex: -1 }} />
       <form
         onSubmit={handleGenerate}
-        className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-md m-auto">
-        <h1 className="text-2xl font-bold mb-6">Generate</h1>
+        className="bg-gray-100 p-15 py-7 rounded-lg shadow-md w-150 m-auto">
+        <h1 className="text-4xl font-bold mb-6">Generate</h1>
 
         {/* File Information */}
         <div className="mb-4">

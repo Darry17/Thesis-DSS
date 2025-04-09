@@ -312,8 +312,8 @@ const HybridModelConfiguration = () => {
 
   const renderDHRForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h2 className="text-xl font-bold text-center mb-6">
-        DYNAMIC HARMONIC REGRESSION
+      <h2 className="text-4xl font-bold text-left mb-10">
+        Dynamic Harmonic Regression
       </h2>
 
       <div className="flex space-x-4">
@@ -346,13 +346,16 @@ const HybridModelConfiguration = () => {
         )}
       </div>
 
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 w-58">
         {renderFormField(
           "regularizationDHR",
           "Regularization (DHR)",
           "1e-4",
           "Regularization parameter for the DHR model to prevent overfitting."
         )}
+      </div>
+
+      <div className="flex space-x-4 w-58">
         {renderFormField(
           "trendComponents",
           "Trend Components",
@@ -361,7 +364,7 @@ const HybridModelConfiguration = () => {
         )}
       </div>
 
-      <div className="flex justify-end space-x-4 mt-6">
+      <div className="flex justify-end space-x-4 mt-10">
         <button
           type="button"
           onClick={handleBack}
@@ -370,7 +373,7 @@ const HybridModelConfiguration = () => {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+          className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-600">
           Next
         </button>
       </div>
@@ -379,7 +382,7 @@ const HybridModelConfiguration = () => {
 
   const renderESNForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <h2 className="text-xl font-bold text-center mb-6">ECHO STATE NETWORK</h2>
+      <h2 className="text-4xl font-bold text-left mb-10">Echo State Network</h2>
 
       <div className="flex space-x-4">
         {renderFormField(
@@ -436,7 +439,7 @@ const HybridModelConfiguration = () => {
         <div className="flex-1">{/* Empty div for alignment */}</div>
       </div>
 
-      <div className="flex justify-end space-x-4 mt-6">
+      <div className="flex justify-end space-x-4 mt-10">
         <button
           type="button"
           onClick={handleBack}
@@ -445,7 +448,7 @@ const HybridModelConfiguration = () => {
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+          className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-600">
           Submit
         </button>
       </div>
@@ -453,8 +456,15 @@ const HybridModelConfiguration = () => {
   );
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-gray-50 rounded-lg shadow-md">
-      {step === 1 ? renderDHRForm() : renderESNForm()}
+    <div className="min-h-screen relative">
+      {/* Background Layer */}
+      <div className="fixed inset-0 bg-gray-100" style={{ zIndex: -1 }} />
+      {/* Content */}
+      <div className="relative z-10 flex justify-center items-center flex-1 min-h-screen">
+        <div className="w-150 h-150 p-10 px-15 bg-white rounded-lg shadow-md">
+          {step === 1 ? renderDHRForm() : renderESNForm()}
+        </div>
+      </div>
     </div>
   );
 };

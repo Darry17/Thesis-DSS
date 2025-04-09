@@ -226,7 +226,7 @@ const ViewGraph = () => {
             type="text"
             value={forecastData?.original_filename || "N/A"}
             readOnly
-            className="w-xl p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
+            className="w-80 p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
         </div>
         <div>
@@ -237,7 +237,7 @@ const ViewGraph = () => {
             type="text"
             value={forecastData?.granularity || "N/A"}
             readOnly
-            className="w-xl p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
+            className="w-80 p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
         </div>
         <div>
@@ -248,7 +248,7 @@ const ViewGraph = () => {
             type="text"
             value={forecastData?.steps || "24 (1-day Horizon)"}
             readOnly
-            className="w-xl p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
+            className="w-80 p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
         </div>
       </div>
