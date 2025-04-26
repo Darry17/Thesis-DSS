@@ -22,7 +22,7 @@ const Login = () => {
         })
         .then((response) => {
           // If token is valid, redirect to dashboard
-          navigate("/dashboard");
+          navigate("/admin");
         })
         .catch((err) => {
           console.error("Token validation failed:", err);

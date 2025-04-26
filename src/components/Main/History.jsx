@@ -5,51 +5,13 @@ const History = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userRole, setUserRole] = useState(null); // To store the user's role
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchUserRole = async () => {
-      try {
-        const token = localStorage.getItem("token")?.trim();
-        if (!token) {
-          throw new Error("No authentication token found");
-        }
-
-        const response = await fetch(
-          "http://localhost:8000/api/validate-token",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to validate token");
-        }
-
-        const data = await response.json();
-        setUserRole(data.access_control); // Store the user's role (e.g., "ADMIN")
-      } catch (err) {
-        console.error("Error validating token:", err);
-        setError(err.message);
-      }
-    };
-
     const fetchLogs = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("token")?.trim();
-        if (!token) {
-          throw new Error("No authentication token found");
-        }
-
-        const response = await fetch("http://localhost:8000/api/history-logs", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await fetch("http://localhost:8000/api/history-logs");
 
         if (!response.ok) {
           throw new Error(`Error fetching logs: ${response.statusText}`);
@@ -65,7 +27,6 @@ const History = () => {
       }
     };
 
-    fetchUserRole();
     fetchLogs();
   }, []);
 
@@ -82,18 +43,10 @@ const History = () => {
       return;
 
     try {
-      const token = localStorage.getItem("token")?.trim();
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-
       const response = await fetch(
         `http://localhost:8000/api/forecasts/${forecastId}`,
         {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         }
       );
 
@@ -171,13 +124,11 @@ const History = () => {
                         className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
                         VIEW
                       </button>
-                      {userRole === "ADMIN" && (
-                        <button
-                          onClick={() => handleDelete(log.forecast_id)}
-                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
-                          DELETE
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleDelete(log.forecast_id)}
+                        className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
+                        DELETE
+                      </button>
                     </div>
                   </td>
                   <td className="py-3 px-4 border-b">{formatDate(log.date)}</td>

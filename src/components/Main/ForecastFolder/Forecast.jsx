@@ -237,23 +237,12 @@ const Forecast = () => {
         return;
       }
 
-      // Fetch the token from localStorage
-      const token = localStorage.getItem("token")?.trim();
-      if (!token) {
-        setMessage("You are not logged in. Please log in to continue.");
-        setIsProcessing(false);
-        setIsUploadDisabled(false);
-        navigate("/login");
-        return;
-      }
-
       const forecastResponse = await fetch(
         "http://localhost:8000/api/forecasts",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Add the Authorization header
           },
           body: JSON.stringify({
             filename: newFilename,
@@ -266,13 +255,6 @@ const Forecast = () => {
       );
 
       if (!forecastResponse.ok) {
-        if (forecastResponse.status === 401) {
-          // Token is invalid or expired, redirect to login
-          setMessage("Your session has expired. Please log in again.");
-          localStorage.removeItem("token"); // Clear invalid token
-          navigate("/login");
-          return;
-        }
         const errorText = await forecastResponse.text();
         throw new Error(`Failed to create forecast entry: ${errorText}`);
       }

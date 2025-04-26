@@ -145,34 +145,18 @@ const GenerateForecast = () => {
         granularity: formData.granularity,
       };
 
-      // Fetch the token from localStorage
-      const token = localStorage.getItem("token")?.trim();
-      if (!token) {
-        setError("You are not logged in. Please log in to continue.");
-        navigate("/login");
-        return;
-      }
-
       const createForecastResponse = await fetch(
         "http://localhost:8000/api/forecasts",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Add the Authorization header
           },
           body: JSON.stringify(forecastData),
         }
       );
 
       if (!createForecastResponse.ok) {
-        if (createForecastResponse.status === 401) {
-          // Token is invalid or expired, redirect to login
-          setError("Your session has expired. Please log in again.");
-          localStorage.removeItem("token"); // Clear invalid token
-          navigate("/login");
-          return;
-        }
         const errorText = await createForecastResponse.text();
         throw new Error(`Failed to create forecast record: ${errorText}`);
       }
@@ -188,8 +172,8 @@ const GenerateForecast = () => {
             ...formData,
             forecastData: data,
             forecastId: createdForecast.id,
-            modelType, // Pass modelType forward
-            originalFileName: formData.original_filename, // Add originalFileName
+            modelType,
+            originalFileName: formData.original_filename,
           },
         }
       );

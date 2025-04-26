@@ -4,39 +4,39 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [userRole, setUserRole] = useState("USER");
-  const [username, setUsername] = useState("");
+  // const [userRole, setUserRole] = useState("USER");
+  // const [username, setUsername] = useState("");
 
-  // Effect to decode user role and username from token
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        setUserRole(payload.access_control || "USER");
-        setUsername(payload.sub || "User");
-      } catch (e) {
-        console.error("Error decoding token:", e);
-        setUsername("User");
-      }
-    } else {
-      // If no token, redirect to login
-      if (location.pathname !== "/") {
-        navigate("/", { replace: true });
-      }
-    }
-  }, [location.pathname, navigate]);
+  // // Effect to decode user role and username from token
+  // useEffect(() => {
+  //   const token = localStorage.getItem("token");
+  //   if (token) {
+  //     try {
+  //       const payload = JSON.parse(atob(token.split(".")[1]));
+  //       setUserRole(payload.access_control || "USER");
+  //       setUsername(payload.sub || "User");
+  //     } catch (e) {
+  //       console.error("Error decoding token:", e);
+  //       setUsername("User");
+  //     }
+  //   } else {
+  //     // If no token, redirect to login
+  //     if (location.pathname !== "/") {
+  //       navigate("/", { replace: true });
+  //     }
+  //   }
+  // }, [location.pathname, navigate]);
 
   // Logout handler
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setUserRole("USER");
-    setUsername("");
-    navigate("/", { replace: true }); // Replace history entry
-  };
+  // const handleLogout = () => {
+  //   localStorage.removeItem("token");
+  //   setUserRole("USER");
+  //   setUsername("");
+  //   navigate("/", { replace: true }); // Replace history entry
+  // };
 
   // Determine if the current route requires white text
-  const isWhiteText = ["/dashboard", "/forecast", "/generate"].includes(
+  const isWhiteText = ["/", "/forecast", "/generate"].includes(
     location.pathname
   );
 
@@ -67,7 +67,7 @@ const Navigation = () => {
           }`}>
           <li>
             <NavLink
-              to="/dashboard"
+              to="/"
               className={({ isActive }) =>
                 `${linkClass} ${
                   isActive
@@ -114,31 +114,31 @@ const Navigation = () => {
               History
             </NavLink>
           </li>
-          {userRole !== "USER" && (
-            <li>
-              <NavLink
-                to="/settings"
-                className={({ isActive }) =>
-                  `${linkClass} ${
-                    isActive || isSettingsRelated
-                      ? `border-b-2 pb-0 rounded-none ${
-                          isWhiteText ? "border-white" : "border-black"
-                        }`
-                      : ""
-                  }`
-                }>
-                Settings
-              </NavLink>
-            </li>
-          )}
+          {/* {userRole !== "USER" && ( */}
+          <li>
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `${linkClass} ${
+                  isActive || isSettingsRelated
+                    ? `border-b-2 pb-0 rounded-none ${
+                        isWhiteText ? "border-white" : "border-black"
+                      }`
+                    : ""
+                }`
+              }>
+              Settings
+            </NavLink>
+          </li>
+          {/* )} */}
         </ul>
         <div
           className={`flex space-x-10 items-center ${
             isWhiteText ? "text-white" : "text-black"
           }`}>
-          <span>{username}</span>
+          {/* <span>{username}</span> */}
           <button
-            onClick={handleLogout}
+            // onClick={handleLogout}
             className={`cursor-pointer ${
               isWhiteText ? "text-white" : "text-black"
             }`}>
