@@ -31,7 +31,9 @@ const AppContent = () => {
 
   return (
     <>
-      <Route path="/" element={<Dashboard />} />
+      {/* Public route */}
+      <Route path="/" element={<Login />} />
+      <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/forecast" element={<Forecast />} />
       <Route path="/history" element={<History />} />
 
