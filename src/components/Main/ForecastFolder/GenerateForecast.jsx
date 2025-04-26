@@ -7,6 +7,10 @@ const GenerateForecast = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [fileData, setFileData] = useState(null);
+  const [tooltipVisible, setTooltipVisible] = useState(null);
+
+  const showTooltip = (field) => setTooltipVisible(field);
+  const hideTooltip = () => setTooltipVisible(null);
 
   const modelType = location.state?.modelType || ""; // Get modelType from navigation state
 
@@ -248,6 +252,18 @@ const GenerateForecast = () => {
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Granularity
+            <span
+              className="text-gray-500 cursor-pointer ml-2"
+              onMouseEnter={() => showTooltip("granularity")}
+              onMouseLeave={hideTooltip}>
+              ⓘ
+            </span>
+            {tooltipVisible === "granularity" && (
+              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
+                The resolution of the dataset and forecast, determines the
+                smallest unit of time considered in the data
+              </div>
+            )}
           </label>
           <input
             type="text"
@@ -261,6 +277,18 @@ const GenerateForecast = () => {
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Steps
+            <span
+              className="text-gray-500 cursor-pointer ml-2"
+              onMouseEnter={() => showTooltip("steps")}
+              onMouseLeave={hideTooltip}>
+              ⓘ
+            </span>
+            {tooltipVisible === "steps" && (
+              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
+                The number of time periods into the future for which forecasts
+                are made.
+              </div>
+            )}
           </label>
           <select
             name="steps"
