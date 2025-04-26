@@ -31,34 +31,32 @@ const AppContent = () => {
 
   return (
     <>
+      <Route path="/" element={<Dashboard />} />
+      <Route path="/forecast" element={<Forecast />} />
+      <Route path="/history" element={<History />} />
+
+      {/* Forecast and model configuration routes */}
+      <Route path="/select-forecast" element={<SelectForecast />} />
+      <Route path="/generate" element={<GenerateForecast />} />
+      <Route
+        path="/single-model-config"
+        element={<SingleModelConfiguration />}
+      />
+      <Route
+        path="/hybrid-model-config"
+        element={<HybridModelConfiguration />}
+      />
+      <Route path="/result" element={<ForecastResult />} />
+      <Route path="/view-graph" element={<ViewGraph />} />
+      <Route path="/view-logs" element={<ViewLogs />} />
+
       {!isLoginPage && <Navigation />}
       <Routes>
-        {/* Public route */}
-        <Route path="/" element={<Login />} />
-
         {/* Protected routes */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/forecast" element={<Forecast />} />
-          <Route path="/history" element={<History />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/accounts" element={<Account />} />
           <Route path="/recovery-logs" element={<RecoveryLogs />} />
-
-          {/* Forecast and model configuration routes */}
-          <Route path="/select-forecast" element={<SelectForecast />} />
-          <Route path="/generate" element={<GenerateForecast />} />
-          <Route
-            path="/single-model-config"
-            element={<SingleModelConfiguration />}
-          />
-          <Route
-            path="/hybrid-model-config"
-            element={<HybridModelConfiguration />}
-          />
-          <Route path="/result" element={<ForecastResult />} />
-          <Route path="/view-graph" element={<ViewGraph />} />
-          <Route path="/view-logs" element={<ViewLogs />} />
         </Route>
       </Routes>
     </>
