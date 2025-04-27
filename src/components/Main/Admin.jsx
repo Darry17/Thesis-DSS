@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom";
 const Admin = () => {
   return (
     <div className="min-h-screen relative">
-      <div className="fixed inset-0 bg-gray-200" style={{ zIndex: -1 }} />
+      <div className="fixed inset-0 bg-[#D9D9D9]" style={{ zIndex: -1 }} />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center font-sans flex-1 min-h-screen">

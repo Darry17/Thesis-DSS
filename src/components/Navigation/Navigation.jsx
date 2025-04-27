@@ -119,12 +119,13 @@ const Navigation = () => {
             </NavLink>
           </li>
         </ul>
-
-        <NavLink
-          to="/login"
-          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
-          Admin
-        </NavLink>
+        <div className="flex items-center space-x-4">
+          <NavLink
+            to="/login"
+            className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
+            Admin Login
+          </NavLink>
+        </div>
       </div>
     </div>
   );
