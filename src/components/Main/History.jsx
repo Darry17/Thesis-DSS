@@ -1,27 +1,45 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const History = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Track login status
   const navigate = useNavigate();
 
+  // Check login status and fetch logs
   useEffect(() => {
     const fetchLogs = async () => {
       try {
         setLoading(true);
-        const response = await fetch("http://localhost:8000/api/history-logs");
 
-        if (!response.ok) {
-          throw new Error(`Error fetching logs: ${response.statusText}`);
+        // Check if user is logged in by checking for token
+        const token = localStorage.getItem("token")?.trim();
+        setIsLoggedIn(!!token); // Set to true if token exists
+
+        // Optionally validate token if logged in
+        if (token) {
+          await axios.get("http://localhost:8000/api/validate-token", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
         }
 
-        const data = await response.json();
-        setLogs(data);
+        // Fetch history logs (no auth required)
+        const response = await axios.get(
+          "http://localhost:8000/api/history-logs"
+        );
+        setLogs(response.data);
       } catch (err) {
-        console.error("Error fetching history logs:", err);
-        setError(err.message);
+        console.error("Error fetching data:", err);
+        setError(err.message || "Failed to fetch logs");
+        if (err.response?.status === 401) {
+          localStorage.removeItem("token");
+          setIsLoggedIn(false);
+        }
       } finally {
         setLoading(false);
       }
@@ -43,27 +61,33 @@ const History = () => {
       return;
 
     try {
-      const response = await fetch(
+      const token = localStorage.getItem("token")?.trim();
+      const response = await axios.delete(
         `http://localhost:8000/api/forecasts/${forecastId}`,
         {
-          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
       );
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error("Failed to delete forecast");
       }
 
-      // Update the UI by removing the deleted log
       setLogs(logs.filter((log) => log.forecast_id !== forecastId));
       alert("Forecast deleted successfully");
     } catch (err) {
       console.error("Error deleting forecast:", err);
       alert(`Error: ${err.message}`);
+      if (err.response?.status === 401) {
+        localStorage.removeItem("token");
+        setIsLoggedIn(false);
+        navigate("/login"); // Redirect to login if unauthorized
+      }
     }
   };
 
-  // Format date to YYYY/MM/DD
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(
@@ -124,11 +148,14 @@ const History = () => {
                         className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
                         VIEW
                       </button>
-                      <button
-                        onClick={() => handleDelete(log.forecast_id)}
-                        className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
-                        DELETE
-                      </button>
+                      {/* Show delete button only if user is logged in (admin) */}
+                      {isLoggedIn && (
+                        <button
+                          onClick={() => handleDelete(log.forecast_id)}
+                          className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
+                          DELETE
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td className="py-3 px-4 border-b">{formatDate(log.date)}</td>

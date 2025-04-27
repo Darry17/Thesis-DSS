@@ -48,7 +48,7 @@ const Login = () => {
       localStorage.setItem("token", response.data.access_token);
 
       // Redirect to dashboard
-      navigate("/dashboard");
+      navigate("/admin");
     } catch (error) {
       console.error("Login failed:", error);
       if (error.response && error.response.status === 401) {

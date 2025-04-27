@@ -1,11 +1,17 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useLocation,
+} from "react-router-dom";
 import Navigation from "@/components/Navigation/Navigation";
+import AdminNavigation from "@/components/Navigation/AdminNavigation";
 import {
   Dashboard,
   History,
   Forecast,
-  Settings,
+  Admin,
   SelectForecast,
   GenerateForecast,
   SingleModelConfiguration,
@@ -15,16 +21,27 @@ import {
   ViewLogs,
   Account,
   RecoveryLogs,
+  Login,
 } from "@/components/Main";
 
+// Component to handle conditional navigation rendering
 const AppContent = () => {
+  const location = useLocation();
+
+  // Define admin-related routes
+  const adminRoutes = ["/admin", "/accounts", "/recovery-logs"];
+  const isAdminRoute = adminRoutes.some((route) =>
+    location.pathname.startsWith(route)
+  );
+
   return (
     <>
-      <Navigation />
+      {isAdminRoute ? <AdminNavigation /> : <Navigation />}
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/forecast" element={<Forecast />} />
         <Route path="/history" element={<History />} />
+        <Route path="/login" element={<Login />} />
         {/* Forecast and model configuration routes */}
         <Route path="/select-forecast" element={<SelectForecast />} />
         <Route path="/generate" element={<GenerateForecast />} />
@@ -40,7 +57,7 @@ const AppContent = () => {
         <Route path="/view-graph" element={<ViewGraph />} />
         <Route path="/view-logs" element={<ViewLogs />} />
         {/* Admin Routes */}
-        <Route path="/settings" element={<Settings />} />
+        <Route path="/admin" element={<Admin />} />
         <Route path="/accounts" element={<Account />} />
         <Route path="/recovery-logs" element={<RecoveryLogs />} />
       </Routes>
