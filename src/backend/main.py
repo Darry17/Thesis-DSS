@@ -10,9 +10,9 @@ import uvicorn
 # Import components
 from components.auth import register_auth_routes, Base as AuthBase, get_current_user, get_admin_user
 from components.storage import register_storage_routes, Base as StorageBase
-from components.forecast import register_forecast_routes, Forecast
+from components.forecast import register_forecast_routes, Base as ForecastBase, Forecast
 from components.configurations import register_configuration_routes
-from components.history_logs import register_history_log_routes
+from components.history_logs import register_history_log_routes, Base as HistoryBase
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +41,8 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 # Create all tables in the database
 AuthBase.metadata.create_all(bind=engine)
 StorageBase.metadata.create_all(bind=engine)
+ForecastBase.metadata.create_all(bind=engine)
+HistoryBase.metadata.create_all(bind=engine)
 
 # Database session dependency
 def get_db():
@@ -53,7 +55,7 @@ def get_db():
 # Register routes from components
 register_auth_routes(app, get_db)
 register_storage_routes(app, get_db)
-register_forecast_routes(app, get_db, get_current_user)
+register_forecast_routes(app, get_db)
 register_configuration_routes(app, get_db, Forecast)
 register_history_log_routes(app, get_db, get_current_user, get_admin_user, Forecast)
 

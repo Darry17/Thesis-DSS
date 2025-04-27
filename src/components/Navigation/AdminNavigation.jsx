@@ -51,7 +51,20 @@ const AdminNavigation = () => {
                     : "hover:bg-gray-400"
                 }`
               }>
-              Admin Dashboard
+              Preset Configuration
+            </NavLink>
+          </li>
+          <li>
+            <NavLink
+              to="/history"
+              className={({ isActive }) =>
+                `${linkClass} ${
+                  isActive
+                    ? "bg-gray-300 border-l-4 border-black"
+                    : "hover:bg-gray-400"
+                }`
+              }>
+              History Logs
             </NavLink>
           </li>
           <li>
@@ -87,22 +100,14 @@ const AdminNavigation = () => {
 
         {/* Login/Logout Button */}
         <div className="mb-4">
-          {isLoggedIn ? (
-            <div className="flex flex-col space-y-2">
-              <span className="px-4 py-2 text-gray-800">{username}</span>
-              <button
-                onClick={handleLogout}
-                className="w-full px-4 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 text-left">
-                Logout
-              </button>
-            </div>
-          ) : (
-            <NavLink
-              to="/"
-              className="block w-full px-4 py-2 bg-green-500 text-white text-sm rounded hover:bg-green-600 text-left">
-              Login
-            </NavLink>
-          )}
+          <div className="flex flex-col space-y-2">
+            <span className="px-1 py-2 text-gray-800">{username}</span>
+            <button
+              onClick={handleLogout}
+              className="w-full px-4 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 text-left mb-5">
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     </div>

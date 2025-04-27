@@ -72,19 +72,11 @@ const ViewGraph = () => {
           throw new Error("No forecast ID provided");
         }
 
-        const token = localStorage.getItem("token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
-
         setLoading(true);
         const response = await fetch(
           `http://localhost:8000/api/forecasts/${forecastId}`,
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: {},
           }
         );
 

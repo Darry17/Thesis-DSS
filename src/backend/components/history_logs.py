@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy import Column, Integer, String, DateTime, desc
 from sqlalchemy.ext.declarative import declarative_base
@@ -6,12 +7,12 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 import logging
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
 # Define the Base class
 Base = declarative_base()
-logger = logging.getLogger(__name__)
 
 # SQLAlchemy Models
 class HistoryLog(Base):
@@ -47,7 +48,7 @@ class HistoryLogResponse(BaseModel):
     file_name: str
     model: str
     date: datetime
-    username: str
+    username: Optional[str] = None  # Changed to Optional[str] to match SQLAlchemy
     model_config = {'from_attributes': True}
 
 class DeletedForecastResponse(BaseModel):
@@ -66,7 +67,7 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
     async def create_history_log(
         log: HistoryLogCreate, 
         db: Session = Depends(get_db),
-        current_user: dict = Depends(get_current_user)
+        current_user: Optional[dict] = Depends(lambda: None)  # Optional authentication
     ):
         try:
             logger.info(f"Creating history log with data: {log.dict()}")
@@ -83,7 +84,7 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
                 file_name=log.file_name,
                 model=log.model,
                 forecast_id=forecast_id,
-                username=current_user["username"]
+                username=current_user["username"] if current_user else "anonymous"
             )
             
             db.add(db_log)
@@ -134,7 +135,7 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
             logger.error(f"Error fetching history log {log_id}: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
-    @app.get("/api/history-logs", response_model=list[HistoryLogResponse])
+    @app.get("/api/history-logs", response_model=List[HistoryLogResponse])
     async def get_all_history_logs(db: Session = Depends(get_db)):
         try:
             logs = db.query(HistoryLog).order_by(desc(HistoryLog.date)).all()
@@ -160,18 +161,19 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
             if not history_log:
                 raise HTTPException(status_code=404, detail="History log not found for this forecast")
 
-            # Log the deletion in deleted_forecasts using the username from history_logs
+            # Log the deletion in deleted_forecasts
             deleted_forecast = DeletedForecast(
                 forecast_id=forecast_id,
                 file_name=history_log.file_name,
                 model=history_log.model,
-                username=history_log.username or "Unknown",  # Use username from history_logs, default to "Unknown" if None
-                deleted_by=current_user["username"]  # User who deleted it
+                username=history_log.username or "anonymous",
+                deleted_by=current_user["username"]
             )
             db.add(deleted_forecast)
 
-            # Delete the history log entry with the matching forecast_id
+            # Delete the history log and forecast entries
             db.query(HistoryLog).filter(HistoryLog.forecast_id == forecast_id).delete()
+            db.query(Forecast).filter(Forecast.id == forecast_id).delete()
 
             # Commit the transaction
             db.commit()
@@ -197,13 +199,24 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
             if not deleted_forecast:
                 raise HTTPException(status_code=404, detail="Deleted forecast not found")
 
-            # Create a new history log entry with the details from deleted_forecasts
+            # Recreate the forecast
+            forecast = Forecast(
+                id=deleted_forecast.forecast_id,
+                filename=deleted_forecast.file_name,
+                original_filename=deleted_forecast.file_name,
+                forecast_model=deleted_forecast.model,
+                steps="pending",
+                granularity="unknown"
+            )
+            db.add(forecast)
+
+            # Create a new history log entry
             recovered_log = HistoryLog(
                 forecast_id=deleted_forecast.forecast_id,
                 file_name=deleted_forecast.file_name,
                 model=deleted_forecast.model,
                 username=deleted_forecast.username,
-                date=datetime.now()  # Set the date to the current time
+                date=datetime.now()
             )
             db.add(recovered_log)
 

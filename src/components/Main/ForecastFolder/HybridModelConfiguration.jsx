@@ -167,13 +167,6 @@ const HybridModelConfiguration = () => {
         return;
       }
 
-      const token = localStorage.getItem("token")?.trim();
-      if (!token) {
-        console.error("No authentication token found. Redirecting to login.");
-        navigate("/login");
-        return;
-      }
-
       const selectedModel = "DHR-ESN"; // Since this is the hybrid model configuration
       let modelType = selectedModel.toLowerCase();
       let fileModelType = modelType;
@@ -200,7 +193,6 @@ const HybridModelConfiguration = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             file_name: fileName,
@@ -287,14 +279,6 @@ const HybridModelConfiguration = () => {
     }
 
     try {
-      // Fetch the token from localStorage
-      const token = localStorage.getItem("token")?.trim();
-      if (!token) {
-        console.error("No authentication token found. Redirecting to login.");
-        navigate("/login");
-        return;
-      }
-
       const hybridConfig = {
         forecast_id: parseInt(forecastId),
         // DHR part
@@ -322,18 +306,11 @@ const HybridModelConfiguration = () => {
         method: isEditing ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Add the Authorization header
         },
         body: JSON.stringify(hybridConfig),
       });
 
       if (!response.ok) {
-        if (response.status === 401) {
-          console.error("Session expired. Redirecting to login.");
-          localStorage.removeItem("token");
-          navigate("/login");
-          return;
-        }
         const errorData = await response.json();
         throw new Error(
           `Failed to ${isEditing ? "update" : "save"} hybrid configuration: ${

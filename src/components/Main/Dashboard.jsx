@@ -4,7 +4,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen flex overflow-hidden">
+    <div className="min-h-screen flex overflow-y-hidden">
       {/* Background Images and Overlay */}
       <div
         className="fixed inset-0"

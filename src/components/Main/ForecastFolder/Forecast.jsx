@@ -221,7 +221,7 @@ const Forecast = () => {
       formData.append("file", blob, newFilename);
       formData.append("original_filename", originalFilename);
 
-      const response = await fetch(
+      const uploadResponse = await fetch(
         "http://localhost:8000/storage/upload_csv/",
         {
           method: "POST",
@@ -229,21 +229,11 @@ const Forecast = () => {
         }
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Upload failed:", errorText);
-        setMessage(`Upload failed: ${errorText}`);
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        console.error("Upload failed:", errorData);
+        setMessage(`Upload failed: ${errorData.detail || "Unknown error"}`);
         setIsUploadDisabled(false);
-        return;
-      }
-
-      // Fetch the token from localStorage
-      const token = localStorage.getItem("token")?.trim();
-      if (!token) {
-        setMessage("You are not logged in. Please log in to continue.");
-        setIsProcessing(false);
-        setIsUploadDisabled(false);
-        navigate("/login");
         return;
       }
 
@@ -253,7 +243,6 @@ const Forecast = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Add the Authorization header
           },
           body: JSON.stringify({
             filename: newFilename,
@@ -266,15 +255,12 @@ const Forecast = () => {
       );
 
       if (!forecastResponse.ok) {
-        if (forecastResponse.status === 401) {
-          // Token is invalid or expired, redirect to login
-          setMessage("Your session has expired. Please log in again.");
-          localStorage.removeItem("token"); // Clear invalid token
-          navigate("/login");
-          return;
-        }
-        const errorText = await forecastResponse.text();
-        throw new Error(`Failed to create forecast entry: ${errorText}`);
+        const errorData = await forecastResponse.json();
+        throw new Error(
+          `Failed to create forecast entry: ${
+            errorData.detail || "Unknown error"
+          }`
+        );
       }
 
       navigate("/select-forecast");

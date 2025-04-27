@@ -3,41 +3,19 @@ import { NavLink } from "react-router-dom";
 
 const Admin = () => {
   return (
-    <div className="min-h-screen relative">
-      <div className="fixed inset-0 bg-[#D9D9D9]" style={{ zIndex: -1 }} />
-
-      {/* Content */}
-      <div className="relative z-10 flex flex-col items-center font-sans flex-1 min-h-screen">
-        <div className="bg-white rounded-lg shadow-lg p-20 mt-12 w-140 text-center font-bold">
-          <h1 className="text-4xl font-bold mb-5">Settings</h1>
-          <div className="mb-5">
-            <h3 className="text-sm text-black text-left mb-2">
-              Edit Preset Configuration
-            </h3>
-            <div className="flex gap-5">
-              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
-                DHR only
-              </NavLink>
-              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
-                ESN only
-              </NavLink>
-              <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
-                DHR-ESN
-              </NavLink>
-            </div>
-          </div>
-          <div>
-            <NavLink
-              to="/accounts"
-              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-2xl hover:bg-gray-300 transition mb-3">
-              Accounts
-            </NavLink>
-            <NavLink
-              to="/recovery-logs"
-              className="block bg-gray-200 text-gray-700 px-4 py-2 rounded-2xl hover:bg-gray-300 transition">
-              Recovery Logs
-            </NavLink>
-          </div>
+    <div className="p-6 bg-gray-100 min-h-screen">
+      <div className="max-w-5xl mx-auto font-bold">
+        <h1 className="text-4xl font-bold mb-10">Preset Configuration</h1>
+        <div className="flex gap-5">
+          <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
+            DHR only
+          </NavLink>
+          <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
+            ESN only
+          </NavLink>
+          <NavLink className="bg-gray-200 text-gray-700 px-6 py-2 rounded-2xl hover:bg-gray-300 transition">
+            DHR-ESN
+          </NavLink>
         </div>
       </div>
     </div>

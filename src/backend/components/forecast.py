@@ -32,12 +32,11 @@ class ForecastCreate(BaseModel):
     model_config = {'from_attributes': True}
 
 # Routes
-def register_forecast_routes(app: FastAPI, get_db, get_current_user):
+def register_forecast_routes(app: FastAPI, get_db):
     @app.post("/api/forecasts")
     async def create_forecast(
         forecast: ForecastCreate, 
-        db: Session = Depends(get_db),
-        current_user: dict = Depends(get_current_user)
+        db: Session = Depends(get_db)
     ):
         try:
             logger.info(f"Creating forecast: {forecast}")

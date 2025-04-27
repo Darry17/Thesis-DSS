@@ -170,67 +170,73 @@ const RecoveryLogs = () => {
   }
 
   return (
-    <div className="px-40 py-0 bg-white min-h-screen">
-      <h1 className="text-4xl font-bold mb-6">Recovery Logs</h1>
+    <div className="p-6 bg-gray-100 min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="text-4xl font-bold mb-6">Recovery Logs</h1>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="py-3 px-4 text-left border-b">File Name</th>
-              <th className="py-3 px-4 text-left border-b">Model</th>
-              <th className="py-3 px-4 text-left border-b">Action</th>
-              <th className="py-3 px-4 text-left border-b">Date</th>
-              <th className="py-3 px-4 text-left border-b">Username</th>
-              <th className="py-3 px-4 text-left border-b">Deleted By</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.length === 0 ? (
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border border-gray-200">
+            <thead className="bg-gray-100">
               <tr>
-                <td colSpan="6" className="py-4 px-4 text-center text-gray-500">
-                  No deleted forecasts found
-                </td>
+                <th className="py-3 px-4 text-left border-b">File Name</th>
+                <th className="py-3 px-4 text-left border-b">Model</th>
+                <th className="py-3 px-4 text-left border-b">Action</th>
+                <th className="py-3 px-4 text-left border-b">Date</th>
+                <th className="py-3 px-4 text-left border-b">Username</th>
+                <th className="py-3 px-4 text-left border-b">Deleted By</th>
               </tr>
-            ) : (
-              logs.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="py-3 px-4 border-b">{log.file_name}</td>
-                  <td className="py-3 px-4 border-b">
-                    <span className="text-blue-600">{log.model}</span>
+            </thead>
+            <tbody>
+              {logs.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="py-4 px-4 text-center text-gray-500">
+                    No deleted forecasts found
                   </td>
-                  <td className="py-3 px-4 border-b">
-                    <div className="flex gap-6">
-                      {userRole === "ADMIN" && (
-                        <>
-                          {log.forecast_id ? (
-                            <button
-                              onClick={() => handleRecover(log.forecast_id)}
-                              className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
-                              RECOVER
-                            </button>
-                          ) : (
-                            <span className="text-gray-500 text-xs">
-                              Cannot recover (No forecast ID)
-                            </span>
-                          )}
-                          <button
-                            onClick={() => handleDelete(log.id)}
-                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-700">
-                            DELETE
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 border-b">{formatDate(log.date)}</td>
-                  <td className="py-3 px-4 border-b">{log.username}</td>
-                  <td className="py-3 px-4 border-b">{log.deleted_by}</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="py-3 px-4 border-b">{log.file_name}</td>
+                    <td className="py-3 px-4 border-b">
+                      <span className="text-blue-600">{log.model}</span>
+                    </td>
+                    <td className="py-3 px-4 border-b">
+                      <div className="flex gap-6">
+                        {userRole === "ADMIN" && (
+                          <>
+                            {log.forecast_id ? (
+                              <button
+                                onClick={() => handleRecover(log.forecast_id)}
+                                className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
+                                RECOVER
+                              </button>
+                            ) : (
+                              <span className="text-gray-500 text-xs">
+                                Cannot recover (No forecast ID)
+                              </span>
+                            )}
+                            <button
+                              onClick={() => handleDelete(log.id)}
+                              className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-700">
+                              DELETE
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 border-b">
+                      {formatDate(log.date)}
+                    </td>
+                    <td className="py-3 px-4 border-b">{log.username}</td>
+                    <td className="py-3 px-4 border-b">{log.deleted_by}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

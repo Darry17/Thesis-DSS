@@ -172,13 +172,6 @@ const SingleModelConfiguration = () => {
         return;
       }
 
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("No authentication token found. Redirecting to login.");
-        navigate("/");
-        return;
-      }
-
       let modelType = selectedModel.toLowerCase();
       let fileModelType = modelType;
       let displayModelType = modelType.toUpperCase();
@@ -204,7 +197,6 @@ const SingleModelConfiguration = () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             file_name: fileName,

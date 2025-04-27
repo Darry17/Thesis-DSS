@@ -27,43 +27,48 @@ import {
 
 const AppContent = () => {
   const location = useLocation();
+  const isLoggedIn = !!localStorage.getItem("token"); // or however you check
   const adminRoutes = ["/admin", "/accounts", "/recovery-logs"];
-  const isAdminRoute = adminRoutes.some((route) =>
-    location.pathname.startsWith(route)
-  );
+
+  // Check if path is admin OR if it's /history AND logged in
+  const isAdminRoute =
+    adminRoutes.some((route) => location.pathname.startsWith(route)) ||
+    (location.pathname === "/history" && isLoggedIn);
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar */}
-      {isAdminRoute ? <AdminNavigation /> : <Navigation />}
-      {/* Main Content */}
-      <div className="flex-1 p-4">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/forecast" element={<Forecast />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/select-forecast" element={<SelectForecast />} />
-          <Route path="/generate" element={<GenerateForecast />} />
-          <Route
-            path="/single-model-config"
-            element={<SingleModelConfiguration />}
-          />
-          <Route
-            path="/hybrid-model-config"
-            element={<HybridModelConfiguration />}
-          />
-          <Route path="/result" element={<ForecastResult />} />
-          <Route path="/view-graph" element={<ViewGraph />} />
-          <Route path="/view-logs" element={<ViewLogs />} />
-
-          {/* Protected Routes for Admin */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/accounts" element={<Account />} />
-            <Route path="/recovery-logs" element={<RecoveryLogs />} />
-          </Route>
-        </Routes>
+    <div className="min-h-screen flex flex-col">
+      {/* Navigation for non-admin routes */}
+      {!isAdminRoute && <Navigation />}
+      <div className="flex flex-1">
+        {/* Sidebar for admin routes */}
+        {isAdminRoute && <AdminNavigation />}
+        {/* Main Content */}
+        <div className={isAdminRoute ? "w-full" : "w-full"}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/forecast" element={<Forecast />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/select-forecast" element={<SelectForecast />} />
+            <Route path="/generate" element={<GenerateForecast />} />
+            <Route
+              path="/single-model-config"
+              element={<SingleModelConfiguration />}
+            />
+            <Route
+              path="/hybrid-model-config"
+              element={<HybridModelConfiguration />}
+            />
+            <Route path="/result" element={<ForecastResult />} />
+            <Route path="/view-graph" element={<ViewGraph />} />
+            <Route path="/view-logs" element={<ViewLogs />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/accounts" element={<Account />} />
+              <Route path="/recovery-logs" element={<RecoveryLogs />} />
+            </Route>
+          </Routes>
+        </div>
       </div>
     </div>
   );
