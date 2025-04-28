@@ -186,7 +186,7 @@ const SelectForecast = () => {
       <div className="p-6 flex flex-col items-center w-full">
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
-        <div className="flex justify-between w-full max-w-2xl">
+        <div className="flex justify-between w-full max-w-2xl gap-">
           <div className="flex flex-col items-center">
             <span className="text-black text-lg font-semibold mb-2">
               Solar Energy

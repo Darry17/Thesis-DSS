@@ -10,17 +10,14 @@ const History = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const [inputValue, setInputValue] = useState(""); // New state for input value
+  const [inputValue, setInputValue] = useState("");
   const logsPerPage = 10;
   const navigate = useNavigate();
 
-  // Fetch logs with pagination and search
   useEffect(() => {
     const fetchLogs = async () => {
       try {
         setLoading(true);
-
-        // Check if user is logged in
         const token = localStorage.getItem("token")?.trim();
         setIsLoggedIn(!!token);
 
@@ -30,7 +27,6 @@ const History = () => {
           });
         }
 
-        // Fetch paginated and filtered logs
         const response = await axios.get(
           "http://localhost:8000/api/history-logs",
           {
@@ -112,19 +108,19 @@ const History = () => {
   };
 
   const handleInputChange = (e) => {
-    setInputValue(e.target.value); // Update input value on every keystroke
+    setInputValue(e.target.value);
   };
 
   const handleSearch = (e) => {
     if (e.key === "Enter") {
-      setSearchQuery(inputValue); // Update searchQuery only on Enter
-      setCurrentPage(1); // Reset to first page on search
+      setSearchQuery(inputValue);
+      setCurrentPage(1);
     }
   };
 
   if (loading) {
     return (
-      <div className="p-6 min-h-screen flex justify-center items-center">
+      <div className="p-6 flex justify-center items-center">
         <div className="text-xl">Loading...</div>
       </div>
     );
@@ -132,18 +128,16 @@ const History = () => {
 
   if (error) {
     return (
-      <div className="p-6 min-h-screen flex justify-center items-center">
+      <div className="p-6 flex justify-center items-center">
         <div className="text-xl text-red-500">Error: {error}</div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
+    <div className="p-6 bg-gray-100 flex-1">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-4xl font-bold mb-6">Forecasted Logs</h1>
-
-        {/* Search Input */}
         <div className="mb-4">
           <input
             type="text"
@@ -154,7 +148,6 @@ const History = () => {
             className="w-full p-2 border border-gray-300 rounded"
           />
         </div>
-
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
             <thead className="bg-gray-100">
@@ -185,13 +178,13 @@ const History = () => {
                       <div className="flex gap-6">
                         <button
                           onClick={() => handleView(log.forecast_id)}
-                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 cursor-pointer">
+                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
                           VIEW
                         </button>
                         {isLoggedIn && (
                           <button
                             onClick={() => handleDelete(log.forecast_id)}
-                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 cursor-pointer">
+                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
                             DELETE
                           </button>
                         )}
@@ -206,13 +199,11 @@ const History = () => {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination Controls */}
         <div className="mt-4 flex justify-between items-center">
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50 cursor-pointer">
+            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50 hover:bg-gray-400 cursor-pointer">
             Previous
           </button>
           <span>
@@ -221,7 +212,7 @@ const History = () => {
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50 cursor-pointer">
+            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50 hover:bg-gray-400 cursor-pointer">
             Next
           </button>
         </div>

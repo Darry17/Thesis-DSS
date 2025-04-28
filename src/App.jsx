@@ -30,7 +30,6 @@ const AppContent = () => {
   const isLoggedIn = !!localStorage.getItem("token");
   const adminRoutes = ["/admin", "/accounts", "/recovery-logs"];
 
-  // Check if path is admin OR if it's /history AND logged in
   const isAdminRoute =
     adminRoutes.some((route) => location.pathname.startsWith(route)) ||
     (location.pathname === "/history" && isLoggedIn);
@@ -43,26 +42,55 @@ const AppContent = () => {
       "/generate",
       "/single-model-config",
       "/hybrid-model-config",
-      "/history",
       "/login",
     ];
-    const isNoOverflow = noOverflowRoutes.includes(location.pathname);
 
-    document.body.classList.toggle("no-overflow", isNoOverflow);
+    const handleOverflow = () => {
+      const isHistoryRoute = location.pathname === "/history";
+      let isNoOverflow = false;
 
+      // Target the root container that includes Navigation/AdminNavigation and content
+      const rootContainer = document.querySelector(
+        ".min-h-screen.flex.flex-col"
+      );
+      const viewportHeight = window.innerHeight;
+
+      if (isHistoryRoute) {
+        if (rootContainer) {
+          // Measure the total height of the root container
+          const contentHeight = rootContainer.scrollHeight;
+          // Apply overflow: hidden only if content fits within viewport
+          isNoOverflow = contentHeight <= viewportHeight;
+        } else {
+          // Fallback to body height
+          const bodyHeight = document.body.scrollHeight;
+          isNoOverflow = bodyHeight <= viewportHeight;
+        }
+      } else {
+        // Apply overflow: hidden for other noOverflowRoutes
+        isNoOverflow = noOverflowRoutes.includes(location.pathname);
+      }
+
+      // Toggle the no-overflow class on body
+      document.body.classList.toggle("no-overflow", isNoOverflow);
+    };
+
+    // Run initially and on resize
+    handleOverflow();
+    window.addEventListener("resize", handleOverflow);
+
+    // Cleanup on route change or unmount
     return () => {
       document.body.classList.remove("no-overflow");
+      window.removeEventListener("resize", handleOverflow);
     };
-  }, [location.pathname]);
+  }, [location.pathname, isLoggedIn]); // Add isLoggedIn to re-run when admin/non-admin view changes
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Navigation for non-admin routes */}
       {!isAdminRoute && <Navigation />}
       <div className="flex flex-1">
-        {/* Sidebar for admin routes */}
         {isAdminRoute && <AdminNavigation />}
-        {/* Main Content */}
         <div className={isAdminRoute ? "w-full" : "w-full"}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
