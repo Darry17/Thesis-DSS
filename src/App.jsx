@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -27,13 +27,33 @@ import {
 
 const AppContent = () => {
   const location = useLocation();
-  const isLoggedIn = !!localStorage.getItem("token"); // or however you check
+  const isLoggedIn = !!localStorage.getItem("token");
   const adminRoutes = ["/admin", "/accounts", "/recovery-logs"];
 
   // Check if path is admin OR if it's /history AND logged in
   const isAdminRoute =
     adminRoutes.some((route) => location.pathname.startsWith(route)) ||
     (location.pathname === "/history" && isLoggedIn);
+
+  useEffect(() => {
+    const noOverflowRoutes = [
+      "/",
+      "/forecast",
+      "/select-forecast",
+      "/generate",
+      "/single-model-config",
+      "/hybrid-model-config",
+      "/history",
+      "/login",
+    ];
+    const isNoOverflow = noOverflowRoutes.includes(location.pathname);
+
+    document.body.classList.toggle("no-overflow", isNoOverflow);
+
+    return () => {
+      document.body.classList.remove("no-overflow");
+    };
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen flex flex-col">

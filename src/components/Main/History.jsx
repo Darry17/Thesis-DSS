@@ -185,13 +185,13 @@ const History = () => {
                       <div className="flex gap-6">
                         <button
                           onClick={() => handleView(log.forecast_id)}
-                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
+                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 cursor-pointer">
                           VIEW
                         </button>
                         {isLoggedIn && (
                           <button
                             onClick={() => handleDelete(log.forecast_id)}
-                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
+                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 cursor-pointer">
                             DELETE
                           </button>
                         )}
@@ -212,7 +212,7 @@ const History = () => {
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
+            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50 cursor-pointer">
             Previous
           </button>
           <span>
@@ -221,7 +221,7 @@ const History = () => {
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
+            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50 cursor-pointer">
             Next
           </button>
         </div>

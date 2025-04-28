@@ -188,7 +188,7 @@ const SelectForecast = () => {
 
         <div className="flex justify-between w-full max-w-2xl">
           <div className="flex flex-col items-center">
-            <span className="text-white text-lg font-semibold mb-2">
+            <span className="text-black text-lg font-semibold mb-2">
               Solar Energy
             </span>
             <button
@@ -196,7 +196,7 @@ const SelectForecast = () => {
               disabled={loading}
               className="px-6 py-3 bg-blue-500 text-white rounded-md 
                 hover:bg-blue-600 transition-colors
-                disabled:opacity-50 disabled:cursor-not-allowed">
+                disabled:opacity-50 cursor-pointer">
               Solar
             </button>
           </div>
@@ -209,7 +209,7 @@ const SelectForecast = () => {
               disabled={loading}
               className="px-6 py-3 bg-green-500 text-white rounded-md 
                 hover:bg-green-600 transition-colors
-                disabled:opacity-50 disabled:cursor-not-allowed">
+                disabled:opacity-50 cursor-pointer">
               Wind
             </button>
           </div>

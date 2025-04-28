@@ -431,12 +431,12 @@ const HybridModelConfiguration = () => {
         <button
           type="button"
           onClick={handleBack}
-          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
+          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 cursor-pointer">
           Back
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-600">
+          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-600 cursor-pointer">
           Next
         </button>
       </div>
@@ -506,12 +506,12 @@ const HybridModelConfiguration = () => {
         <button
           type="button"
           onClick={handleBack}
-          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">
+          className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 cursor-pointer">
           Back
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-600">
+          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-600 cursor-pointer">
           Submit
         </button>
       </div>

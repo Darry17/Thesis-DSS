@@ -95,16 +95,14 @@ const AdminNavigation = () => {
           </li>
         </ul>
 
-        {/* Spacer to push login/logout to bottom */}
         <div className="flex-grow"></div>
 
-        {/* Login/Logout Button */}
         <div className="mb-4">
           <div className="flex flex-col space-y-2">
             <span className="px-1 py-2 text-gray-800">{username}</span>
             <button
               onClick={handleLogout}
-              className="w-full px-4 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 text-left mb-5">
+              className="w-20 px-4 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 hover:scale-105 cursor-pointer transition transform duration-200 text-left">
               Logout
             </button>
           </div>

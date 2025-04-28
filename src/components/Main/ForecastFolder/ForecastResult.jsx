@@ -424,7 +424,7 @@ const ForecastResult = () => {
 
             <button
               onClick={handleViewGraphs}
-              className="w-30 mt-2 py-2 bg-gray-200 text-black rounded-md hover:bg-gray-300 border-b-2 border-green-500">
+              className="w-30 mt-2 py-2 bg-gray-200 text-black rounded-md hover:bg-gray-300 border-b-2 border-green-500 cursor-pointer">
               View Graphs
             </button>
           </div>
@@ -500,7 +500,7 @@ const ForecastResult = () => {
           <div className="flex space-x-4 mt-8">
             <button
               onClick={handleEdit}
-              className="bg-green-700 text-white px-6 py-2 rounded-md hover:bg-green-600">
+              className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-600 cursor-pointer">
               Edit
             </button>
           </div>
