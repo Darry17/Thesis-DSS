@@ -64,7 +64,7 @@ const AdminNavigation = () => {
                     : "hover:bg-gray-400"
                 }`
               }>
-              History Logs
+              History
             </NavLink>
           </li>
           <li>

@@ -6,33 +6,43 @@ const History = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Track login status
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const logsPerPage = 10;
   const navigate = useNavigate();
 
-  // Check login status and fetch logs
+  // Fetch logs with pagination and search
   useEffect(() => {
     const fetchLogs = async () => {
       try {
         setLoading(true);
 
-        // Check if user is logged in by checking for token
+        // Check if user is logged in
         const token = localStorage.getItem("token")?.trim();
-        setIsLoggedIn(!!token); // Set to true if token exists
+        setIsLoggedIn(!!token);
 
-        // Optionally validate token if logged in
         if (token) {
           await axios.get("http://localhost:8000/api/validate-token", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            headers: { Authorization: `Bearer ${token}` },
           });
         }
 
-        // Fetch history logs (no auth required)
+        // Fetch paginated and filtered logs
         const response = await axios.get(
-          "http://localhost:8000/api/history-logs"
+          "http://localhost:8000/api/history-logs",
+          {
+            params: {
+              page: currentPage,
+              limit: logsPerPage,
+              search: searchQuery,
+            },
+          }
         );
-        setLogs(response.data);
+
+        setLogs(response.data.logs);
+        setTotalPages(response.data.total_pages);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError(err.message || "Failed to fetch logs");
@@ -46,7 +56,7 @@ const History = () => {
     };
 
     fetchLogs();
-  }, []);
+  }, [currentPage, searchQuery]);
 
   const handleView = (forecastId) => {
     if (forecastId) {
@@ -65,9 +75,7 @@ const History = () => {
       const response = await axios.delete(
         `http://localhost:8000/api/forecasts/${forecastId}`,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
 
@@ -83,7 +91,7 @@ const History = () => {
       if (err.response?.status === 401) {
         localStorage.removeItem("token");
         setIsLoggedIn(false);
-        navigate("/login"); // Redirect to login if unauthorized
+        navigate("/login");
       }
     }
   };
@@ -94,6 +102,17 @@ const History = () => {
       2,
       "0"
     )}/${String(date.getDate()).padStart(2, "0")}`;
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+    setCurrentPage(1); // Reset to first page on search
   };
 
   if (loading) {
@@ -116,6 +135,17 @@ const History = () => {
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-4xl font-bold mb-6">Forecasted Logs</h1>
+
+        {/* Search Input */}
+        <div className="mb-4">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search by file name or model..."
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+        </div>
 
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
@@ -150,7 +180,6 @@ const History = () => {
                           className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
                           VIEW
                         </button>
-                        {/* Show delete button only if user is logged in (admin) */}
                         {isLoggedIn && (
                           <button
                             onClick={() => handleDelete(log.forecast_id)}
@@ -168,6 +197,25 @@ const History = () => {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="mt-4 flex justify-between items-center">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
+            Previous
+          </button>
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
+            Next
+          </button>
         </div>
       </div>
     </div>

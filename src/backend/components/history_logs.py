@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, HTTPException, Depends
 from sqlalchemy import Column, Integer, String, DateTime, desc
 from sqlalchemy.ext.declarative import declarative_base
@@ -7,6 +6,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 import logging
+from sqlalchemy import or_
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Define the Base class
 Base = declarative_base()
 
-# SQLAlchemy Models
+# SQLAlchemy Models (unchanged)
 class HistoryLog(Base):
     __tablename__ = "history_logs"
     id = Column(Integer, primary_key=True, index=True)
@@ -47,6 +47,12 @@ class HistoryLogResponse(BaseModel):
     file_name: str
     model: str
     date: datetime
+    model_config = {'from_attributes': True}
+
+# New Pydantic model for paginated response
+class PaginatedHistoryLogResponse(BaseModel):
+    logs: List[HistoryLogResponse]
+    total_pages: int
     model_config = {'from_attributes': True}
 
 class DeletedForecastResponse(BaseModel):
@@ -129,11 +135,46 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
             logger.error(f"Error fetching history log {log_id}: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
-    @app.get("/api/history-logs", response_model=List[HistoryLogResponse])
-    async def get_all_history_logs(db: Session = Depends(get_db)):
+    @app.get("/api/history-logs", response_model=PaginatedHistoryLogResponse)
+    async def get_all_history_logs(
+        db: Session = Depends(get_db),
+        page: int = 1,
+        limit: int = 10,
+        search: Optional[str] = ""
+    ):
         try:
-            logs = db.query(HistoryLog).order_by(desc(HistoryLog.date)).all()
-            return logs
+            # Build the query
+            query = db.query(HistoryLog)
+
+            # Apply search filter if provided
+            if search:
+                search_term = f"%{search}%"
+                query = query.filter(
+                    or_(
+                        HistoryLog.file_name.ilike(search_term),
+                        HistoryLog.model.ilike(search_term)
+                    )
+                )
+
+            # Calculate pagination
+            total_logs = query.count()
+            total_pages = (total_logs + limit - 1) // limit
+
+            # Apply pagination
+            logs = (
+                query.order_by(desc(HistoryLog.date))
+                .offset((page - 1) * limit)
+                .limit(limit)
+                .all()
+            )
+
+            # Serialize logs to HistoryLogResponse
+            serialized_logs = [HistoryLogResponse.model_validate(log) for log in logs]
+
+            return {
+                "logs": serialized_logs,
+                "total_pages": total_pages
+            }
         except Exception as e:
             logger.error(f"Error fetching history logs: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
