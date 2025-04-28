@@ -99,8 +99,7 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
                 "forecast_id": db_log.forecast_id,
                 "file_name": db_log.file_name,
                 "model": db_log.model,
-                "date": db_log.date,
-                "username": db_log.username
+                "date": db_log.date
             }
 
         except Exception as e:
@@ -124,8 +123,7 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
                 "forecast_id": log.forecast_id,
                 "file_name": log.file_name,
                 "model": log.model,
-                "date": log.date,
-                "username": log.username
+                "date": log.date
             }
         except Exception as e:
             logger.error(f"Error fetching history log {log_id}: {str(e)}")
