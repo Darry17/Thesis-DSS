@@ -22,7 +22,6 @@ class HistoryLog(Base):
     file_name = Column(String(255), nullable=False)
     model = Column(String(50), nullable=False)
     date = Column(DateTime, default=datetime.now)
-    username = Column(String(255), nullable=True)
 
 class DeletedForecast(Base):
     __tablename__ = "deleted_forecasts"
@@ -48,7 +47,6 @@ class HistoryLogResponse(BaseModel):
     file_name: str
     model: str
     date: datetime
-    username: Optional[str] = None  # Changed to Optional[str] to match SQLAlchemy
     model_config = {'from_attributes': True}
 
 class DeletedForecastResponse(BaseModel):
@@ -66,8 +64,7 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
     @app.post("/api/history-logs")
     async def create_history_log(
         log: HistoryLogCreate, 
-        db: Session = Depends(get_db),
-        current_user: Optional[dict] = Depends(lambda: None)  # Optional authentication
+        db: Session = Depends(get_db)
     ):
         try:
             logger.info(f"Creating history log with data: {log.dict()}")
@@ -83,8 +80,7 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
             db_log = HistoryLog(
                 file_name=log.file_name,
                 model=log.model,
-                forecast_id=forecast_id,
-                username=current_user["username"] if current_user else "anonymous"
+                forecast_id=forecast_id
             )
             
             db.add(db_log)
