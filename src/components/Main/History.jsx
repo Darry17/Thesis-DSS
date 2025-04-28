@@ -10,6 +10,7 @@ const History = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [inputValue, setInputValue] = useState(""); // New state for input value
   const logsPerPage = 10;
   const navigate = useNavigate();
 
@@ -110,9 +111,15 @@ const History = () => {
     }
   };
 
-  const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1); // Reset to first page on search
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value); // Update input value on every keystroke
+  };
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter") {
+      setSearchQuery(inputValue); // Update searchQuery only on Enter
+      setCurrentPage(1); // Reset to first page on search
+    }
   };
 
   if (loading) {
@@ -140,9 +147,10 @@ const History = () => {
         <div className="mb-4">
           <input
             type="text"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            placeholder="Search by file name or model..."
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleSearch}
+            placeholder="Search by File Name or Model"
             className="w-full p-2 border border-gray-300 rounded"
           />
         </div>

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 const Accounts = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [accessControl, setAccessControl] = useState("USER");
+  const [accessControl, setAccessControl] = useState("ADMIN");
   const [editingId, setEditingId] = useState(null);
   const [accounts, setAccounts] = useState([]);
   const navigate = useNavigate();
@@ -140,7 +140,7 @@ const Accounts = () => {
       // Reset form
       setUsername("");
       setPassword("");
-      setAccessControl("USER");
+      setAccessControl("ADMIN");
     } catch (error) {
       console.error("Error:", error);
       alert("Error: " + error.message); // Optional: Show error alert
@@ -280,7 +280,7 @@ const Accounts = () => {
                     setEditingId(null);
                     setUsername("");
                     setPassword("");
-                    setAccessControl("USER");
+                    setAccessControl("ADMIN");
                   }}
                   className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
                   Cancel
