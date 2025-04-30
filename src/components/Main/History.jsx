@@ -1,3 +1,4 @@
+// src/components/Main/History.jsx (from previous messages)
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -144,7 +145,7 @@ const History = () => {
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleSearch}
-            placeholder="Search by File Name or Model"
+            placeholder="Search by file name or model (press Enter to search)"
             className="w-full p-2 border border-gray-300 rounded"
           />
         </div>
@@ -203,7 +204,7 @@ const History = () => {
           <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50 hover:bg-gray-400 cursor-pointer">
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
             Previous
           </button>
           <span>
@@ -212,7 +213,7 @@ const History = () => {
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 bg-gray-300 rounded disabled:opacity-50 hover:bg-gray-400 cursor-pointer">
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50">
             Next
           </button>
         </div>
