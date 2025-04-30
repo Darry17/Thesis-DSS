@@ -193,7 +193,7 @@ const Accounts = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
+    <div className="p-6 min-h-screen">
       <div className="max-w-5xl mx-auto">
         <h2 className="text-4xl font-bold mb-4">Accounts</h2>
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">

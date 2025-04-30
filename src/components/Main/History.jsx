@@ -135,7 +135,7 @@ const History = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-100 flex-1">
+    <div className="p-6 flex-1">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-4xl font-bold mb-6">Forecasted Logs</h1>
         <div className="mb-4">
@@ -178,13 +178,13 @@ const History = () => {
                       <div className="flex gap-6">
                         <button
                           onClick={() => handleView(log.forecast_id)}
-                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
+                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 cursor-pointer">
                           VIEW
                         </button>
                         {isLoggedIn && (
                           <button
                             onClick={() => handleDelete(log.forecast_id)}
-                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">
+                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 cursor-pointer">
                             DELETE
                           </button>
                         )}
