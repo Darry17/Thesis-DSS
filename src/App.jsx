@@ -51,7 +51,7 @@ const AppContent = () => {
     const responsiveOverflowRoutes = [
       "/history",
       "/generate",
-      "single-model-config",
+      "/single-model-config",
       "/hybrid-model-config",
     ];
 
@@ -103,7 +103,7 @@ const AppContent = () => {
   }, [location.pathname, isLoggedIn]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col ">
       {!isAdminRoute && <Navigation />}
       <div className="flex flex-1">
         {isAdminRoute && <AdminNavigation />}
