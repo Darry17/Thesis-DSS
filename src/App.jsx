@@ -73,23 +73,14 @@ const AppContent = () => {
           // In admin view, measure the main content height (excluding AdminNavigation)
           const contentHeight = mainContent.scrollHeight;
           isNoOverflow = contentHeight <= viewportHeight;
-          console.log(
-            `Route: ${location.pathname}, Admin View, Viewport Height: ${viewportHeight}, Main Content Height: ${contentHeight}, Is No Overflow: ${isNoOverflow}`
-          );
         } else if (rootContainer) {
           // In non-admin view or as fallback, measure the root container
           const contentHeight = rootContainer.scrollHeight;
           isNoOverflow = contentHeight <= viewportHeight;
-          console.log(
-            `Route: ${location.pathname}, Non-Admin View, Viewport Height: ${viewportHeight}, Root Content Height: ${contentHeight}, Is No Overflow: ${isNoOverflow}`
-          );
         } else {
           // Fallback to body height
           const bodyHeight = document.body.scrollHeight;
           isNoOverflow = bodyHeight <= viewportHeight;
-          console.log(
-            `Route: ${location.pathname}, Fallback, Viewport Height: ${viewportHeight}, Body Height: ${bodyHeight}, Is No Overflow: ${isNoOverflow}`
-          );
         }
       } else {
         // Apply overflow: hidden for other noOverflowRoutes

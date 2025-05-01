@@ -9,14 +9,15 @@ const ViewLogs = () => {
   const [historyLog, setHistoryLog] = useState(null);
   const [esnConfig, setEsnConfig] = useState(null);
   const [dhrConfig, setDhrConfig] = useState(null);
+  const [error, setError] = useState(null);
 
-  // Fetch forecast data and history log on component mount
   useEffect(() => {
     if (forecastId) {
       fetchForecastData();
       fetchHistoryLog();
       fetchModelConfigurations();
     } else {
+      setError("No forecast ID provided");
       console.error("No forecast ID provided");
     }
   }, [forecastId]);
@@ -33,14 +34,37 @@ const ViewLogs = () => {
 
       const data = await response.json();
       setForecastData(data);
+
+      if (data.filename) {
+        await fetchFileContent(data.filename);
+      }
     } catch (error) {
       console.error("Error fetching forecast data:", error);
+      setError(error.message);
+    }
+  };
+
+  const fetchFileContent = async (filename) => {
+    try {
+      const fileResponse = await fetch(
+        `http://localhost:8000/storage/read/${filename}`
+      );
+
+      if (!fileResponse.ok) {
+        throw new Error(
+          `Failed to read file content: ${fileResponse.statusText}`
+        );
+      }
+
+      const jsonContent = await fileResponse.json();
+    } catch (error) {
+      console.error("Error fetching file content:", error);
+      setError(error.message);
     }
   };
 
   const fetchModelConfigurations = async () => {
     try {
-      // Fetch the forecast first to determine model type
       const forecastResponse = await fetch(
         `http://localhost:8000/api/forecasts/${forecastId}`
       );
@@ -54,7 +78,6 @@ const ViewLogs = () => {
       const forecastData = await forecastResponse.json();
       const modelType = forecastData.model?.toUpperCase();
 
-      // Define configuration endpoints based on model type
       const configEndpoints = {
         DHR: `/api/dhr-configurations/${forecastId}`,
         ESN: `/api/esn-configurations/${forecastId}`,
@@ -62,7 +85,6 @@ const ViewLogs = () => {
         HYBRID: `/api/hybrid-configurations/${forecastId}`,
       };
 
-      // Fetch the appropriate configuration based on model type
       if (modelType && configEndpoints[modelType]) {
         const endpoint = configEndpoints[modelType];
         const response = await fetch(`http://localhost:8000${endpoint}`);
@@ -70,48 +92,55 @@ const ViewLogs = () => {
         if (response.ok) {
           const configData = await response.json();
 
-          // Handle different configuration types
           if (modelType === "ESN") {
             setEsnConfig(configData);
           } else if (modelType === "DHR") {
             setDhrConfig(configData);
           } else if (modelType === "DHR-ESN" || modelType === "HYBRID") {
-            // For hybrid models, the response contains both ESN and DHR configurations
             setEsnConfig(configData.esn_config);
             setDhrConfig(configData.dhr_config);
           }
+        } else {
+          throw new Error(`Error fetching config: ${response.statusText}`);
         }
       }
     } catch (error) {
       console.error("Error fetching model configurations:", error);
+      setError(error.message);
     }
   };
 
   const fetchHistoryLog = async () => {
     try {
-      // Fetch all history logs and find the one with matching forecast_id
       const response = await fetch("http://localhost:8000/api/history-logs");
 
       if (!response.ok) {
         throw new Error(`Error fetching history logs: ${response.statusText}`);
       }
 
-      const logs = await response.json();
+      const data = await response.json();
+      const logs = Array.isArray(data.logs) ? data.logs : [];
+
+      if (!Array.isArray(data.logs)) {
+        console.warn("Expected an array in data.logs, received:", data);
+      }
+
       const matchingLog = logs.find((log) => log.forecast_id === forecastId);
 
       if (matchingLog) {
         setHistoryLog(matchingLog);
       } else {
         console.warn(`No history log found for forecast ID: ${forecastId}`);
+        setHistoryLog(null);
       }
     } catch (error) {
       console.error("Error fetching history logs:", error);
+      setError(error.message);
     }
   };
 
   const handleBack = () => navigate(-1);
 
-  // Replace Dummy Graph component with a placeholder message
   const GraphPlaceholder = () => (
     <div className="bg-white p-4 rounded-lg border-gray-500 shadow mb-5">
       <h3 className="text-lg font-medium mb-2">Generated Power</h3>
@@ -142,7 +171,6 @@ const ViewLogs = () => {
     </div>
   );
 
-  // ESN Configuration component
   const EsnConfiguration = () => (
     <div className="p-4 bg-white mb-6">
       <h3 className="text-2xl font-bold mb-6">
@@ -230,9 +258,8 @@ const ViewLogs = () => {
     </div>
   );
 
-  // DHR Configuration component
   const DhrConfiguration = () => (
-    <div className="p-4 bg-whitemb-6">
+    <div className="p-4 bg-white mb-6">
       <h3 className="text-2xl font-bold mb-6">
         Configurations - Dynamic Harmonic Regression
       </h3>
@@ -307,7 +334,6 @@ const ViewLogs = () => {
     </div>
   );
 
-  // DatasetDetails component
   const DatasetDetails = () => (
     <div className="p-4 bg-white">
       <h3 className="text-2xl font-bold mb-6">Dataset Details</h3>
@@ -318,7 +344,7 @@ const ViewLogs = () => {
           </label>
           <input
             type="text"
-            value={forecastData?.original_filename}
+            value={forecastData?.original_filename || ""}
             readOnly
             className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
@@ -329,7 +355,7 @@ const ViewLogs = () => {
           </label>
           <input
             type="text"
-            value={forecastData?.granularity}
+            value={forecastData?.granularity || ""}
             readOnly
             className="w-full p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-700 focus:outline-none cursor-default"
           />
@@ -349,12 +375,10 @@ const ViewLogs = () => {
     </div>
   );
 
-  // Determine which configurations to show based on model type
   const renderModelConfigurations = () => {
     const modelType = forecastData?.model?.toUpperCase() || "";
 
     if (modelType === "DHR-ESN" || modelType === "HYBRID") {
-      // Show both configurations for hybrid models
       return (
         <>
           <EsnConfiguration />
@@ -362,10 +386,8 @@ const ViewLogs = () => {
         </>
       );
     } else if (modelType === "ESN") {
-      // Show only ESN configuration
       return <EsnConfiguration />;
     } else if (modelType === "DHR") {
-      // Show only DHR configuration
       return <DhrConfiguration />;
     }
 
@@ -374,11 +396,16 @@ const ViewLogs = () => {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {forecastId ? (
+      {error ? (
+        <div className="p-6 bg-red-100 text-red-700 rounded">
+          Error: {error}
+        </div>
+      ) : forecastId ? (
         <div>
-          {/* Header with filename and back button */}
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">{historyLog?.file_name}</h1>
+            <h1 className="text-2xl font-bold">
+              {historyLog?.file_name || "Loading..."}
+            </h1>
             <button
               onClick={handleBack}
               className="px-3 py-1 bg-red-600 text-white rounded-md text-sm hover:bg-red-700">
@@ -386,15 +413,12 @@ const ViewLogs = () => {
             </button>
           </div>
 
-          {/* Graph placeholder instead of dummy graph */}
           <GraphPlaceholder />
 
-          {/* Metrics and details section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
             <DatasetDetails />
           </div>
 
-          {/* Model configurations section */}
           {renderModelConfigurations()}
         </div>
       ) : (

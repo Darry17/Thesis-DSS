@@ -12,7 +12,7 @@ const GenerateForecast = () => {
   const showTooltip = (field) => setTooltipVisible(field);
   const hideTooltip = () => setTooltipVisible(null);
 
-  const modelType = location.state?.modelType || ""; // Get modelType from navigation state
+  const modelType = location.state?.modelType || "";
 
   const getGranularityFromFilename = (filename) => {
     if (!filename) return "Hourly";
@@ -73,18 +73,28 @@ const GenerateForecast = () => {
     const fetchFileData = async () => {
       try {
         setLoading(true);
+        setError(null);
+
+        // Step 1: Fetch file metadata
         const urlParams = new URLSearchParams(location.search);
         const dataType = urlParams.get("type") || "hourly";
 
-        const response = await fetch(
+        const metadataResponse = await fetch(
           `http://localhost:8000/storage/latest-file/?data_type=${dataType}`
         );
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch ${dataType} file`);
+        if (!metadataResponse.ok) {
+          const errorText = await metadataResponse.text();
+          throw new Error(
+            `Failed to fetch ${dataType} file metadata: ${errorText}`
+          );
         }
 
-        const latestFile = await response.json();
+        const latestFile = await metadataResponse.json();
+
+        if (!latestFile.filename) {
+          throw new Error("No filename received in metadata");
+        }
 
         setFileData({
           filename: latestFile.filename,
@@ -98,9 +108,23 @@ const GenerateForecast = () => {
           original_filename: latestFile.original_filename,
           granularity: getGranularityFromFilename(latestFile.filename),
         }));
+
+        // Step 2: Fetch and log file content
+        const fileResponse = await fetch(
+          `http://localhost:8000/storage/read/${latestFile.filename}`
+        );
+
+        if (!fileResponse.ok) {
+          const errorText = await fileResponse.text();
+          throw new Error(`Failed to read file content: ${errorText}`);
+        }
+
+        const jsonContent = await fileResponse.json();
       } catch (err) {
-        console.error("Error:", err);
-        setError(err.message);
+        console.error("Fetch error:", err);
+        setError(
+          err.message || "An unexpected error occurred while fetching the file"
+        );
       } finally {
         setLoading(false);
       }
@@ -191,7 +215,6 @@ const GenerateForecast = () => {
     return <div className="p-6 text-red-500">Error: {error}</div>;
   }
 
-  // Set background based on modelType
   const backgroundImage = modelType
     ? `url(/${modelType.toLowerCase()}-bg.png)`
     : "none";
@@ -215,7 +238,7 @@ const GenerateForecast = () => {
 
         {/* File Information */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mbIts-1">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
             Current File
           </label>
           <div className="p-3 bg-gray-50 rounded-md">
