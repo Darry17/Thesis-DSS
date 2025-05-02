@@ -32,7 +32,8 @@ const AppContent = () => {
 
   const isAdminRoute =
     adminRoutes.some((route) => location.pathname.startsWith(route)) ||
-    (location.pathname === "/history" && isLoggedIn);
+    ((location.pathname === "/history" || location.pathname === "/view-logs") &&
+      isLoggedIn);
 
   useEffect(() => {
     const noOverflowRoutes = [
@@ -50,6 +51,7 @@ const AppContent = () => {
 
     const responsiveOverflowRoutes = [
       "/history",
+      "/view-logs",
       "/generate",
       "/single-model-config",
       "/hybrid-model-config",

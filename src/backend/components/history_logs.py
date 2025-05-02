@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Define the Base class
 Base = declarative_base()
 
-# SQLAlchemy Models (unchanged)
+# SQLAlchemy Models
 class HistoryLog(Base):
     __tablename__ = "history_logs"
     id = Column(Integer, primary_key=True, index=True)
@@ -30,7 +30,6 @@ class DeletedForecast(Base):
     file_name = Column(String(255), nullable=False)
     model = Column(String(50), nullable=False)
     date = Column(DateTime, default=datetime.now)
-    username = Column(String(255), nullable=False)
     deleted_by = Column(String(255), nullable=False)
 
 # Pydantic Models
@@ -49,7 +48,6 @@ class HistoryLogResponse(BaseModel):
     date: datetime
     model_config = {'from_attributes': True}
 
-# New Pydantic model for paginated response
 class PaginatedHistoryLogResponse(BaseModel):
     logs: List[HistoryLogResponse]
     total_pages: int
@@ -61,8 +59,12 @@ class DeletedForecastResponse(BaseModel):
     file_name: str
     model: str
     date: datetime
-    username: str
     deleted_by: str
+    model_config = {'from_attributes': True}
+
+class PaginatedDeletedForecastResponse(BaseModel):
+    logs: List[DeletedForecastResponse]
+    total_pages: int
     model_config = {'from_attributes': True}
 
 # Routes
@@ -201,14 +203,12 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
                 forecast_id=forecast_id,
                 file_name=history_log.file_name,
                 model=history_log.model,
-                username=history_log.username or "anonymous",
                 deleted_by=current_user["username"]
             )
             db.add(deleted_forecast)
 
-            # Delete the history log and forecast entries
+            # Delete the history log entries
             db.query(HistoryLog).filter(HistoryLog.forecast_id == forecast_id).delete()
-            db.query(Forecast).filter(Forecast.id == forecast_id).delete()
 
             # Commit the transaction
             db.commit()
@@ -234,23 +234,11 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
             if not deleted_forecast:
                 raise HTTPException(status_code=404, detail="Deleted forecast not found")
 
-            # Recreate the forecast
-            forecast = Forecast(
-                id=deleted_forecast.forecast_id,
-                filename=deleted_forecast.file_name,
-                original_filename=deleted_forecast.file_name,
-                forecast_model=deleted_forecast.model,
-                steps="pending",
-                granularity="unknown"
-            )
-            db.add(forecast)
-
             # Create a new history log entry
             recovered_log = HistoryLog(
                 forecast_id=deleted_forecast.forecast_id,
                 file_name=deleted_forecast.file_name,
                 model=deleted_forecast.model,
-                username=deleted_forecast.username,
                 date=datetime.now()
             )
             db.add(recovered_log)
@@ -270,14 +258,47 @@ def register_history_log_routes(app: FastAPI, get_db, get_current_user, get_admi
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
 
-    @app.get("/api/deleted-forecasts", response_model=List[DeletedForecastResponse])
+    @app.get("/api/deleted-forecasts", response_model=PaginatedDeletedForecastResponse)
     async def get_deleted_forecasts(
         db: Session = Depends(get_db), 
-        current_user: dict = Depends(get_current_user)
+        current_user: dict = Depends(get_current_user),
+        page: int = 1,
+        limit: int = 10,
+        search: Optional[str] = ""
     ):
         try:
-            deleted_forecasts = db.query(DeletedForecast).order_by(desc(DeletedForecast.date)).all()
-            return deleted_forecasts
+            # Build the query
+            query = db.query(DeletedForecast)
+
+            # Apply search filter if provided
+            if search:
+                search_term = f"%{search}%"
+                query = query.filter(
+                    or_(
+                        DeletedForecast.file_name.ilike(search_term),
+                        DeletedForecast.model.ilike(search_term)
+                    )
+                )
+
+            # Calculate pagination
+            total_logs = query.count()
+            total_pages = (total_logs + limit - 1) // limit
+
+            # Apply pagination
+            logs = (
+                query.order_by(desc(DeletedForecast.date))
+                .offset((page - 1) * limit)
+                .limit(limit)
+                .all()
+            )
+
+            # Serialize logs to DeletedForecastResponse
+            serialized_logs = [DeletedForecastResponse.model_validate(log) for log in logs]
+
+            return {
+                "logs": serialized_logs,
+                "total_pages": total_pages
+            }
         except Exception as e:
             logger.error(f"Error fetching deleted forecasts: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))

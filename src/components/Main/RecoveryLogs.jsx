@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const RecoveryLogs = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [userRole, setUserRole] = useState(null); // To store the user's role
+  const [userRole, setUserRole] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [inputValue, setInputValue] = useState("");
+  const logsPerPage = 10;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,7 +22,7 @@ const RecoveryLogs = () => {
           throw new Error("No authentication token found");
         }
 
-        const response = await fetch(
+        const response = await axios.get(
           "http://localhost:8000/api/validate-token",
           {
             headers: {
@@ -25,12 +31,7 @@ const RecoveryLogs = () => {
           }
         );
 
-        if (!response.ok) {
-          throw new Error("Failed to validate token");
-        }
-
-        const data = await response.json();
-        setUserRole(data.access_control); // Store the user's role (e.g., "ADMIN")
+        setUserRole(response.data.access_control);
       } catch (err) {
         console.error("Error validating token:", err);
         setError(err.message);
@@ -45,26 +46,25 @@ const RecoveryLogs = () => {
           throw new Error("No authentication token found");
         }
 
-        const response = await fetch(
+        const response = await axios.get(
           "http://localhost:8000/api/deleted-forecasts",
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            params: {
+              page: currentPage,
+              limit: logsPerPage,
+              search: searchQuery,
+            },
           }
         );
 
-        if (!response.ok) {
-          throw new Error(
-            `Error fetching deleted forecasts: ${response.statusText}`
-          );
-        }
-
-        const data = await response.json();
-        setLogs(data);
+        setLogs(response.data.logs);
+        setTotalPages(response.data.total_pages);
       } catch (err) {
         console.error("Error fetching deleted forecasts:", err);
-        setError(err.message);
+        setError(err.message || "Failed to fetch deleted forecasts");
       } finally {
         setLoading(false);
       }
@@ -72,7 +72,7 @@ const RecoveryLogs = () => {
 
     fetchUserRole();
     fetchDeletedForecasts();
-  }, []);
+  }, [currentPage, searchQuery]);
 
   const handleRecover = async (forecastId) => {
     if (!window.confirm("Are you sure you want to recover this forecast?"))
@@ -84,21 +84,20 @@ const RecoveryLogs = () => {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch(
+      const response = await axios.post(
         `http://localhost:8000/api/recover-forecast/${forecastId}`,
+        {},
         {
-          method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error("Failed to recover forecast");
       }
 
-      // Update the UI by removing the recovered log
       setLogs(logs.filter((log) => log.forecast_id !== forecastId));
       alert("Forecast recovered successfully");
     } catch (err) {
@@ -121,21 +120,19 @@ const RecoveryLogs = () => {
         throw new Error("No authentication token found");
       }
 
-      const response = await fetch(
+      const response = await axios.delete(
         `http://localhost:8000/api/deleted-forecasts/id/${id}`,
         {
-          method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error("Failed to delete forecast");
       }
 
-      // Update the UI by removing the deleted log
       setLogs(logs.filter((log) => log.id !== id));
       alert("Forecast permanently deleted successfully");
     } catch (err) {
@@ -144,13 +141,29 @@ const RecoveryLogs = () => {
     }
   };
 
-  // Format date to YYYY/MM/DD
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(
       2,
       "0"
     )}/${String(date.getDate()).padStart(2, "0")}`;
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value);
+  };
+
+  const handleSearch = (e) => {
+    if (e.key === "Enter") {
+      setSearchQuery(inputValue);
+      setCurrentPage(1);
+    }
   };
 
   if (loading) {
@@ -170,10 +183,19 @@ const RecoveryLogs = () => {
   }
 
   return (
-    <div className="p-6 min-h-screen">
+    <div className="p-6 min-h-screen flex-1">
       <div className="max-w-5xl mx-auto">
         <h1 className="text-4xl font-bold mb-6">Recovery Logs</h1>
-
+        <div className="mb-4">
+          <input
+            type="text"
+            value={inputValue}
+            onChange={handleInputChange}
+            onKeyDown={handleSearch}
+            placeholder="Search by file name or model (press Enter to search)"
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
             <thead className="bg-gray-100">
@@ -182,7 +204,6 @@ const RecoveryLogs = () => {
                 <th className="py-3 px-4 text-left border-b">Model</th>
                 <th className="py-3 px-4 text-left border-b">Action</th>
                 <th className="py-3 px-4 text-left border-b">Date</th>
-                <th className="py-3 px-4 text-left border-b">Username</th>
                 <th className="py-3 px-4 text-left border-b">Deleted By</th>
               </tr>
             </thead>
@@ -229,13 +250,29 @@ const RecoveryLogs = () => {
                     <td className="py-3 px-4 border-b">
                       {formatDate(log.date)}
                     </td>
-                    <td className="py-3 px-4 border-b">{log.username}</td>
                     <td className="py-3 px-4 border-b">{log.deleted_by}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+        <div className="mt-4 flex justify-between items-center">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-auto disabled:bg-gray-300 cursor-pointer">
+            Previous
+          </button>
+          <span>
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-auto disabled:bg-gray-300 cursor-pointer">
+            Next
+          </button>
         </div>
       </div>
     </div>
