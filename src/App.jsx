@@ -38,7 +38,10 @@ const AppContent = () => {
     const noOverflowRoutes = [
       "/",
       "/forecast",
+      "/generate",
       "/select-forecast",
+      "/single-model-config",
+      "/hybrid-model-config",
       "/login",
       "/admin",
       "/accounts",
@@ -58,14 +61,21 @@ const AppContent = () => {
       );
       let isNoOverflow = false;
 
-      // Target the main content area (excluding Navigation and AdminNavigation)
+      // Target the root container and main content area
+      const rootContainer = document.querySelector(
+        ".min-h-screen.flex.flex-col"
+      );
       const mainContent = document.querySelector(".main-content");
-      const viewportHeight = window.innerHeight; // Use window.innerHeight for reliability
+      const viewportHeight = document.documentElement.clientHeight;
 
       if (isResponsiveRoute) {
-        if (mainContent) {
-          // Measure the main content height
+        if (mainContent && isAdminRoute) {
+          // In admin view, measure the main content height (excluding AdminNavigation)
           const contentHeight = mainContent.scrollHeight;
+          isNoOverflow = contentHeight <= viewportHeight;
+        } else if (rootContainer) {
+          // In non-admin view or as fallback, measure the root container
+          const contentHeight = rootContainer.scrollHeight;
           isNoOverflow = contentHeight <= viewportHeight;
         } else {
           // Fallback to body height
@@ -73,7 +83,7 @@ const AppContent = () => {
           isNoOverflow = bodyHeight <= viewportHeight;
         }
       } else {
-        // Apply overflow: hidden for noOverflowRoutes
+        // Apply overflow: hidden for other noOverflowRoutes
         isNoOverflow = noOverflowRoutes.includes(location.pathname);
       }
 
@@ -81,8 +91,8 @@ const AppContent = () => {
       document.body.classList.toggle("no-overflow", isNoOverflow);
     };
 
-    // Run initially with a shorter delay and on next tick
-    setTimeout(handleOverflow, 100); // Reduced to 100ms
+    // Run initially with a delay to ensure DOM is rendered
+    setTimeout(handleOverflow, 300); // Increased to 300ms for safety
     window.addEventListener("resize", handleOverflow);
 
     // Cleanup on route change or unmount
@@ -95,13 +105,13 @@ const AppContent = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {!isAdminRoute && <Navigation />}
-      <div className="flex flex-1 pt-16">
+      <div className="flex flex-1">
         {isAdminRoute && <AdminNavigation />}
         <div
           className={
             isAdminRoute
               ? "w-full flex-1 overflow-y-auto main-content pl-64"
-              : "w-full flex-1 overflow-y-auto main-content"
+              : "w-full flex-1 overflow-y-hidden main-content"
           }>
           <Routes>
             <Route path="/" element={<Dashboard />} />
