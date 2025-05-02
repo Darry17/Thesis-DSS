@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -30,88 +30,21 @@ const AppContent = () => {
   const isLoggedIn = !!localStorage.getItem("token");
   const adminRoutes = ["/admin", "/accounts", "/recovery-logs"];
 
+  // Determine if the current route is an admin route
   const isAdminRoute =
     adminRoutes.some((route) => location.pathname.startsWith(route)) ||
     (location.pathname === "/history" && isLoggedIn);
 
-  useEffect(() => {
-    const noOverflowRoutes = [
-      "/",
-      "/forecast",
-      "/generate",
-      "/select-forecast",
-      "/single-model-config",
-      "/hybrid-model-config",
-      "/login",
-      "/admin",
-      "/accounts",
-      "/recovery-logs",
-    ];
-
-    const responsiveOverflowRoutes = [
-      "/history",
-      "/generate",
-      "/single-model-config",
-      "/hybrid-model-config",
-    ];
-
-    const handleOverflow = () => {
-      const isResponsiveRoute = responsiveOverflowRoutes.includes(
-        location.pathname
-      );
-      let isNoOverflow = false;
-
-      // Target the root container and main content area
-      const rootContainer = document.querySelector(
-        ".min-h-screen.flex.flex-col"
-      );
-      const mainContent = document.querySelector(".main-content");
-      const viewportHeight = document.documentElement.clientHeight;
-
-      if (isResponsiveRoute) {
-        if (mainContent && isAdminRoute) {
-          // In admin view, measure the main content height (excluding AdminNavigation)
-          const contentHeight = mainContent.scrollHeight;
-          isNoOverflow = contentHeight <= viewportHeight;
-        } else if (rootContainer) {
-          // In non-admin view or as fallback, measure the root container
-          const contentHeight = rootContainer.scrollHeight;
-          isNoOverflow = contentHeight <= viewportHeight;
-        } else {
-          // Fallback to body height
-          const bodyHeight = document.body.scrollHeight;
-          isNoOverflow = bodyHeight <= viewportHeight;
-        }
-      } else {
-        // Apply overflow: hidden for other noOverflowRoutes
-        isNoOverflow = noOverflowRoutes.includes(location.pathname);
-      }
-
-      // Toggle the no-overflow class on body
-      document.body.classList.toggle("no-overflow", isNoOverflow);
-    };
-
-    // Run initially with a delay to ensure DOM is rendered
-    setTimeout(handleOverflow, 300); // Increased to 300ms for safety
-    window.addEventListener("resize", handleOverflow);
-
-    // Cleanup on route change or unmount
-    return () => {
-      document.body.classList.remove("no-overflow");
-      window.removeEventListener("resize", handleOverflow);
-    };
-  }, [location.pathname, isLoggedIn]);
-
   return (
-    <div className="min-h-screen flex flex-col ">
+    <div className="min-h-screen flex flex-col">
       {!isAdminRoute && <Navigation />}
       <div className="flex flex-1">
         {isAdminRoute && <AdminNavigation />}
         <div
           className={
             isAdminRoute
-              ? "w-full flex-1 overflow-y-auto main-content"
-              : "w-full main-content"
+              ? "flex-1 w-full overflow-y-auto main-content pl-64"
+              : "flex-1 w-full overflow-y-hidden main-content"
           }>
           <Routes>
             <Route path="/" element={<Dashboard />} />

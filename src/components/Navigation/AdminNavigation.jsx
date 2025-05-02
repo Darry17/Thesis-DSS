@@ -37,7 +37,7 @@ const AdminNavigation = () => {
   const linkClass = "block py-2 px-4 rounded w-full text-left";
 
   return (
-    <div className="w-64 bg-[#999696] text-black p-4 font-medium min-h-screen">
+    <div className="w-64 bg-[#999696] text-black p-4 font-medium min-h-screen fixed top-0 left-0 h-full">
       <div className="flex flex-col h-full">
         {/* Navigation Links */}
         <ul className="flex flex-col space-y-5">
