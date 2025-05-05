@@ -10,6 +10,8 @@ const SingleModelConfiguration = () => {
     isEditing,
     existingConfig,
     originalFileName,
+    granularity,
+    steps,
   } = location.state || {};
 
   const [errors, setErrors] = useState({});
@@ -32,18 +34,18 @@ const SingleModelConfiguration = () => {
     if (selectedModel === "DHR") {
       return isEditing
         ? {
-            fourierOrder: existingConfig.fourier_order.toString(),
-            windowLength: existingConfig.window_length.toString(),
+            fourierTerms: existingConfig.fourier_terms.toString(),
+            regStrength: existingConfig.reg_strength.toString(),
+            arOrder: existingConfig.ar_order.toString(),
+            window: existingConfig.window.toString(),
             polyorder: existingConfig.polyorder.toString(),
-            regularization: existingConfig.regularization_dhr.toString(),
-            trendComponents: existingConfig.trend_components.toString(),
           }
         : {
-            fourierOrder: "3",
-            windowLength: "23",
+            fourierTerms: "3",
+            regStrength: "0.0001000100524",
+            arOrder: "3",
+            window: "23",
             polyorder: "3",
-            regularization: "0.0001000100524",
-            trendComponents: "3",
           };
     } else if (selectedModel === "ESN") {
       return isEditing
@@ -85,67 +87,24 @@ const SingleModelConfiguration = () => {
   const validateField = (name, value) => {
     if (!value.trim()) return null;
 
-    if (name === "sparsity") {
-      const numValue = parseFloat(value);
-      if (isNaN(numValue) || numValue < 0 || numValue > 1)
-        return "Sparsity must be between 0 and 1";
+    if (["fourierTerms", "arOrder", "window", "polyorder"].includes(name)) {
+      const numValue = parseInt(value);
+      if (
+        isNaN(numValue) ||
+        numValue <= 0 ||
+        !Number.isInteger(Number(value))
+      ) {
+        return `${
+          name.charAt(0).toUpperCase() + name.slice(1)
+        } must be a positive integer`;
+      }
     }
 
-    if (
-      [
-        "reservoirSize",
-        "spectralRadius",
-        "inputScaling",
-        "regularization",
-        "dropout",
-        "lags",
-        "fourierOrder",
-        "windowLength",
-        "polyorder",
-        "trendComponents",
-      ].includes(name)
-    ) {
+    if (name === "regStrength") {
       const numValue = parseFloat(value);
-      if (isNaN(numValue))
-        return `${
-          name.charAt(0).toUpperCase() + name.slice(1)
-        } must be a number`;
-
-      if (
-        name === "reservoirSize" &&
-        (numValue <= 0 || !Number.isInteger(Number(value)))
-      )
-        return "Reservoir Size must be a positive integer";
-      if (
-        name === "lags" &&
-        (numValue <= 0 || !Number.isInteger(Number(value)))
-      )
-        return "Lags must be a positive integer";
-      if (
-        name === "fourierOrder" &&
-        (numValue <= 0 || !Number.isInteger(Number(value)))
-      )
-        return "Fourier Order must be a positive integer";
-      if (
-        name === "windowLength" &&
-        (numValue <= 0 || !Number.isInteger(Number(value)))
-      )
-        return "Window Length must be a positive integer";
-      if (
-        name === "trendComponents" &&
-        (numValue <= 0 || !Number.isInteger(Number(value)))
-      )
-        return "Trend Components must be a positive integer";
-      if (name === "spectralRadius" && numValue <= 0)
-        return "Spectral Radius must be positive";
-      if (name === "inputScaling" && numValue <= 0)
-        return "Input Scaling must be positive";
-      if (name === "dropout" && (numValue < 0 || numValue > 1))
-        return "Dropout must be between 0 and 1";
-      if ((name === "regularization" || name === "polyorder") && numValue < 0)
-        return `${
-          name.charAt(0).toUpperCase() + name.slice(1)
-        } must be non-negative`;
+      if (isNaN(numValue) || numValue < 0) {
+        return "Regularization strength must be a non-negative number";
+      }
     }
 
     return null;
@@ -222,24 +181,14 @@ const SingleModelConfiguration = () => {
     const newErrors = {};
     let hasErrors = false;
 
-    const fieldsToValidate =
-      selectedModel === "DHR"
-        ? [
-            "fourierOrder",
-            "windowLength",
-            "polyorder",
-            "regularization",
-            "trendComponents",
-          ]
-        : [
-            "reservoirSize",
-            "spectralRadius",
-            "sparsity",
-            "inputScaling",
-            "regularization",
-            "dropout",
-            "lags",
-          ];
+    // For DHR model only
+    const fieldsToValidate = [
+      "fourierTerms",
+      "regStrength",
+      "arOrder",
+      "window",
+      "polyorder",
+    ];
 
     fieldsToValidate.forEach((field) => {
       const error = validateField(field, formData[field] || "");
@@ -253,71 +202,71 @@ const SingleModelConfiguration = () => {
     if (hasErrors) return;
 
     try {
-      let config, endpoint;
+      // Prepare DHR configuration
+      const config = {
+        forecast_id: parseInt(forecastId),
+        fourier_order: parseInt(formData.fourierTerms),
+        fourier_terms: parseInt(formData.fourierTerms),
+        reg_strength: parseFloat(formData.regStrength),
+        ar_order: parseInt(formData.arOrder),
+        window_length: parseInt(formData.window),
+        window: parseInt(formData.window),
+        polyorder: parseInt(formData.polyorder),
+        regularization_dhr: parseFloat(formData.regStrength),
+        trend_components: 1,
+        granularity: granularity || "Hourly",
+        steps: steps || "24-hour",
+      };
 
-      if (selectedModel === "DHR") {
-        config = {
-          forecast_id: parseInt(forecastId),
-          fourier_order: parseInt(formData.fourierOrder),
-          window_length: parseInt(formData.windowLength),
-          polyorder: parseFloat(formData.polyorder),
-          regularization_dhr: parseFloat(formData.regularization),
-          trend_components: parseInt(formData.trendComponents),
-        };
-        endpoint = isEditing
-          ? `http://localhost:8000/api/dhr-configurations/${forecastId}`
-          : "http://localhost:8000/api/dhr-configurations";
-      } else if (selectedModel === "ESN") {
-        config = {
-          forecast_id: parseInt(forecastId),
-          reservoir_size: parseInt(formData.reservoirSize),
-          spectral_radius: parseFloat(formData.spectralRadius),
-          sparsity: parseFloat(formData.sparsity),
-          input_scaling: parseFloat(formData.inputScaling),
-          dropout: parseFloat(formData.dropout),
-          lags: parseInt(formData.lags),
-          regularization_esn: parseFloat(formData.regularization),
-        };
-        endpoint = isEditing
-          ? `http://localhost:8000/api/esn-configurations/${forecastId}`
-          : "http://localhost:8000/api/esn-configurations";
-      }
+      const endpoint = isEditing
+        ? `http://localhost:8000/api/dhr-configurations/${forecastId}`
+        : "http://localhost:8000/api/dhr-configurations";
+
+      console.log("Sending configuration:", JSON.stringify(config, null, 2));
 
       const configResponse = await fetch(endpoint, {
         method: isEditing ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify(config),
       });
 
       if (!configResponse.ok) {
         const errorText = await configResponse.text();
-        let errorMessage = "Unknown error";
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.detail || JSON.stringify(errorData);
-        } catch (e) {
-          errorMessage =
-            errorText || `Server returned ${configResponse.status}`;
-        }
-        console.error("API Error:", errorMessage);
-        throw new Error(`Failed to save configuration: ${errorMessage}`);
+        console.error("Configuration error response:", errorText);
+        throw new Error(`Failed to save configuration: ${errorText}`);
       }
 
+      const configResult = await configResponse.json();
+      console.log("Configuration saved successfully:", configResult);
+
+      // Generate forecast
       const forecastResponse = await fetch(
         "http://localhost:8000/api/forecasts/dhr",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
           body: JSON.stringify({
             forecast_id: parseInt(forecastId),
+            granularity: granularity || "Hourly",
+            steps: steps || "24-hour",
           }),
         }
       );
 
       if (!forecastResponse.ok) {
         const errorText = await forecastResponse.text();
+        console.error("Forecast error response:", errorText);
         throw new Error(`Failed to compute forecast: ${errorText}`);
       }
+
+      const forecastResult = await forecastResponse.json();
+      console.log("Forecast generated successfully:", forecastResult);
 
       await handleSaveForecast();
       navigate("/result", { state: { forecastId } });
@@ -576,60 +525,61 @@ const SingleModelConfiguration = () => {
       <div className="flex space-x-4">
         <div className="flex-1 relative">
           <label className="block text-sm font-medium mb-1">
-            Fourier Order{" "}
+            Fourier Terms{" "}
             <span
               className="text-gray-500 cursor-pointer"
-              onMouseEnter={() => showTooltip("fourierOrder")}
+              onMouseEnter={() => showTooltip("fourierTerms")}
               onMouseLeave={hideTooltip}>
               ⓘ
             </span>
-            {tooltipVisible === "fourierOrder" && (
+            {tooltipVisible === "fourierTerms" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
-                Number of sine and cosine terms to include in the model.
+                Number of Fourier terms for capturing daily and weekly
+                seasonality (default: 3)
               </div>
             )}
           </label>
           <input
             type="text"
-            name="fourierOrder"
-            value={formData.fourierOrder}
+            name="fourierTerms"
+            value={formData.fourierTerms}
             onChange={handleChange}
             placeholder="3"
             className={`w-full p-2 border rounded-md ${
-              errors.fourierOrder ? "border-red-500" : "border-gray-300"
+              errors.fourierTerms ? "border-red-500" : "border-gray-300"
             } focus:outline-none focus:ring-2 focus:ring-blue-500`}
           />
-          {errors.fourierOrder && (
-            <p className="text-red-500 text-xs mt-1">{errors.fourierOrder}</p>
+          {errors.fourierTerms && (
+            <p className="text-red-500 text-xs mt-1">{errors.fourierTerms}</p>
           )}
         </div>
         <div className="flex-1 relative">
           <label className="block text-sm font-medium mb-1">
-            Window Length{" "}
+            Window Size{" "}
             <span
               className="text-gray-500 cursor-pointer"
-              onMouseEnter={() => showTooltip("windowLength")}
+              onMouseEnter={() => showTooltip("window")}
               onMouseLeave={hideTooltip}>
               ⓘ
             </span>
-            {tooltipVisible === "windowLength" && (
+            {tooltipVisible === "window" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
-                Window size for the Savitzky-Golay filter.
+                Window size for smoothing (default: 23 hours)
               </div>
             )}
           </label>
           <input
             type="text"
-            name="windowLength"
-            value={formData.windowLength}
+            name="window"
+            value={formData.window}
             onChange={handleChange}
             placeholder="23"
             className={`w-full p-2 border rounded-md ${
-              errors.windowLength ? "border-red-500" : "border-gray-300"
+              errors.window ? "border-red-500" : "border-gray-300"
             } focus:outline-none focus:ring-2 focus:ring-blue-500`}
           />
-          {errors.windowLength && (
-            <p className="text-red-500 text-xs mt-1">{errors.windowLength}</p>
+          {errors.window && (
+            <p className="text-red-500 text-xs mt-1">{errors.window}</p>
           )}
         </div>
       </div>
@@ -637,37 +587,69 @@ const SingleModelConfiguration = () => {
       <div className="flex space-x-4">
         <div className="flex-1 relative">
           <label className="block text-sm font-medium mb-1">
-            Regularization{" "}
+            Regularization Strength{" "}
             <span
               className="text-gray-500 cursor-pointer"
-              onMouseEnter={() => showTooltip("regularization")}
+              onMouseEnter={() => showTooltip("regStrength")}
               onMouseLeave={hideTooltip}>
               ⓘ
             </span>
-            {tooltipVisible === "regularization" && (
+            {tooltipVisible === "regStrength" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
-                Regularization parameter for the DHR model to prevent
-                overfitting.
+                Ridge regression regularization parameter (default:
+                0.0001000100524)
               </div>
             )}
           </label>
           <input
             type="text"
-            name="regularization"
-            value={formData.regularization}
+            name="regStrength"
+            value={formData.regStrength}
             onChange={handleChange}
             placeholder="0.0001000100524"
             className={`w-full p-2 border rounded-md ${
-              errors.regularization ? "border-red-500" : "border-gray-300"
+              errors.regStrength ? "border-red-500" : "border-gray-300"
             } focus:outline-none focus:ring-2 focus:ring-blue-500`}
           />
-          {errors.regularization && (
-            <p className="text-red-500 text-xs mt-1">{errors.regularization}</p>
+          {errors.regStrength && (
+            <p className="text-red-500 text-xs mt-1">{errors.regStrength}</p>
           )}
         </div>
         <div className="flex-1 relative">
           <label className="block text-sm font-medium mb-1">
-            Polyorder{" "}
+            AR Order{" "}
+            <span
+              className="text-gray-500 cursor-pointer"
+              onMouseEnter={() => showTooltip("arOrder")}
+              onMouseLeave={hideTooltip}>
+              ⓘ
+            </span>
+            {tooltipVisible === "arOrder" && (
+              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
+                Number of past values to use for autoregression (default: 3)
+              </div>
+            )}
+          </label>
+          <input
+            type="text"
+            name="arOrder"
+            value={formData.arOrder}
+            onChange={handleChange}
+            placeholder="3"
+            className={`w-full p-2 border rounded-md ${
+              errors.arOrder ? "border-red-500" : "border-gray-300"
+            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+          />
+          {errors.arOrder && (
+            <p className="text-red-500 text-xs mt-1">{errors.arOrder}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex space-x-4">
+        <div className="flex-1 relative">
+          <label className="block text-sm font-medium mb-1">
+            Polynomial Order{" "}
             <span
               className="text-gray-500 cursor-pointer"
               onMouseEnter={() => showTooltip("polyorder")}
@@ -676,7 +658,7 @@ const SingleModelConfiguration = () => {
             </span>
             {tooltipVisible === "polyorder" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
-                Polynomial order for the Savitzky-Golay filter.
+                Order of polynomial for Savitzky-Golay smoothing (default: 3)
               </div>
             )}
           </label>
@@ -695,39 +677,7 @@ const SingleModelConfiguration = () => {
           )}
         </div>
       </div>
-      <div className="flex space-x-4 w-58">
-        <div className="flex-1 relative">
-          <label className="block text-sm font-medium mb-1">
-            Trend Components{" "}
-            <span
-              className="text-gray-500 cursor-pointer"
-              onMouseEnter={() => showTooltip("trendComponents")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "trendComponents" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
-                Number of trend components to include in the model.
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="trendComponents"
-            value={formData.trendComponents}
-            onChange={handleChange}
-            placeholder="3"
-            className={`w-full p-2 border rounded-md ${
-              errors.trendComponents ? "border-red-500" : "border-gray-300"
-            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          />
-          {errors.trendComponents && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.trendComponents}
-            </p>
-          )}
-        </div>
-      </div>
+
       <div className="flex justify-end space-x-4 mt-10">
         <button
           type="button"

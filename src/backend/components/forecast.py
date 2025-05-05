@@ -1,6 +1,6 @@
 import os
 from fastapi import FastAPI, HTTPException, Depends, Request
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, text
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.declarative import declarative_base
 from pydantic import BaseModel
@@ -16,6 +16,10 @@ from sklearn.model_selection import train_test_split
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Storage configuration
+BASE_STORAGE_PATH = os.getenv('STORAGE_PATH', os.path.join(os.path.dirname(__file__), '..', '..', '..', 'storage'))
+os.makedirs(BASE_STORAGE_PATH, exist_ok=True)
 
 # SQLAlchemy Models
 Base = declarative_base()
@@ -114,29 +118,33 @@ def register_forecast_routes(app: FastAPI, get_db):
     @app.post("/api/forecasts/dhr")
     async def compute_dhr_forecast(request: ForecastRequest, db: Session = Depends(get_db)):
         try:
-            # Query the hourly table for the filename
-            query = "SELECT file_name FROM hourly WHERE forecast_id = :forecast_id"
-            result = db.execute(query, {"forecast_id": request.forecast_id}).fetchone()
+            # Query the hourly table for the filename using text()
+            file_query = text("SELECT file_name FROM hourly_data WHERE forecast_id = :forecast_id")
+            result = db.execute(file_query, {"forecast_id": request.forecast_id}).fetchone()
             if not result:
                 raise HTTPException(status_code=404, detail="No dataset found for forecast_id")
 
             file_name = result.file_name
-            data_folder = "hourly" if request.granularity == "hourly" else None
+            data_folder = "hourly" if request.granularity.lower() == "hourly" else None
             if not data_folder:
                 raise HTTPException(status_code=400, detail="Invalid granularity")
 
-            # Load dataset from hourly folder
-            file_path = os.path.join("data", data_folder, file_name)
+            # Load dataset from storage folder
+            file_path = os.path.join(BASE_STORAGE_PATH, data_folder, file_name)
+            logger.info(f"Looking for file at: {file_path}")
+            
             if not os.path.exists(file_path):
                 raise HTTPException(status_code=404, detail=f"File {file_name} not found in {data_folder} folder")
 
             data = pd.read_csv(file_path)  # Adjust based on file format
 
-            # Load configuration from database
-            config_query = "SELECT * FROM dhr_configurations WHERE forecast_id = :forecast_id"
+            # Load configuration from database using text()
+            config_query = text("SELECT * FROM dhr_configurations WHERE forecast_id = :forecast_id")
             config_result = db.execute(config_query, {"forecast_id": request.forecast_id}).fetchone()
             if not config_result:
                 raise HTTPException(status_code=404, detail="Configuration not found")
+
+            logger.info(f"Retrieved configuration: {config_result}")
 
             params = {
                 "fourier_terms": config_result.fourier_order,
@@ -146,6 +154,8 @@ def register_forecast_routes(app: FastAPI, get_db):
                 "polyorder": config_result.polyorder,
                 "periods": [int(p) for p in config_result.seasonality_periods.split(",")]
             }
+
+            logger.info(f"Using parameters: {params}")
 
             # Prepare data and compute forecast
             prepared_data = load_and_prepare_data(data)
@@ -163,14 +173,13 @@ def register_forecast_routes(app: FastAPI, get_db):
                 ghi_ext=None, dni_ext=None, dhi_ext=None, sza_ext=None  # Adjust as needed
             )
 
-            # Save forecast to database (example)
-            db.execute(
-                "INSERT INTO forecasts (forecast_id, forecast_values) VALUES (:id, :values)",
-                {"id": request.forecast_id, "values": forecast.tolist()}
-            )
+            # Save forecast to database using text()
+            save_query = text("INSERT INTO forecasts (forecast_id, forecast_values) VALUES (:id, :values)")
+            db.execute(save_query, {"id": request.forecast_id, "values": forecast.tolist()})
             db.commit()
 
             return {"forecast_id": request.forecast_id, "forecast": forecast.tolist()}
         except Exception as e:
+            logger.error(f"Error in compute_dhr_forecast: {str(e)}")
             db.rollback()
             raise HTTPException(status_code=500, detail=f"Failed to compute forecast: {str(e)}")

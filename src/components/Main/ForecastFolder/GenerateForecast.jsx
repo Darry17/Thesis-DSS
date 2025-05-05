@@ -198,6 +198,8 @@ const GenerateForecast = () => {
             forecastId: createdForecast.id,
             modelType,
             originalFileName: formData.original_filename,
+            granularity: formData.granularity,
+            steps: formData.steps,
           },
         }
       );
