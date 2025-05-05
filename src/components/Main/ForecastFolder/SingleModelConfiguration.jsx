@@ -210,11 +210,9 @@ const SingleModelConfiguration = () => {
           `Error creating history log: ${historyLogResponse.status} ${historyLogResponse.statusText} - ${errorText}`
         );
       }
-
-      const responseData = await historyLogResponse.json();
     } catch (error) {
-      console.error("Error saving forecast:", error);
-      alert(`Error saving forecast: ${error.message}`);
+      console.error("Error saving forecast history:", error);
+      throw error;
     }
   };
 
@@ -285,29 +283,46 @@ const SingleModelConfiguration = () => {
           : "http://localhost:8000/api/esn-configurations";
       }
 
-      const response = await fetch(endpoint, {
+      const configResponse = await fetch(endpoint, {
         method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
+      if (!configResponse.ok) {
+        const errorText = await configResponse.text();
         let errorMessage = "Unknown error";
         try {
           const errorData = JSON.parse(errorText);
           errorMessage = errorData.detail || JSON.stringify(errorData);
         } catch (e) {
-          errorMessage = errorText || `Server returned ${response.status}`;
+          errorMessage =
+            errorText || `Server returned ${configResponse.status}`;
         }
         console.error("API Error:", errorMessage);
         throw new Error(`Failed to save configuration: ${errorMessage}`);
       }
 
+      const forecastResponse = await fetch(
+        "http://localhost:8000/api/forecasts/dhr",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            forecast_id: parseInt(forecastId),
+          }),
+        }
+      );
+
+      if (!forecastResponse.ok) {
+        const errorText = await forecastResponse.text();
+        throw new Error(`Failed to compute forecast: ${errorText}`);
+      }
+
       await handleSaveForecast();
       navigate("/result", { state: { forecastId } });
     } catch (error) {
-      console.error("Error saving configuration:", error);
+      console.error("Error processing configuration or forecast:", error);
       alert(`Error: ${error.message}`);
     }
   };

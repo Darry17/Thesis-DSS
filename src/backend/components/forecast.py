@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException, Depends, Request
 from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import Session
@@ -37,6 +38,15 @@ class ForecastCreate(BaseModel):
     steps: str
     granularity: str
     model_config = {'from_attributes': True}
+
+class ForecastRequest(BaseModel):
+    forecast_id: int
+    granularity: str
+
+class HourlyData:
+    def __init__(self, forecast_id, file_name):
+        self.forecast_id = forecast_id
+        self.file_name = file_name
 
 # FastAPI setup
 app = FastAPI()
@@ -102,97 +112,65 @@ def register_forecast_routes(app: FastAPI, get_db):
             raise HTTPException(status_code=500, detail=str(e))
         
     @app.post("/api/forecasts/dhr")
-    async def generate_dhr_forecast_route(request: Request, db: Session = Depends(get_db)):
+    async def compute_dhr_forecast(request: ForecastRequest, db: Session = Depends(get_db)):
         try:
-            body = await request.json()
-            data = body.get("data")
-            steps = body.get("steps")
-            granularity = body.get("granularity")
-            model_name = body.get("model")
+            # Query the hourly table for the filename
+            query = "SELECT file_name FROM hourly WHERE forecast_id = :forecast_id"
+            result = db.execute(query, {"forecast_id": request.forecast_id}).fetchone()
+            if not result:
+                raise HTTPException(status_code=404, detail="No dataset found for forecast_id")
 
-            if not all([data, steps, granularity, model_name]):
-                raise HTTPException(status_code=400, detail="Missing input fields")
+            file_name = result.file_name
+            data_folder = "hourly" if request.granularity == "hourly" else None
+            if not data_folder:
+                raise HTTPException(status_code=400, detail="Invalid granularity")
 
-            if granularity != "Hourly":
-                raise HTTPException(status_code=400, detail="Only Hourly granularity is supported")
-            if model_name != "DHR":
-                raise HTTPException(status_code=400, detail="Only DHR model is supported")
+            # Load dataset from hourly folder
+            file_path = os.path.join("data", data_folder, file_name)
+            if not os.path.exists(file_path):
+                raise HTTPException(status_code=404, detail=f"File {file_name} not found in {data_folder} folder")
 
-            step_mapping = {
-                "1-hour": 1,
-                "24-hour": 24,
-                "168-hour": 168
-            }
-            if steps not in step_mapping:
-                raise HTTPException(status_code=400, detail="Invalid steps value")
-            forecast_steps = step_mapping[steps]
+            data = pd.read_csv(file_path)  # Adjust based on file format
 
-            # Validate input data
-            df = pd.DataFrame(data)
-            required_columns = ['time', 'solar_power', 'GHI', 'DNI', 'DHI', 'Solar Zenith Angle']
-            if not all(col in df.columns for col in required_columns):
-                raise HTTPException(status_code=400, detail="Data must contain 'time', 'solar_power', 'GHI', 'DNI', 'DHI', and 'Solar Zenith Angle' columns")
+            # Load configuration from database
+            config_query = "SELECT * FROM dhr_configurations WHERE forecast_id = :forecast_id"
+            config_result = db.execute(config_query, {"forecast_id": request.forecast_id}).fetchone()
+            if not config_result:
+                raise HTTPException(status_code=404, detail="Configuration not found")
 
-            df['time'] = pd.to_datetime(df['time'])
-            df = df.set_index('time').sort_index()
-            df = df.interpolate()
-
-            # Model parameters
             params = {
-                'fourier_terms': 3,
-                'reg_strength': 0.0001000100524,
-                'ar_order': 3,
-                'window': 23,
-                'polyorder': 3
+                "fourier_terms": config_result.fourier_order,
+                "reg_strength": config_result.regularization_dhr,
+                "ar_order": config_result.trend_components,
+                "window": config_result.window_length,
+                "polyorder": config_result.polyorder,
+                "periods": [int(p) for p in config_result.seasonality_periods.split(",")]
             }
 
-            # Create features and train model
-            X, y = create_features(df, 'solar_power', params['fourier_terms'], params['ar_order'], params['window'], params['polyorder'])
-            if len(X) == 0 or len(y) == 0:
-                raise HTTPException(status_code=400, detail="Insufficient data for training")
-
-            X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, shuffle=False)
-            model = Ridge(alpha=params['reg_strength'])
-            model.fit(X_train, y_train)
-
-            # Prepare exogenous variables
-            ghi = df['GHI'].values
-            dni = df['DNI'].values
-            dhi = df['DHI'].values
-            sza = df['Solar Zenith Angle'].values
-            ghi_ext = repeat_last_week(ghi, forecast_steps)
-            dni_ext = repeat_last_week(dni, forecast_steps)
-            dhi_ext = repeat_last_week(dhi, forecast_steps)
-            sza_ext = repeat_last_week(sza, forecast_steps)
-
-            # Create extended Fourier terms
-            extended_df_length = len(df) + forecast_steps
-            t_extended = np.arange(extended_df_length)
-            fourier_extended = fourier_transform(t_extended, n_harmonics=params['fourier_terms'], periods=[24, 168])
-
-            # Generate forecast
-            target_values = df['solar_power'].values
-            forecast_values = generate_forecast(
-                model, target_values, fourier_extended, forecast_steps, params,
-                ghi_ext, dni_ext, dhi_ext, sza_ext
+            # Prepare data and compute forecast
+            prepared_data = load_and_prepare_data(data)
+            fourier_extended = fourier_transform(
+                t=range(len(prepared_data) + 168),  # Example forecast horizon
+                n_harmonics=params["fourier_terms"],
+                periods=params["periods"]
+            )
+            forecast = generate_forecast(
+                model=None,  # Replace with actual model if needed
+                target_values=prepared_data.values,
+                fourier_extended=fourier_extended,
+                forecast_steps=168,  # Example
+                params=params,
+                ghi_ext=None, dni_ext=None, dhi_ext=None, sza_ext=None  # Adjust as needed
             )
 
-            # Prepare response
-            last_time = df.index[-1]
-            future_index = pd.date_range(start=last_time + timedelta(hours=1), periods=forecast_steps, freq='H')
-            forecast_data = [{"time": time.strftime("%Y-%m-%d %H:%M:%S"), "solar_power": float(value)} for time, value in zip(future_index, forecast_values)]
+            # Save forecast to database (example)
+            db.execute(
+                "INSERT INTO forecasts (forecast_id, forecast_values) VALUES (:id, :values)",
+                {"id": request.forecast_id, "values": forecast.tolist()}
+            )
+            db.commit()
 
-            actual_tail = df['solar_power'].iloc[-336:].reset_index()
-            actual_data = [{"time": row['time'].strftime("%Y-%m-%d %H:%M:%S"), "solar_power": float(row['solar_power'])} for _, row in actual_tail.iterrows()]
-
-            return {
-                "actual": actual_data,
-                "forecast": forecast_data,
-                "steps": forecast_steps,
-                "granularity": granularity,
-                "model": model_name
-            }
-
+            return {"forecast_id": request.forecast_id, "forecast": forecast.tolist()}
         except Exception as e:
-            logger.error(f"Error in DHR forecast route: {str(e)}")
-            raise HTTPException(status_code=500, detail=str(e))
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to compute forecast: {str(e)}")
