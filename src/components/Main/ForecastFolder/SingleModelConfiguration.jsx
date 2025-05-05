@@ -34,18 +34,16 @@ const SingleModelConfiguration = () => {
         ? {
             fourierOrder: existingConfig.fourier_order.toString(),
             windowLength: existingConfig.window_length.toString(),
-            seasonalityPeriods: existingConfig.seasonality_periods,
             polyorder: existingConfig.polyorder.toString(),
             regularization: existingConfig.regularization_dhr.toString(),
             trendComponents: existingConfig.trend_components.toString(),
           }
         : {
-            fourierOrder: "",
-            windowLength: "",
-            seasonalityPeriods: "",
-            polyorder: "",
-            regularization: "",
-            trendComponents: "",
+            fourierOrder: "3",
+            windowLength: "23",
+            polyorder: "3",
+            regularization: "0.0001000100524",
+            trendComponents: "3",
           };
     } else if (selectedModel === "ESN") {
       return isEditing
@@ -186,10 +184,9 @@ const SingleModelConfiguration = () => {
         today.getMonth() + 1
       ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-      // Filename format: [original-filename]-[model]-[date]-[forecastId]
       const fileName = originalFileName
         ? `${originalFileName}-${fileModelType}-${formattedDate}-${forecastId}`
-        : `${fileModelType}-${formattedDate}-${forecastId}`; // Fallback if originalFileName is missing
+        : `${fileModelType}-${formattedDate}-${forecastId}`;
 
       const historyLogResponse = await fetch(
         "http://localhost:8000/api/history-logs",
@@ -232,7 +229,6 @@ const SingleModelConfiguration = () => {
         ? [
             "fourierOrder",
             "windowLength",
-            "seasonalityPeriods",
             "polyorder",
             "regularization",
             "trendComponents",
@@ -266,7 +262,6 @@ const SingleModelConfiguration = () => {
           forecast_id: parseInt(forecastId),
           fourier_order: parseInt(formData.fourierOrder),
           window_length: parseInt(formData.windowLength),
-          seasonality_periods: formData.seasonalityPeriods,
           polyorder: parseFloat(formData.polyorder),
           regularization_dhr: parseFloat(formData.regularization),
           trend_components: parseInt(formData.trendComponents),
@@ -387,7 +382,6 @@ const SingleModelConfiguration = () => {
           </div>
         </div>
 
-        {/* Second Row */}
         <div className="flex space-x-4">
           <div className="flex-1">
             <label className="block text-sm font-medium mb-1">
@@ -451,7 +445,6 @@ const SingleModelConfiguration = () => {
           </div>
         </div>
 
-        {/* Third Row */}
         <div className="flex space-x-4">
           <div className="flex-1 relative">
             <label className="block text-sm font-medium mb-1">
@@ -513,7 +506,6 @@ const SingleModelConfiguration = () => {
           </div>
         </div>
 
-        {/* Fourth Row */}
         <div className="flex space-x-4">
           <div className="flex-1 relative">
             <label className="block text-sm font-medium mb-1">
@@ -566,7 +558,6 @@ const SingleModelConfiguration = () => {
 
   const renderDHRForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* First Row: Fourier Order and Window Length */}
       <div className="flex space-x-4">
         <div className="flex-1 relative">
           <label className="block text-sm font-medium mb-1">
@@ -617,7 +608,7 @@ const SingleModelConfiguration = () => {
             name="windowLength"
             value={formData.windowLength}
             onChange={handleChange}
-            placeholder="1"
+            placeholder="23"
             className={`w-full p-2 border rounded-md ${
               errors.windowLength ? "border-red-500" : "border-gray-300"
             } focus:outline-none focus:ring-2 focus:ring-blue-500`}
@@ -628,38 +619,35 @@ const SingleModelConfiguration = () => {
         </div>
       </div>
 
-      {/* Second Row: Seasonality Periods and Polyorder */}
       <div className="flex space-x-4">
         <div className="flex-1 relative">
           <label className="block text-sm font-medium mb-1">
-            Seasonality Periods{" "}
+            Regularization{" "}
             <span
               className="text-gray-500 cursor-pointer"
-              onMouseEnter={() => showTooltip("seasonalityPeriods")}
+              onMouseEnter={() => showTooltip("regularization")}
               onMouseLeave={hideTooltip}>
               ⓘ
             </span>
-            {tooltipVisible === "seasonalityPeriods" && (
+            {tooltipVisible === "regularization" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
-                Seasonality components to include (e.g., D=daily, W=weekly,
-                M=monthly, Q=quarterly, Y=yearly).
+                Regularization parameter for the DHR model to prevent
+                overfitting.
               </div>
             )}
           </label>
           <input
             type="text"
-            name="seasonalityPeriods"
-            value={formData.seasonalityPeriods}
+            name="regularization"
+            value={formData.regularization}
             onChange={handleChange}
-            placeholder="M"
+            placeholder="0.0001000100524"
             className={`w-full p-2 border rounded-md ${
-              errors.seasonalityPeriods ? "border-red-500" : "border-gray-300"
+              errors.regularization ? "border-red-500" : "border-gray-300"
             } focus:outline-none focus:ring-2 focus:ring-blue-500`}
           />
-          {errors.seasonalityPeriods && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.seasonalityPeriods}
-            </p>
+          {errors.regularization && (
+            <p className="text-red-500 text-xs mt-1">{errors.regularization}</p>
           )}
         </div>
         <div className="flex-1 relative">
@@ -682,47 +670,13 @@ const SingleModelConfiguration = () => {
             name="polyorder"
             value={formData.polyorder}
             onChange={handleChange}
-            placeholder="0.1"
+            placeholder="3"
             className={`w-full p-2 border rounded-md ${
               errors.polyorder ? "border-red-500" : "border-gray-300"
             } focus:outline-none focus:ring-2 focus:ring-blue-500`}
           />
           {errors.polyorder && (
             <p className="text-red-500 text-xs mt-1">{errors.polyorder}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Third Row: Regularization and Trend Components */}
-      <div className="flex space-x-4 w-58">
-        <div className="flex-1 relative">
-          <label className="block text-sm font-medium mb-1">
-            Regularization{" "}
-            <span
-              className="text-gray-500 cursor-pointer"
-              onMouseEnter={() => showTooltip("regularization")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "regularization" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs">
-                Regularization parameter for the DHR model to prevent
-                overfitting.
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="regularization"
-            value={formData.regularization}
-            onChange={handleChange}
-            placeholder="1e-4"
-            className={`w-full p-2 border rounded-md ${
-              errors.regularization ? "border-red-500" : "border-gray-300"
-            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
-          />
-          {errors.regularization && (
-            <p className="text-red-500 text-xs mt-1">{errors.regularization}</p>
           )}
         </div>
       </div>
@@ -747,7 +701,7 @@ const SingleModelConfiguration = () => {
             name="trendComponents"
             value={formData.trendComponents}
             onChange={handleChange}
-            placeholder="2"
+            placeholder="3"
             className={`w-full p-2 border rounded-md ${
               errors.trendComponents ? "border-red-500" : "border-gray-300"
             } focus:outline-none focus:ring-2 focus:ring-blue-500`}

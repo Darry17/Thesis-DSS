@@ -122,15 +122,6 @@ const ForecastResult = () => {
                 />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Seasonality Periods</p>
-                <input
-                  type="text"
-                  value={configuration?.seasonality_periods || "-"}
-                  disabled
-                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold focus:outline-none cursor-default"
-                />
-              </div>
-              <div>
                 <p className="text-sm text-gray-600">Polyorder</p>
                 <input
                   type="text"
@@ -252,15 +243,6 @@ const ForecastResult = () => {
               <input
                 type="text"
                 value={configuration?.trend_components || "-"}
-                disabled
-                className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
-              />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">Seasonality Periods</p>
-              <input
-                type="text"
-                value={configuration?.seasonality_periods || "-"}
                 disabled
                 className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
               />

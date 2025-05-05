@@ -17,7 +17,6 @@ class DHRConfiguration(Base):
     forecast_id = Column(Integer, nullable=False)
     fourier_order = Column(Integer, nullable=False)
     window_length = Column(Integer, nullable=False)
-    seasonality_periods = Column(String(50), nullable=False)
     polyorder = Column(Float, nullable=False)
     regularization_dhr = Column(Float, nullable=False)
     trend_components = Column(Integer, nullable=False)
@@ -44,7 +43,6 @@ class HybridConfiguration(Base):
     forecast_id = Column(Integer, nullable=False)
     fourier_order = Column(Integer, nullable=False)
     window_length = Column(Integer, nullable=False)
-    seasonality_periods = Column(String(50), nullable=False)
     polyorder = Column(Float, nullable=False)
     regularization_dhr = Column(Float, nullable=False)
     trend_components = Column(Integer, nullable=False)
@@ -63,7 +61,6 @@ class DHRConfigurationCreate(BaseModel):
     forecast_id: int
     fourier_order: int
     window_length: int
-    seasonality_periods: str
     polyorder: float
     regularization_dhr: float
     trend_components: int
@@ -84,7 +81,6 @@ class HybridConfigurationCreate(BaseModel):
     forecast_id: int
     fourier_order: int
     window_length: int
-    seasonality_periods: str
     polyorder: float
     regularization_dhr: float
     trend_components: int
@@ -112,7 +108,6 @@ def register_configuration_routes(app: FastAPI, get_db, Forecast):
                 forecast_id=config.forecast_id,
                 fourier_order=config.fourier_order,
                 window_length=config.window_length,
-                seasonality_periods=config.seasonality_periods,
                 polyorder=config.polyorder,
                 regularization_dhr=config.regularization_dhr,
                 trend_components=config.trend_components
@@ -162,7 +157,6 @@ def register_configuration_routes(app: FastAPI, get_db, Forecast):
             
             existing_config.fourier_order = config.fourier_order
             existing_config.window_length = config.window_length
-            existing_config.seasonality_periods = config.seasonality_periods
             existing_config.polyorder = config.polyorder
             existing_config.regularization_dhr = config.regularization_dhr
             existing_config.trend_components = config.trend_components
@@ -283,7 +277,6 @@ def register_configuration_routes(app: FastAPI, get_db, Forecast):
                 forecast_id=config.forecast_id,
                 fourier_order=config.fourier_order,
                 window_length=config.window_length,
-                seasonality_periods=config.seasonality_periods,
                 polyorder=config.polyorder,
                 regularization_dhr=config.regularization_dhr,
                 trend_components=config.trend_components,
@@ -330,7 +323,6 @@ def register_configuration_routes(app: FastAPI, get_db, Forecast):
                 "forecast_id": config.forecast_id,
                 "fourier_order": config.fourier_order,
                 "window_length": config.window_length,
-                "seasonality_periods": config.seasonality_periods,
                 "polyorder": config.polyorder,
                 "regularization_dhr": config.regularization_dhr,
                 "trend_components": config.trend_components,
@@ -366,7 +358,6 @@ def register_configuration_routes(app: FastAPI, get_db, Forecast):
             
             existing_config.fourier_order = config.fourier_order
             existing_config.window_length = config.window_length
-            existing_config.seasonality_periods = config.seasonality_periods
             existing_config.polyorder = config.polyorder
             existing_config.regularization_dhr = config.regularization_dhr
             existing_config.trend_components = config.trend_components
