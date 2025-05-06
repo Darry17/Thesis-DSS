@@ -281,7 +281,7 @@ def register_configuration_routes(app: FastAPI, get_db, Forecast):
                 
             db_config = HybridConfiguration(
                 forecast_id=config.forecast_id,
-                
+                seasonality_periods=config.seasonality_periods,
                 fourier_order=config.fourier_order,
                 window_length=config.window_length,
                 polyorder=config.polyorder,
@@ -328,6 +328,7 @@ def register_configuration_routes(app: FastAPI, get_db, Forecast):
             return {
                 "id": config.id,
                 "forecast_id": config.forecast_id,
+                "seasonality_periods": config.seasonality_periods,
                 "fourier_order": config.fourier_order,
                 "window_length": config.window_length,
                 "polyorder": config.polyorder,
@@ -363,6 +364,7 @@ def register_configuration_routes(app: FastAPI, get_db, Forecast):
             if not existing_config:
                 raise HTTPException(status_code=404, detail="Hybrid configuration not found")
             
+            existing_config.seasonality_periods = config.seasonality_periods
             existing_config.fourier_order = config.fourier_order
             existing_config.window_length = config.window_length
             existing_config.polyorder = config.polyorder
