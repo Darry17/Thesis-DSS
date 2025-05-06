@@ -113,26 +113,16 @@ def get_periods_for_granularity(granularity, steps):
     
     return periods
 
-def fourier_transform(t, n_harmonics=4, periods=None):
-    """Generate Fourier terms for seasonality patterns.
-    
-    Args:
-        t: Time index array
-        n_harmonics: Number of harmonics to use
-        periods: List of periods to use for Fourier terms.
-               For hourly data: [24] for daily, [24, 168] for weekly
-               For daily data: [7] for weekly, [7, 30] for monthly
-               For weekly data: [4] for monthly, [4, 52] for yearly
-    """
-    if not periods:
-        raise ValueError("Periods must be specified based on granularity and forecast horizon")
-        
-    features = []
+def fourier_transform(t, n_harmonics, periods):
+    t = np.array(t)
+    X = []
+
     for period in periods:
-        sin_terms = [np.sin(2 * np.pi * i * t / period) for i in range(1, n_harmonics + 1)]
-        cos_terms = [np.cos(2 * np.pi * i * t / period) for i in range(1, n_harmonics + 1)]
-        features.extend(sin_terms + cos_terms)
-    return np.column_stack(features)
+        for k in range(1, n_harmonics + 1):
+            X.append(np.sin(2 * np.pi * k * t / period))
+            X.append(np.cos(2 * np.pi * k * t / period))
+
+    return np.vstack(X).T
 
 def create_features(df, target_col, fourier_terms, ar_order, window, polyorder, granularity="Hourly", steps="24-hour"):
     """Create features including autoregressive, smoothed, Fourier, and exogenous variables."""

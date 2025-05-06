@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI, HTTPException, Depends, Request
-from sqlalchemy import Column, Integer, String, DateTime, text
-from sqlalchemy.orm import Session
+from sqlalchemy import Column, Integer, String, DateTime, text, create_engine
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -9,9 +9,19 @@ from typing import Optional
 import logging
 import pandas as pd
 import numpy as np
-from .models.dhr_solar_forecast import generate_forecast, fourier_transform, repeat_last_week, load_and_prepare_data, create_features
+from .models.dhr_solar_forecast import generate_forecast, fourier_transform, load_and_prepare_data
 from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
+
+# Create SQLAlchemy engine using the MySQL connection string
+DATABASE_URL = f"mysql+mysqlconnector://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}@{os.getenv('DB_HOST')}/{os.getenv('DB_NAME')}"
+engine = create_engine(DATABASE_URL, pool_recycle=3600)  # pool_recycle ensures long-lived connections are refreshed
+
+# Create a sessionmaker bound to the engine
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Create a base class for declarative models
+Base = declarative_base()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +33,14 @@ os.makedirs(BASE_STORAGE_PATH, exist_ok=True)
 
 # SQLAlchemy Models
 Base = declarative_base()
+
+# Dependency that provides a database session for each request
+def get_db():
+    db = SessionLocal()  # Create a new session
+    try:
+        yield db  # Yield the session for the route to use
+    finally:
+        db.close()  # Close the session when done
 
 class Forecast(Base):
     __tablename__ = "forecasts"
@@ -118,67 +136,107 @@ def register_forecast_routes(app: FastAPI, get_db):
     @app.post("/api/forecasts/dhr")
     async def compute_dhr_forecast(request: ForecastRequest, db: Session = Depends(get_db)):
         try:
-            # Query the hourly table for the filename using text()
-            file_query = text("SELECT file_name FROM hourly_data WHERE forecast_id = :forecast_id")
+            # Query the hourly table for the filename
+            file_query = text("SELECT filename FROM forecasts WHERE id = :forecast_id")
             result = db.execute(file_query, {"forecast_id": request.forecast_id}).fetchone()
             if not result:
                 raise HTTPException(status_code=404, detail="No dataset found for forecast_id")
 
-            file_name = result.file_name
+            filename = result.filename
             data_folder = "hourly" if request.granularity.lower() == "hourly" else None
             if not data_folder:
                 raise HTTPException(status_code=400, detail="Invalid granularity")
 
-            # Load dataset from storage folder
-            file_path = os.path.join(BASE_STORAGE_PATH, data_folder, file_name)
+            file_path = os.path.join(BASE_STORAGE_PATH, data_folder, filename)
             logger.info(f"Looking for file at: {file_path}")
-            
             if not os.path.exists(file_path):
-                raise HTTPException(status_code=404, detail=f"File {file_name} not found in {data_folder} folder")
+                raise HTTPException(status_code=404, detail=f"File {filename} not found in {data_folder} folder")
 
-            data = pd.read_csv(file_path)  # Adjust based on file format
+            data = pd.read_json(file_path)
 
-            # Load configuration from database using text()
+            # Check for required columns
+            required_columns = ["solar_power", "ghi", "dni", "dhi", "solar_zenith_angle"]
+            for col in required_columns:
+                if col not in data.columns:
+                    raise HTTPException(status_code=400, detail=f"Missing column: {col}")
+                if data[col].isnull().all():
+                    raise HTTPException(status_code=400, detail=f"All values missing in column: {col}")
+                logger.info(f"{col} length: {len(data[col])}, sample: {data[col].head(3).tolist()}")
+
+            # Get configuration
             config_query = text("SELECT * FROM dhr_configurations WHERE forecast_id = :forecast_id")
             config_result = db.execute(config_query, {"forecast_id": request.forecast_id}).fetchone()
             if not config_result:
                 raise HTTPException(status_code=404, detail="Configuration not found")
 
-            logger.info(f"Retrieved configuration: {config_result}")
+            window = int(float(config_result.window_length))
+            max_window = len(data)
+            if window > max_window:
+                window = max_window if max_window % 2 == 1 else max_window - 1
+
+            try:
+                period_list = [int(float(p)) for p in config_result.seasonality_periods.split(",") if p.strip()]
+                if not period_list:
+                    raise ValueError("Seasonality periods list is empty.")
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid seasonality periods: {e}")
 
             params = {
-                "fourier_terms": config_result.fourier_order,
+                "fourier_terms": int(float(config_result.fourier_order)),
                 "reg_strength": config_result.regularization_dhr,
-                "ar_order": config_result.trend_components,
-                "window": config_result.window_length,
-                "polyorder": config_result.polyorder,
-                "periods": [int(p) for p in config_result.seasonality_periods.split(",")]
+                "ar_order": int(float(config_result.trend_components)),
+                "window": window,
+                "polyorder": int(float(config_result.polyorder)),
+                "periods": period_list,
             }
 
             logger.info(f"Using parameters: {params}")
 
-            # Prepare data and compute forecast
-            prepared_data = load_and_prepare_data(data)
-            fourier_extended = fourier_transform(
-                t=range(len(prepared_data) + 168),  # Example forecast horizon
-                n_harmonics=params["fourier_terms"],
-                periods=params["periods"]
-            )
+            # Prepare data
+            try:
+                prepared_data = load_and_prepare_data(data)
+                logger.info(f"Prepared data shape: {prepared_data.shape}")
+            except Exception as e:
+                logger.error(f"Error in load_and_prepare_data: {e}")
+                raise HTTPException(status_code=500, detail=f"Failed to prepare data: {str(e)}")
+
+            if prepared_data is None or prepared_data.empty:
+                raise HTTPException(status_code=400, detail="Prepared data is empty or invalid.")
+
+            forecast_steps = 168
+            data_length = len(prepared_data)
+            forecast_steps = min(forecast_steps, data_length - 1)
+
+            try:
+                fourier_extended = fourier_transform(
+                    t=range(data_length + forecast_steps),
+                    n_harmonics=params["fourier_terms"],
+                    periods=params["periods"]
+                )
+                if fourier_extended is None or len(fourier_extended) == 0:
+                    raise ValueError("Fourier transform returned empty data.")
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Fourier transform failed: {e}")
+
             forecast = generate_forecast(
-                model=None,  # Replace with actual model if needed
-                target_values=prepared_data.values,
-                fourier_extended=fourier_extended,
-                forecast_steps=168,  # Example
+                model=None,
+                start_values=prepared_data["solar_power"].values,
+                fourier_data=fourier_extended,
+                steps=forecast_steps,
                 params=params,
-                ghi_ext=None, dni_ext=None, dhi_ext=None, sza_ext=None  # Adjust as needed
+                ghi=prepared_data["ghi"].values,
+                dni=prepared_data["dni"].values,
+                dhi=prepared_data["dhi"].values,
+                sza=prepared_data["solar_zenith_angle"].values,
             )
 
-            # Save forecast to database using text()
+            # Save forecast to database
             save_query = text("INSERT INTO forecasts (forecast_id, forecast_values) VALUES (:id, :values)")
             db.execute(save_query, {"id": request.forecast_id, "values": forecast.tolist()})
             db.commit()
 
             return {"forecast_id": request.forecast_id, "forecast": forecast.tolist()}
+
         except Exception as e:
             logger.error(f"Error in compute_dhr_forecast: {str(e)}")
             db.rollback()
