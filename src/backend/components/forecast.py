@@ -175,7 +175,7 @@ def register_forecast_routes(app: FastAPI, get_db):
                 window = max_window if max_window % 2 == 1 else max_window - 1
 
             try:
-                period_list = [int(float(p)) for p in config_result.seasonality_periods.split(",") if p.strip()]
+                period_list = [24, 168]
                 if not period_list:
                     raise ValueError("Seasonality periods list is empty.")
             except Exception as e:
@@ -220,14 +220,14 @@ def register_forecast_routes(app: FastAPI, get_db):
 
             forecast = generate_forecast(
                 model=None,
-                start_values=prepared_data["solar_power"].values,
+                start_values=prepared_data["solar_power"].values[:data_length],
                 fourier_data=fourier_extended,
                 steps=forecast_steps,
                 params=params,
-                ghi=prepared_data["ghi"].values,
-                dni=prepared_data["dni"].values,
-                dhi=prepared_data["dhi"].values,
-                sza=prepared_data["solar_zenith_angle"].values,
+                ghi=prepared_data["ghi"].values[:data_length],
+                dni=prepared_data["dni"].values[:data_length],
+                dhi=prepared_data["dhi"].values[:data_length],
+                sza=prepared_data["solar_zenith_angle"].values[:data_length],
             )
 
             # Save forecast to database

@@ -8,6 +8,7 @@ from sklearn.model_selection import train_test_split
 from scipy.signal import savgol_filter
 from datetime import timedelta
 import logging
+import json
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -244,6 +245,7 @@ def main(input_df=None, granularity="Hourly", steps="24-hour"):
         # Prepare for forecasting
         last_two_weeks = min(336, len(df))  # Use all data if less than 2 weeks
         target_values = df['solar_power'].values
+        target_values_ext = np.concatenate([target_values, np.zeros(168)])  # pre-allocate for horizon
         historical_end_idx = len(target_values)
         historical_start_idx = historical_end_idx - last_two_weeks
         historical_data = target_values[historical_start_idx:historical_end_idx].tolist()
@@ -273,9 +275,9 @@ def main(input_df=None, granularity="Hourly", steps="24-hour"):
         for horizon in forecast_horizons:
             logger.info(f"Generating {horizon}-step ahead forecast...")
             forecast_values = generate_forecast(
-                model, target_values, fourier_extended, horizon, params,
+                model, target_values_ext, fourier_extended, horizon, params,
                 ghi_ext, dni_ext, dhi_ext, sza_ext
-            ).tolist()
+            )
             
             forecast_dates = [(df.index[-1] + pd.Timedelta(hours=i + 1)).strftime('%Y-%m-%d %H:%M:%S') 
                             for i in range(horizon)]
@@ -319,8 +321,12 @@ def main(input_df=None, granularity="Hourly", steps="24-hour"):
         raise
 
 if __name__ == "__main__":
-    results = main()
-    # Save results to file if running as script
-    import json
+    # Step 1: Load your JSON data into a pandas DataFrame
+    input_df = pd.read_json('data.json')  # Replace with your actual file path
+    
+    # Step 2: Run the forecasting pipeline
+    results = main(input_df=input_df)
+    
+    # Step 3: Save results to file if running as script
     with open('forecast_results.json', 'w') as f:
         json.dump(results, f, indent=2)
