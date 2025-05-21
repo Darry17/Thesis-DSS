@@ -1,0 +1,10 @@
+@import "@fontsource/inter";
+
+* {
+  font-family: "Inter", sans-serif !important;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
