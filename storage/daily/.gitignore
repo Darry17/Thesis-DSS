@@ -1,4 +1,0 @@
-# Ignore everything inside the daily folder
-*
-# Except this .gitignore file
-!.gitignore

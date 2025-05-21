@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-sqlalchemy
-python-dotenv
-mysql-connector-python
-PyMySQL
-PyJWT
-passlib[bcrypt]
