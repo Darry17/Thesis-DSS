@@ -214,7 +214,6 @@ def register_configuration_routes(app: FastAPI, get_db):
                 alpha=config.alpha,
                 lambda_reg=config.lambda_reg,
                 lags=config.lags,
-                n_features=config.n_features
             )
             
             db.add(db_config)
@@ -255,7 +254,6 @@ def register_configuration_routes(app: FastAPI, get_db):
                 "alpha": config.alpha,
                 "lambda_reg": config.lambda_reg,
                 "lags": config.lags,
-                "n_features": config.n_features
             }
         except Exception as e:
             logger.error(f"Error fetching Hybrid configuration: {str(e)}")
@@ -287,7 +285,6 @@ def register_configuration_routes(app: FastAPI, get_db):
             existing_config.alpha = config.alpha
             existing_config.lambda_reg = config.lambda_reg
             existing_config.lags = config.lags
-            existing_config.n_features = config.n_features
             existing_config.updated_at = datetime.now()
             
             db.commit()

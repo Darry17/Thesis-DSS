@@ -10,8 +10,7 @@ from datetime import timedelta, datetime
 import reservoirpy as rp
 from reservoirpy.nodes import Reservoir, Ridge as RPRidge, Input
 
-def run_hybrid_forecast_solar_hourly(csv_path, steps, output_dir="forecasts", forecast_type="hourly", params=None):
-    # Create output directory if it doesn't exist
+def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="hourly", params=None):
     os.makedirs(output_dir, exist_ok=True)
     
     # Generate timestamp for unique filenames
@@ -23,31 +22,31 @@ def run_hybrid_forecast_solar_hourly(csv_path, steps, output_dir="forecasts", fo
     plot_name = f"solar_hybrid_{timestamp}_{steps}.png"
     plot_path = os.path.join(output_dir, plot_name)
     
-    # Default parameters if not provided
+    # Structure parameters properly if they come as flat dict
     if params is None:
-        params = {
-            # DHR parameters
-            'dhr': {
-                'fourier_terms': 4,
-                'reg_strength': 0.006,
-                'ar_order': 1,
-                'window': 23,
-                'polyorder': 2
-            },
-            # ESN parameters
-            'esn': {
-                'N_res': 800,
-                'rho': 0.93,
-                'sparsity': 0.13,
-                'alpha': 0.72,
-                'lambda_reg': 2.1e-8,
-                'lags': 24
-            },
-            # Hybrid parameters
-            'hybrid': {
-                'weights': [0.5, 0.5]  # Default weights [DHR, ESN]
-            }
+        params = {}
+    
+    # Convert flat parameter structure to nested structure
+    structured_params = {
+        'dhr': {
+            'fourier_terms': params.get('fourier_terms', 4),
+            'reg_strength': params.get('reg_strength', 0.006),
+            'ar_order': params.get('ar_order', 1),
+            'window': params.get('window', 23),
+            'polyorder': params.get('polyorder', 2)
+        },
+        'esn': {
+            'N_res': params.get('N_res', 800),
+            'rho': params.get('rho', 0.93),
+            'sparsity': params.get('sparsity', 0.13),
+            'alpha': params.get('alpha', 0.72),
+            'lambda_reg': params.get('lambda_reg', 2.1e-8),
+            'lags': params.get('lags', 24)
+        },
+        'hybrid': {
+            'weights': [0.5, 0.5]  # Default weights [DHR, ESN]
         }
+    }
     
     # Load and preprocess data
     print("Loading data...")
@@ -56,11 +55,11 @@ def run_hybrid_forecast_solar_hourly(csv_path, steps, output_dir="forecasts", fo
     
     # Train DHR model
     print("Training DHR model...")
-    dhr_model, X_dhr, y_dhr = train_dhr_model(df, target_col, exog_cols, params['dhr'])
+    dhr_model, X_dhr, y_dhr = train_dhr_model(df, target_col, exog_cols, structured_params['dhr'])
     
     # Train ESN model
     print("Training ESN model...")
-    esn_model, esn_scaler_target, esn_scaler_exog = train_esn_model(df, target_col, exog_cols, params['esn'])
+    esn_model, esn_scaler_target, esn_scaler_exog = train_esn_model(df, target_col, exog_cols, structured_params['esn'])
     
     # Generate forecast
     print(f"Generating {steps}-step forecast...")
@@ -71,9 +70,9 @@ def run_hybrid_forecast_solar_hourly(csv_path, steps, output_dir="forecasts", fo
         esn_scaler_target, 
         esn_scaler_exog, 
         steps, 
-        params['dhr'], 
-        params['esn'], 
-        params['hybrid']['weights'],
+        structured_params['dhr'], 
+        structured_params['esn'], 
+        structured_params['hybrid']['weights'],
         exog_cols
     )
     

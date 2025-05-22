@@ -9,7 +9,7 @@ from datetime import datetime
 from models.solar_forecast_dhr_hourly import run_forecast as run_dhr_forecast_solar_hourly
 from models.solar_forecast_dhr_daily import run_forecast as run_dhr_forecast_solar_daily
 from models.solar_forecast_esn_hourly import run_forecast as run_esn_forecast_solar_hourly
-from models.solar_forecast_hybrid_hourly import run_hybrid_forecast_solar_hourly
+from models.solar_forecast_hybrid_hourly import run_forecast as run_hybrid_forecast_solar_hourly
 from models.wind_forecast_dhr_hourly import run_forecast as run_dhr_forecast_wind_hourly
 from models.wind_forecast_esn_hourly import run_forecast as run_esn_forecast_wind_hourly
 from db import SessionLocal
