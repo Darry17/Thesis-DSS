@@ -10,6 +10,7 @@ from models.solar_forecast_dhr_hourly import run_forecast as run_dhr_forecast_so
 from models.solar_forecast_dhr_daily import run_forecast as run_dhr_forecast_solar_daily
 from models.solar_forecast_esn_hourly import run_forecast as run_esn_forecast_solar_hourly
 from models.solar_forecast_hybrid_hourly import run_forecast as run_hybrid_forecast_solar_hourly
+from models.solar_forecast_hybrid_daily import run_forecast as run_hybrid_forecast_solar_daily
 from models.wind_forecast_dhr_hourly import run_forecast as run_dhr_forecast_wind_hourly
 from models.wind_forecast_esn_hourly import run_forecast as run_esn_forecast_wind_hourly
 from db import SessionLocal
@@ -666,6 +667,190 @@ async def upload_file_hybrid(
         # Call the hybrid forecast function using the structured configs
         if forecast_type == "solar":
             output_files = run_hybrid_forecast_solar_hourly(
+                csv_path=temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "fourier_terms": fourier_terms,
+                    "reg_strength": reg_strength,
+                    "ar_order": ar_order,
+                    "window": window,
+                    "polyorder": polyorder,
+                    "lags": lags,
+                    "N_res": N_res,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "sparsity": sparsity,
+                    "lambda_reg": lambda_reg,
+                }
+            )
+        
+        logger.info(f"Generated files: {output_files}")
+
+        download_urls = [
+            f"http://localhost:8000/download/{os.path.basename(file)}"
+            for file in output_files
+        ]
+
+        return {
+                "message": "Files processed successfully",
+                "download_urls": download_urls,
+            }
+
+    except Exception as e:
+        db.rollback()
+        return {"message": str(e)}
+
+    finally:
+        db.close()
+
+@router.post("/upload/hybrid/daily")
+async def upload_file_hybrid(
+    original_filename: str = Form(...),
+    tempFilename: str = Form(...),
+    forecast_type: str = Form(...),
+    granularity: str = Form(...),
+    steps: int = Form(...),
+    model: str = Form(...),
+    fourier_terms: int = Form(...),
+    reg_strength: float = Form(...),
+    ar_order: int = Form(...),
+    window: int = Form(...),
+    polyorder: int = Form(...),
+    N_res: int = Form(...),
+    rho: float = Form(...),
+    sparsity: float = Form(...),
+    alpha: float = Form(...),
+    lambda_reg: float = Form(...),
+    lags: int = Form(...),
+    temp_id: int = Form(...)
+):
+
+    temp_path = f"temp/{tempFilename}"
+    db: Session = SessionLocal()
+
+    try:
+        if not os.path.exists(temp_path):
+            raise HTTPException(status_code=404, detail="Temp file not found")
+
+        if forecast_type != "solar":
+            raise HTTPException(status_code=400, detail="Invalid forecast type")
+
+        # Call the hybrid forecast function using the structured configs
+        if forecast_type == "solar":
+            output_files = run_hybrid_forecast_solar_daily(
+                csv_path=temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "fourier_terms": fourier_terms,
+                    "reg_strength": reg_strength,
+                    "ar_order": ar_order,
+                    "window": window,
+                    "polyorder": polyorder,
+                    "lags": lags,
+                    "N_res": N_res,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "sparsity": sparsity,
+                    "lambda_reg": lambda_reg,
+                }
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Invalid forecast type")
+        
+        logger.info(f"Generated files: {output_files}")
+
+        # Save forecast metadata to database
+        forecast_entry = Forecast(
+            original_filename=original_filename,
+            filename=os.path.basename(output_files[0]),
+            forecast_type=forecast_type,
+            granularity=granularity,
+            steps=steps,
+            model=model,
+            temp_id=temp_id,
+        )
+        db.add(forecast_entry)
+        db.commit()
+        db.refresh(forecast_entry)
+
+        hybrid_entry = HybridForecast(
+            forecast_id=forecast_entry.id,
+            fourier_terms=fourier_terms,
+            reg_strength=reg_strength,
+            ar_order=ar_order,
+            window=window,
+            polyorder=polyorder,
+            N_res=N_res,
+            rho=rho,
+            sparsity=sparsity,
+            alpha=alpha,
+            lambda_reg=lambda_reg,
+            lags=lags,
+        )
+        db.add(hybrid_entry)
+        db.commit()
+        db.refresh(hybrid_entry)
+
+        history_log_entry = HistoryLog(
+            forecast_id=forecast_entry.id,
+            file_name=original_filename,
+            granularity=granularity,
+            steps=steps,
+            model=model
+        )
+        db.add(history_log_entry)
+        db.commit()
+        db.refresh(history_log_entry)
+
+        download_urls = [
+            f"http://localhost:8000/download/{os.path.basename(file)}"
+            for file in output_files
+        ]
+
+        return {
+                "message": "Files processed successfully",
+                "download_urls": download_urls,
+                "forecast_id": forecast_entry.id
+            }
+
+    except Exception as e:
+        db.rollback()
+        return {"message": str(e)}
+
+    finally:
+        db.close()
+
+@router.post("/upload/edit-hybrid/daily")
+async def upload_file_hybrid(
+    tempFilename: str = Form(...),
+    forecast_type: str = Form(...),
+    forecast_id: int = Form(...),  # Added forecast_id parameter
+    steps: int = Form(...),
+    fourier_terms: int = Form(...),
+    reg_strength: float = Form(...),
+    ar_order: int = Form(...),
+    window: int = Form(...),
+    polyorder: int = Form(...),
+    N_res: int = Form(...),
+    rho: float = Form(...),
+    sparsity: float = Form(...),
+    alpha: float = Form(...),
+    lambda_reg: float = Form(...),
+    lags: int = Form(...),
+):
+
+    temp_path = f"temp/{tempFilename}"
+    db: Session = SessionLocal()
+
+    try:
+        if not os.path.exists(temp_path):
+            raise HTTPException(status_code=404, detail="Temp file not found")
+
+        # Call the hybrid forecast function using the structured configs
+        if forecast_type == "solar":
+            output_files = run_hybrid_forecast_solar_daily(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
