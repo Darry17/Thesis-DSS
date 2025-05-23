@@ -216,7 +216,9 @@ def plot_results(dates, actual, dhr_preds, esn_preds, hybrid_preds, title="Model
 
 # FORECAST GENERATION FUNCTION
 # ---------------------------
-def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights, steps, lags=24, exog_cols=['GHI', 'DNI', 'DHI', 'Solar Zenith Angle'], output_dir="forecasts", timestamp=""):
+def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights, steps, 
+                     dhr_params, esn_params, exog_cols=['GHI', 'DNI', 'DHI', 'Solar Zenith Angle'], 
+                     output_dir="forecasts", timestamp=""):
     """Generate forecast for specified number of steps"""
     target_col = 'solar_power'
     target = df[target_col].values
@@ -248,7 +250,7 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
     # Fourier terms for forecast period
     t = np.arange(len(df), len(df) + steps)
     period = 24
-    n_harmonics = 4
+    n_harmonics = dhr_params['fourier_terms']  # Use actual parameter
     sin_terms = [np.sin(2 * np.pi * i * t / period) for i in range(1, n_harmonics + 1)]
     cos_terms = [np.cos(2 * np.pi * i * t / period) for i in range(1, n_harmonics + 1)]
     fourier_forecast = np.column_stack(sin_terms + cos_terms)
@@ -258,19 +260,18 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
     esn_forecast = []
     hybrid_forecast = []
     current_target = target.copy()
-    last_sequence = combined_data[-lags:].reshape(1, lags, -1)
+    last_sequence = combined_data[-esn_params['lags']:].reshape(1, esn_params['lags'], -1)
     
     # Calculate actual input dimension for ESN
-    actual_input_dim = lags * n_features
-    print(f"ESN input dimension: {actual_input_dim} (lags: {lags}, features: {n_features})")
+    actual_input_dim = esn_params['lags'] * n_features
+    print(f"ESN input dimension: {actual_input_dim} (lags: {esn_params['lags']}, features: {n_features})")
     
     for h in range(steps):
-        # DHR FORECASTING
-        ar_order = 1
-        window = 23
-        polyorder = 2
-        ar_features = current_target[-ar_order:]
-        smoothed = savgol_filter(current_target[-window:], window_length=window, polyorder=polyorder) if len(current_target) >= window else np.zeros(window)
+        # DHR FORECASTING - Use actual parameters
+        ar_features = current_target[-dhr_params['ar_order']:]
+        smoothed = savgol_filter(current_target[-dhr_params['window']:], 
+                               window_length=dhr_params['window'], 
+                               polyorder=dhr_params['polyorder']) if len(current_target) >= dhr_params['window'] else np.zeros(dhr_params['window'])
         dhr_features = np.concatenate([ar_features, smoothed, fourier_forecast[h], exog_forecast[h]])
         dhr_features = dhr_features.reshape(1, -1)
         dhr_pred = dhr_model.predict(dhr_features)[0]
@@ -356,11 +357,12 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
 
 def train_models(df, target_col, exog_cols, params=None):
     """Train both DHR and ESN models and return trained models with scalers"""
-    # DHR Model Parameters
+    
+    # Set default parameters if none provided
     if params is None:
         params = {}
     
-    # DHR Model Parameters - Now customizable!
+    # DHR Model Parameters - Use provided params or defaults
     dhr_params = {
         'fourier_terms': params.get('fourier_terms', 4),
         'reg_strength': params.get('reg_strength', 0.006),
@@ -369,19 +371,27 @@ def train_models(df, target_col, exog_cols, params=None):
         'polyorder': params.get('polyorder', 2)
     }
     
-    # ESN Model Parameters - Now customizable!
+    # ESN Model Parameters - Use provided params or defaults
     esn_params = {
         'N_res': params.get('N_res', 800),
         'rho': params.get('rho', 0.9308202574),
         'sparsity': params.get('sparsity', 0.1335175715),
         'alpha': params.get('alpha', 0.7191611348),
         'lambda_reg': params.get('lambda_reg', 2.10E-08),
-        'lags': params.get('lags', 24),
-        'n_features': params.get('n_features', 5)
+        'lags': params.get('lags', 24)
     }
     
+    # Print parameters being used
+    print("DHR Parameters:")
+    for key, value in dhr_params.items():
+        print(f"  {key}: {value}")
+    
+    print("\nESN Parameters:")
+    for key, value in esn_params.items():
+        print(f"  {key}: {value}")
+    
     # Create DHR features
-    print("Creating DHR features...")
+    print("\nCreating DHR features...")
     X_dhr, y_dhr = create_dhr_features(
         df,
         target_col=target_col,
@@ -455,10 +465,11 @@ def train_models(df, target_col, exog_cols, params=None):
     esn_val_preds = predict_esn(esn_model, X_val_esn, esn_scaler_target)
     best_weights = optimize_weights(dhr_val_preds, esn_val_preds.flatten(), y_val_dhr)
     
-    return dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights
+    return dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights, dhr_params, esn_params
 
 def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily", params=None):
-
+    """Main function to run the forecasting process"""
+    
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
@@ -480,7 +491,7 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
         
         # Train models with custom parameters
         print("Training models...")
-        dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights = train_models(
+        dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights, dhr_params, esn_params = train_models(
             df, target_col, exog_cols, params=params
         )
         
@@ -488,7 +499,7 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
         print("Generating forecast...")
         forecast_df, csv_path_output, plot_path = generate_forecast(
             df, dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, 
-            best_weights, steps, output_dir=output_dir, timestamp=timestamp
+            best_weights, steps, dhr_params, esn_params, output_dir=output_dir, timestamp=timestamp
         )
         
         print(f"\nForecast completed successfully!")
