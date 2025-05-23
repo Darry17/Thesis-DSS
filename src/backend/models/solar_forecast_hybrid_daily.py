@@ -207,8 +207,51 @@ def plot_results(dates, actual, dhr_preds, esn_preds, hybrid_preds, title="Model
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()  # Close the figure to free memory
 
+def plot_forecast_with_history(df, forecast_df, target_col, steps, plot_path):
+    """
+    Plot forecast results with historical data - matching second code style exactly
+    Shows last 60 days of actual data connected seamlessly to forecast
+    """
+    # Get last two months (60 days) of actual data
+    two_months_ago_idx = max(0, len(df) - 60)
+    actual_dates = df.index[two_months_ago_idx:].tolist()
+    actual_values = df[target_col].values[two_months_ago_idx:]
+    
+    # Extract forecast data
+    forecast_dates = forecast_df['timestamp'].tolist()
+    dhr_forecast = forecast_df['dhr_forecast'].tolist()
+    esn_forecast = forecast_df['esn_forecast'].tolist()
+    hybrid_forecast = forecast_df['hybrid_forecast'].tolist()
+    
+    # Create continuous plot with no gap between actual and forecast
+    plt.figure(figsize=(14, 7))
+    
+    # Plot actual data
+    plt.plot(actual_dates, actual_values, label='Actual', color='black', linewidth=2)
+    
+    # Plot forecast data - connecting to the last actual point for seamless transition
+    plt.plot([actual_dates[-1]] + forecast_dates, [actual_values[-1]] + dhr_forecast, 
+             label='DHR Forecast', color='blue', linestyle='--', alpha=0.7)
+    plt.plot([actual_dates[-1]] + forecast_dates, [actual_values[-1]] + esn_forecast, 
+             label='ESN Forecast', color='green', linestyle='--', alpha=0.7)
+    plt.plot([actual_dates[-1]] + forecast_dates, [actual_values[-1]] + hybrid_forecast, 
+             label='Hybrid Forecast', color='red', linewidth=2)
+    
+    # Add vertical line at forecast start
+    plt.axvline(x=df.index[-1], color='black', linestyle=':', label='Forecast Start', alpha=0.7)
+    
+    plt.title(f'{steps}-Day Solar Power Forecast with Historical Data', fontsize=16)
+    plt.xlabel('Date', fontsize=12)
+    plt.ylabel('Solar Power', fontsize=12)
+    plt.grid(True, alpha=0.3)
+    plt.legend(loc='best')
+    plt.gcf().autofmt_xdate()
+    plt.tight_layout()
+    plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+    plt.close()  # Close the figure to free memory
+
 def plot_forecast(forecast_df, plot_path):
-    """Plot forecast results - matching second code style"""
+    """Plot forecast results - simple version for compatibility"""
     plt.figure(figsize=(14, 7))
     plt.plot(forecast_df['timestamp'], forecast_df['dhr_forecast'], 
              label='DHR Model', color='blue', linestyle='--', alpha=0.7)
@@ -411,7 +454,7 @@ def train_models(df, target_col, exog_cols, params=None):
 
 def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily", params=None):
     """
-    Main function to run solar power forecasting with consistent file naming like second code
+    Main function to run solar power forecasting with enhanced plotting like second code
     
     Args:
         csv_path (str): Path to the input CSV file
@@ -462,8 +505,8 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
     forecast_df.to_csv(csv_path_output, index=False)
     print(f"Forecast saved to {csv_path_output}")
     
-    # Plot forecast results - using the same function as second code
-    plot_forecast(forecast_df, plot_path)
-    print(f"Plot saved to {plot_path}")
+    # Plot forecast results with historical data - using enhanced plotting function
+    plot_forecast_with_history(df, forecast_df, target_col, steps, plot_path)
+    print(f"Enhanced plot with historical data saved to {plot_path}")
     
     return [csv_path_output, plot_path]
