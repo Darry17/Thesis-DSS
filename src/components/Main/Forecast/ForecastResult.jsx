@@ -252,6 +252,15 @@ export default function ForecastResult() {
                   className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
                 />
               </div>
+              <div>
+                <p className="text-sm text-gray-600">N Features</p>
+                <input
+                  type="text"
+                  value={config?.n_features || "-"}
+                  disabled
+                  className="w-full p-2 bg-gray-100 border border-gray-300 rounded-md text-gray-700 font-semibold cursor-not-allowed"
+                />
+              </div>
             </div>
           </div>
         </div>

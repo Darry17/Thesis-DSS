@@ -354,20 +354,20 @@ def train_models(df, target_col, exog_cols, params=None):
     # Default parameters
     default_params = {
         'dhr': {
-            'fourier_terms': 4,
-            'reg_strength': 0.006,
-            'ar_order': 1,
-            'window': 7,
-            'polyorder': 2
+            'fourier_terms': params.get('fourier_terms', 4),
+            'reg_strength': params.get('reg_strength', 0.006),
+            'ar_order': params.get('ar_order', 1),
+            'window': params.get('window', 23),
+            'polyorder': params.get('polyorder', 2)
         },
         'esn': {
-            'N_res': 963,
-            'rho': 0.12455826,
-            'sparsity': 0.6855266625,
-            'alpha': 0.2769944104,
-            'lambda_reg': 1.67E-02,
-            'lags': 2,
-            'n_features': 4 
+            'N_res': params.get('N_res', 800),
+            'rho': params.get('rho', 0.9308202574),
+            'sparsity': params.get('sparsity', 0.1335175715),
+            'alpha': params.get('alpha', 0.7191611348),
+            'lambda_reg': params.get('lambda_reg', 2.10E-08),
+            'lags': params.get('lags', 24),
+            'n_features': params.get('n_features', 5)
         }
     }
     
@@ -453,28 +453,16 @@ def train_models(df, target_col, exog_cols, params=None):
     }
 
 def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily", params=None):
-    """
-    Main function to run solar power forecasting with enhanced plotting like second code
-    
-    Args:
-        csv_path (str): Path to the input CSV file
-        steps (int): Number of forecast steps
-        output_dir (str): Directory to save outputs
-        forecast_type (str): Type of forecast (default: "daily")
-        params (dict): Model parameters (optional)
-    
-    Returns:
-        list: [csv_path_output, plot_path]
-    """
+
     os.makedirs(output_dir, exist_ok=True)
     
     # Generate timestamp for unique filenames - matching second code format
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     
     # Output file paths - matching second code naming convention
-    csv_name = f"solar_hybrid_{timestamp}_{steps}.csv"
+    csv_name = f"solar_hybrid_daily_{timestamp}_{steps}.csv"
     csv_path_output = os.path.join(output_dir, csv_name)
-    plot_name = f"solar_hybrid_{timestamp}_{steps}.png"
+    plot_name = f"solar_hybrid_hourly_{timestamp}_{steps}.png"
     plot_path = os.path.join(output_dir, plot_name)
     
     print("Loading data...")

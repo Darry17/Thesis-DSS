@@ -54,6 +54,7 @@ class HybridForecast(Base):
     alpha = Column(Float, nullable=False)
     lambda_reg = Column(Float, nullable=False)
     lags = Column(Integer, nullable=False)
+    n_features = Column(Integer, nullable=False)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 class User(Base):
@@ -152,6 +153,7 @@ class HybridForecastCreate(BaseModel):
     alpha: float
     lambda_reg: float
     lags: int
+    n_features: int
     model_config = {'from_attributes': True}
 
 class HybridForecastResponse(BaseModel):
@@ -172,7 +174,7 @@ class HybridForecastResponse(BaseModel):
     alpha: float
     lambda_reg: float
     lags: int
-    
+    n_features: int
     model_config = {'from_attributes': True}
 
 class LoginRequest(BaseModel):

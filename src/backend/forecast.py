@@ -539,6 +539,7 @@ async def upload_file_hybrid(
     alpha: float = Form(...),
     lambda_reg: float = Form(...),
     lags: int = Form(...),
+    n_features: int = Form(...),  
     temp_id: int = Form(...)
 ):
 
@@ -570,6 +571,7 @@ async def upload_file_hybrid(
                     "alpha": alpha,
                     "sparsity": sparsity,
                     "lambda_reg": lambda_reg,
+                    "n_features": n_features,
                 }
             )
         else:
@@ -604,6 +606,7 @@ async def upload_file_hybrid(
             alpha=alpha,
             lambda_reg=lambda_reg,
             lags=lags,
+            n_features=n_features
         )
         db.add(hybrid_entry)
         db.commit()
@@ -655,6 +658,7 @@ async def upload_file_hybrid(
     alpha: float = Form(...),
     lambda_reg: float = Form(...),
     lags: int = Form(...),
+    n_features: int = Form(...),
 ):
 
     temp_path = f"temp/{tempFilename}"
@@ -682,6 +686,7 @@ async def upload_file_hybrid(
                     "alpha": alpha,
                     "sparsity": sparsity,
                     "lambda_reg": lambda_reg,
+                    "n_features": n_features,
                 }
             )
         
@@ -723,6 +728,7 @@ async def upload_file_hybrid(
     alpha: float = Form(...),
     lambda_reg: float = Form(...),
     lags: int = Form(...),
+    n_features: int = Form(...),
     temp_id: int = Form(...)
 ):
 
@@ -754,6 +760,7 @@ async def upload_file_hybrid(
                     "alpha": alpha,
                     "sparsity": sparsity,
                     "lambda_reg": lambda_reg,
+                    "n_features": n_features,
                 }
             )
         else:
@@ -788,6 +795,7 @@ async def upload_file_hybrid(
             alpha=alpha,
             lambda_reg=lambda_reg,
             lags=lags,
+            n_features=n_features
         )
         db.add(hybrid_entry)
         db.commit()
@@ -839,6 +847,7 @@ async def upload_file_hybrid(
     alpha: float = Form(...),
     lambda_reg: float = Form(...),
     lags: int = Form(...),
+    n_features: int = Form(...),
 ):
 
     temp_path = f"temp/{tempFilename}"
@@ -866,6 +875,7 @@ async def upload_file_hybrid(
                     "alpha": alpha,
                     "sparsity": sparsity,
                     "lambda_reg": lambda_reg,
+                    "n_features": n_features,
                 }
             )
         

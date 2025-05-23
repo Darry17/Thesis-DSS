@@ -262,7 +262,7 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="hourly"
     })
     
     # Save forecast as CSV
-    csv_name = f"wind_esn_{timestamp}_{steps}.csv"
+    csv_name = f"wind_esn_hourly_{timestamp}_{steps}.csv"
     csv_path_output = os.path.join(output_dir, csv_name)
     forecast_df.to_csv(csv_path_output, index=False)
     
@@ -286,7 +286,7 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="hourly"
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
     
-    plot_name = f"wind_esn_{timestamp}_{steps}.png"
+    plot_name = f"wind_esn_hourly_{timestamp}_{steps}.png"
     plot_path = os.path.join(output_dir, plot_name)
     plt.savefig(plot_path, dpi=300, bbox_inches='tight')
     plt.close()

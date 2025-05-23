@@ -26,22 +26,93 @@ const ConfigureHybrid = () => {
   const isEditing = location.state?.isEditing || false;
   const existingConfig = location.state?.existingConfig || null;
 
-  const [dhrParams, setDhrParams] = useState({
-    fourier_terms: 4,
-    reg_strength: 0.006,
-    ar_order: 1,
-    window: 23,
-    polyorder: 2,
-  });
+  const [dhrParams, setDhrParams] = useState(
+    granularity === "Hourly"
+      ? forecastType === "solar"
+        ? {
+            fourier_terms: 4,
+            reg_strength: 0.006,
+            ar_order: 1,
+            window: 23,
+            polyorder: 2,
+          }
+        : forecastType === "wind"
+        ? {
+            fourier_terms: 10,
+            reg_strength: 0.000001,
+            ar_order: 10,
+            window: 16,
+            polyorder: 1,
+          }
+        : null
+      : granularity === "Daily"
+      ? forecastType === "solar"
+        ? {
+            fourier_terms: 4,
+            reg_strength: 0.006,
+            ar_order: 1,
+            window: 7,
+            polyorder: 2,
+          }
+        : forecastType === "wind"
+        ? {
+            fourier_terms: 4,
+            reg_strength: 0.0033872555658521508,
+            ar_order: 7,
+            window: 9,
+            polyorder: 2,
+          }
+        : null
+      : null
+  );
 
-  const [esnParams, setEsnParams] = useState({
-    lags: 24,
-    N_res: 800,
-    rho: 0.9308202574,
-    alpha: 0.7191611348,
-    sparsity: 0.1335175715,
-    lambda_reg: 0.000000021,
-  });
+  const [esnParams, setEsnParams] = useState(
+    granularity === "Hourly"
+      ? forecastType === "solar"
+        ? {
+            N_res: 800,
+            rho: 0.9308202574,
+            sparsity: 0.1335175715,
+            alpha: 0.7191611348,
+            lambda_reg: 0.000000021,
+            lags: 24,
+            n_features: 5,
+          }
+        : forecastType === "wind"
+        ? {
+            N_res: 1999,
+            rho: 0.08708791675,
+            sparsity: 0.1254732037,
+            alpha: 0.494757914,
+            lambda_reg: 0.48,
+            lags: 24,
+            n_features: 5,
+          }
+        : null
+      : granularity === "Daily"
+      ? forecastType === "solar"
+        ? {
+            N_res: 963,
+            rho: 0.12455826,
+            sparsity: 0.6855266625,
+            alpha: 0.2769944104,
+            lambda_reg: 0.0167,
+            lags: 2,
+            n_features: 4,
+          }
+        : forecastType === "wind"
+        ? {
+            N_res: 610,
+            rho: 0.1032449387,
+            sparsity: 0.8910025925,
+            alpha: 0.9637796974,
+            lambda_reg: 0.41,
+            lags: 4,
+            n_features: 4,
+          }
+        : null
+      : null
+  );
 
   const [message, setMessage] = useState("");
   const [tooltipVisible, setTooltipVisible] = useState({});
@@ -52,20 +123,21 @@ const ConfigureHybrid = () => {
     if (isEditing && existingConfig) {
       console.log("Loading existing config:", existingConfig);
       setDhrParams({
-        fourier_terms: existingConfig.fourier_terms || 4,
-        reg_strength: existingConfig.reg_strength || 0.006,
-        ar_order: existingConfig.ar_order || 1,
-        window: existingConfig.window || 23,
-        polyorder: existingConfig.polyorder || 2,
+        fourier_terms: existingConfig.fourier_terms,
+        reg_strength: existingConfig.reg_strength,
+        ar_order: existingConfig.ar_order,
+        window: existingConfig.window,
+        polyorder: existingConfig.polyorder,
       });
 
       setEsnParams({
-        lags: existingConfig.lags || 24,
-        N_res: existingConfig.N_res || 800,
-        rho: existingConfig.rho || 0.9308202574,
-        alpha: existingConfig.alpha || 0.7191611348,
-        sparsity: existingConfig.sparsity || 0.1335175715,
-        lambda_reg: existingConfig.lambda_reg || 0.000000021,
+        lags: existingConfig.lags,
+        N_res: existingConfig.N_res,
+        rho: existingConfig.rho,
+        alpha: existingConfig.alpha,
+        sparsity: existingConfig.sparsity,
+        lambda_reg: existingConfig.lambda_reg,
+        n_features: existingConfig.n_features,
       });
     } else if (isEditing && forecastId) {
       // Fetch configuration if we have forecastId but no config
@@ -84,20 +156,21 @@ const ConfigureHybrid = () => {
       const config = response.data;
 
       setDhrParams({
-        fourier_terms: config.dhr?.fourier_terms || 4,
-        reg_strength: config.dhr?.reg_strength || 0.006,
-        ar_order: config.dhr?.ar_order || 1,
-        window: config.dhr?.window || 23,
-        polyorder: config.dhr?.polyorder || 2,
+        fourier_terms: config.dhr?.fourier_terms,
+        reg_strength: config.dhr?.reg_strength,
+        ar_order: config.dhr?.ar_order,
+        window: config.dhr?.window,
+        polyorder: config.dhr?.polyorder,
       });
 
       setEsnParams({
-        lags: config.esn?.lags || 24,
-        N_res: config.esn?.N_res || 800,
-        rho: config.esn?.rho || 0.9308202574,
-        alpha: config.esn?.alpha || 0.7191611348,
-        sparsity: config.esn?.sparsity || 0.1335175715,
-        lambda_reg: config.esn?.lambda_reg || 0.000000021,
+        lags: config.esn?.lags,
+        N_res: config.esn?.N_res,
+        rho: config.esn?.rho,
+        alpha: config.esn?.alpha,
+        sparsity: config.esn?.sparsity,
+        lambda_reg: config.esn?.lambda_reg,
+        n_features: config.esn?.n_features,
       });
     } catch (error) {
       console.error("Error fetching configuration:", error);
@@ -129,6 +202,7 @@ const ConfigureHybrid = () => {
     alpha: "Leaking rate of the reservoir units.",
     sparsity: "Proportion of zero weights in the reservoir.",
     lambda_reg: "Regularization parameter for ESN training.",
+    n_features: "Number of input features used in the ESN model.",
   };
 
   const handleChange = (e, setParams) => {
@@ -181,6 +255,9 @@ const ConfigureHybrid = () => {
       }
       if (esnParams.lambda_reg < 0) {
         newErrors.lambda_reg = "Must be zero or positive.";
+      }
+      if (esnParams.n_features < 0) {
+        newErrors.n_features = "Must be zero or positive.";
       }
     }
     setErrors(newErrors);
@@ -238,6 +315,7 @@ const ConfigureHybrid = () => {
     formData.append("alpha", esnParams.alpha);
     formData.append("sparsity", esnParams.sparsity);
     formData.append("lambda_reg", esnParams.lambda_reg);
+    formData.append("n_features", esnParams.n_features);
 
     const normalizedModel =
       model.toLowerCase() === "dhr-esn" ? "hybrid" : model.toLowerCase();
@@ -319,6 +397,7 @@ const ConfigureHybrid = () => {
         alpha: parseFloat(esnParams.alpha),
         sparsity: parseFloat(esnParams.sparsity),
         lambda_reg: parseFloat(esnParams.lambda_reg),
+        n_features: parseFloat(esnParams.n_features),
       };
 
       // Log the data being sent for debugging
@@ -368,6 +447,7 @@ const ConfigureHybrid = () => {
       formData.append("alpha", esnParams.alpha);
       formData.append("sparsity", esnParams.sparsity);
       formData.append("lambda_reg", esnParams.lambda_reg);
+      formData.append("n_features", esnParams.n_features);
 
       // Debug log the FormData
       console.log("FormData entries:");
