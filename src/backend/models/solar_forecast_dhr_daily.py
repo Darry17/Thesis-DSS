@@ -84,15 +84,6 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
     # Create timestamp for unique filenames
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     
-    # Load .env file if available
-    load_dotenv()
-    
-    # Load dataset
-    if csv_path is None:
-        csv_path = os.getenv("ZONE_1_PATH")
-        if csv_path is None:
-            raise ValueError("No CSV path provided and no ZONE_1_PATH found in environment variables.")
-    
     df = pd.read_csv(csv_path, parse_dates=['time'], index_col='time')
     df = df.resample('d').mean().interpolate()  # Resample to daily data and interpolate
     

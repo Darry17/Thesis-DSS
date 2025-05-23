@@ -13,6 +13,7 @@ from models.solar_forecast_esn_daily import run_forecast as run_esn_forecast_sol
 from models.solar_forecast_hybrid_hourly import run_forecast as run_hybrid_forecast_solar_hourly
 from models.solar_forecast_hybrid_daily import run_forecast as run_hybrid_forecast_solar_daily
 from models.wind_forecast_dhr_hourly import run_forecast as run_dhr_forecast_wind_hourly
+from models.wind_forecast_dhr_daily import run_forecast as run_dhr_forecast_wind_daily
 from models.wind_forecast_esn_hourly import run_forecast as run_esn_forecast_wind_hourly
 from db import SessionLocal
 from model import Forecast, DHRForecast, ESNForecast, HybridForecast , HistoryLog
@@ -236,58 +237,71 @@ async def upload_file_dhr(
                     "polyorder": polyorder
                 }
             )
-            
-            # Log the generated files
-            logger.info(f"Generated files: {output_files}")
-
-            # Save forecast entry
-            forecast_entry = Forecast(
-                original_filename=original_filename,
-                filename=os.path.basename(output_files[0]),
+        elif forecast_type == "wind":
+            output_files, meta = run_dhr_forecast_wind_daily(
+                temp_path,
                 forecast_type=forecast_type,
-                granularity=granularity,
                 steps=steps,
-                model=model,
-                temp_id = temp_id,
+                params={
+                    "fourier_terms": fourier_terms,
+                    "reg_strength": reg_strength,
+                    "ar_order": ar_order,
+                    "window": window,
+                    "polyorder": polyorder
+                }
             )
-            db.add(forecast_entry)
-            db.commit()
-            db.refresh(forecast_entry)
+            
+        # Log the generated files
+        logger.info(f"Generated files: {output_files}")
 
-            # Save DHR configuration
-            dhr_entry = DHRForecast(
-                forecast_id=forecast_entry.id,
-                fourier_terms=fourier_terms,
-                reg_strength=reg_strength,
-                ar_order=ar_order,
-                window=window,
-                polyorder=polyorder
-            )
-            db.add(dhr_entry)
-            db.commit()
+        # Save forecast entry
+        forecast_entry = Forecast(
+            original_filename=original_filename,
+            filename=os.path.basename(output_files[0]),
+            forecast_type=forecast_type,
+            granularity=granularity,
+            steps=steps,
+            model=model,
+            temp_id = temp_id,
+        )
+        db.add(forecast_entry)
+        db.commit()
+        db.refresh(forecast_entry)
 
-            # Add to history log
-            history_log_entry = HistoryLog(
-                forecast_id=forecast_entry.id,
-                file_name=original_filename,
-                granularity=granularity,
-                steps=steps,
-                model="DHR"
-            )
-            db.add(history_log_entry)
-            db.commit()
+        # Save DHR configuration
+        dhr_entry = DHRForecast(
+            forecast_id=forecast_entry.id,
+            fourier_terms=fourier_terms,
+            reg_strength=reg_strength,
+            ar_order=ar_order,
+            window=window,
+            polyorder=polyorder
+        )
+        db.add(dhr_entry)
+        db.commit()
 
-            # Fix download URL construction - match ESN format
-            download_urls = [
-                f"http://localhost:8000/download/{os.path.basename(file)}"
-                for file in output_files
-            ]
+        # Add to history log
+        history_log_entry = HistoryLog(
+            forecast_id=forecast_entry.id,
+            file_name=original_filename,
+            granularity=granularity,
+            steps=steps,
+            model="DHR"
+        )
+        db.add(history_log_entry)
+        db.commit()
 
-            return {
-                "message": "Files processed successfully",
-                "download_urls": download_urls,
-                "forecast_id": forecast_entry.id
-            }
+        # Fix download URL construction - match ESN format
+        download_urls = [
+            f"http://localhost:8000/download/{os.path.basename(file)}"
+            for file in output_files
+        ]
+
+        return {
+            "message": "Files processed successfully",
+            "download_urls": download_urls,
+            "forecast_id": forecast_entry.id
+        }
 
     except Exception as e:
         logger.error(f"Error processing files: {str(e)}")
@@ -317,6 +331,19 @@ async def upload_file_dhr(
 
         if forecast_type == "solar":
             output_files, meta = run_dhr_forecast_solar_daily(
+                temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "fourier_terms": fourier_terms,
+                    "reg_strength": reg_strength,
+                    "ar_order": ar_order,
+                    "window": window,
+                    "polyorder": polyorder
+                }
+            )
+        elif forecast_type == "wind":
+            output_files, meta = run_dhr_forecast_wind_daily(
                 temp_path,
                 forecast_type=forecast_type,
                 steps=steps,

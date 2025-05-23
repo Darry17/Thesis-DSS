@@ -57,11 +57,11 @@ export default function ConfigureSingle() {
         };
       } else if (granularity === "Daily") {
         return {
-          fourier_terms: "",
-          reg_strength: "",
-          ar_order: "",
-          window: "",
-          polyorder: "",
+          fourier_terms: "4",
+          reg_strength: "0.0033872555658521508",
+          ar_order: "7",
+          window: "9",
+          polyorder: "2",
         };
       }
     }
