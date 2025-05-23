@@ -9,6 +9,7 @@ from datetime import datetime
 from models.solar_forecast_dhr_hourly import run_forecast as run_dhr_forecast_solar_hourly
 from models.solar_forecast_dhr_daily import run_forecast as run_dhr_forecast_solar_daily
 from models.solar_forecast_esn_hourly import run_forecast as run_esn_forecast_solar_hourly
+from models.solar_forecast_esn_daily import run_forecast as run_esn_forecast_solar_daily
 from models.solar_forecast_hybrid_hourly import run_forecast as run_hybrid_forecast_solar_hourly
 from models.solar_forecast_hybrid_daily import run_forecast as run_hybrid_forecast_solar_daily
 from models.wind_forecast_dhr_hourly import run_forecast as run_dhr_forecast_wind_hourly
@@ -477,6 +478,175 @@ async def upload_file_esn(
 
         if forecast_type == "solar":
             output_files = run_esn_forecast_solar_hourly(
+                csv_path=temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "lags": lags,
+                    "N_res": N_res,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "sparsity": sparsity,
+                    "lambda_reg": lambda_reg,
+                }
+            )
+        elif forecast_type == "wind":
+            output_files = run_esn_forecast_wind_hourly(
+                csv_path=temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "lags": lags,
+                    "N_res": N_res,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "sparsity": sparsity,
+                    "lambda_reg": lambda_reg,
+                }
+            )
+        
+        logger.info(f"Generated files: {output_files}")
+
+        download_urls = [
+            f"http://localhost:8000/download/{os.path.basename(file)}"
+            for file in output_files
+        ]
+
+        return {"download_urls": download_urls}
+
+    except Exception as e:
+        db.rollback()
+        return {"message": str(e)}
+
+    finally:
+        db.close()
+
+@router.post("/upload/esn/daily")
+async def upload_file_esn(
+    original_filename: str = Form(...),
+    tempFilename: str = Form(...),
+    forecast_type: str = Form(...),
+    granularity: str = Form(...),
+    steps: int = Form(...),
+    model: str = Form(...),
+    lags: int = Form(...),
+    N_res: int = Form(...),
+    rho: float = Form(...),
+    alpha: float = Form(...),
+    sparsity: float = Form(...),
+    lambda_reg: float = Form(...),
+    temp_id: int = Form(...),
+):
+    temp_path = f"temp/{tempFilename}"
+    db = SessionLocal()
+
+    try:
+        if not os.path.exists(temp_path):
+            raise HTTPException(status_code=404, detail="Temp file not found")
+
+        if forecast_type == "solar":
+            output_files = run_esn_forecast_solar_daily(
+                csv_path=temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "lags": lags,
+                    "N_res": N_res,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "sparsity": sparsity,
+                    "lambda_reg": lambda_reg,
+                }
+            )
+        elif forecast_type == "wind":
+            output_files = run_esn_forecast_wind_hourly(
+                csv_path=temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "lags": lags,
+                    "N_res": N_res,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "sparsity": sparsity,
+                    "lambda_reg": lambda_reg,
+                }
+            )
+        
+        logger.info(f"Generated files: {output_files}")
+
+        forecast_entry = Forecast(
+            original_filename=original_filename,
+            filename=os.path.basename(output_files[0]),
+            forecast_type=forecast_type,
+            granularity=granularity,
+            steps=steps,
+            model=model,
+            temp_id = temp_id,
+        )
+        db.add(forecast_entry)
+        db.commit()
+        db.refresh(forecast_entry)
+
+        esn_entry = ESNForecast(
+            forecast_id=forecast_entry.id,
+            lags=lags,
+            N_res=N_res,
+            rho=rho,
+            alpha=alpha,
+            sparsity=sparsity,
+            lambda_reg=lambda_reg,
+        )
+        db.add(esn_entry)
+        db.commit()
+        db.refresh(esn_entry)
+
+        history_log_entry = HistoryLog(
+            forecast_id=forecast_entry.id,
+            file_name=original_filename,
+            granularity=granularity,
+            steps=steps,
+            model=model
+        )
+        db.add(history_log_entry)
+        db.commit()
+        db.refresh(history_log_entry)
+
+        download_urls = [
+            f"http://localhost:8000/download/{os.path.basename(file)}"
+            for file in output_files
+        ]
+
+        return {"download_urls": download_urls, "forecast_id": forecast_entry.id}
+
+    except Exception as e:
+        db.rollback()
+        return {"message": str(e)}
+
+    finally:
+        db.close()
+
+@router.post("/upload/edit-esn/daily")
+async def upload_file_esn(
+    tempFilename: str = Form(...),
+    forecast_type: str = Form(...),
+    steps: int = Form(...),
+    lags: int = Form(...),
+    N_res: int = Form(...),
+    rho: float = Form(...),
+    alpha: float = Form(...),
+    sparsity: float = Form(...),
+    lambda_reg: float = Form(...),
+):
+    temp_path = f"temp/{tempFilename}"
+    db = SessionLocal()
+
+    try:
+        if not os.path.exists(temp_path):
+            raise HTTPException(status_code=404, detail="Temp file not found")
+
+        if forecast_type == "solar":
+            output_files = run_esn_forecast_solar_daily(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
