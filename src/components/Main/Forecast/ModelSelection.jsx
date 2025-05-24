@@ -126,7 +126,7 @@ const ModelSelection = () => {
                 setEnergyDemand(value);
               }
             }}
-            className="block w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="block w-96% p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>
@@ -148,7 +148,7 @@ const ModelSelection = () => {
                 setMaxCapacity(e.target.value);
               }
             }}
-            className="block w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="block w-96% p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
         </div>

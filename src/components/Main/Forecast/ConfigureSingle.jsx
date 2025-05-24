@@ -214,10 +214,39 @@ export default function ConfigureSingle() {
     }
   };
 
+  // CSS for the loading bar
+  const loadingBarStyles = `
+  .loading-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    margin-top: 1rem;
+  }
+  .loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30%;
+    height: 100%;
+    background-color: #4caf50;
+    animation: loading 1.5s infinite ease-in-out;
+  }
+  @keyframes loading {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(300%); }
+    100% { transform: translateX(300%); }
+  }
+`;
+
+  // Modified handleSubmit function
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage("Processing...");
+    setMessage(""); // Clear any previous message
 
     try {
       if (isEditing) {
@@ -607,12 +636,13 @@ export default function ConfigureSingle() {
           type="submit"
           className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
           disabled={isLoading}>
-          {isLoading ? "Processing..." : isEditing ? "Update" : "Submit"}
+          {isEditing ? "Update" : "Submit"}
         </button>
       </div>
     </form>
   );
 
+  // Modified renderESNForm function
   const renderESNForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="flex space-x-10">
@@ -772,7 +802,7 @@ export default function ConfigureSingle() {
           type="submit"
           className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
           disabled={isLoading}>
-          {isLoading ? "Processing..." : isEditing ? "Update" : "Submit"}
+          {isEditing ? "Update" : "Submit"}
         </button>
       </div>
     </form>
@@ -789,7 +819,8 @@ export default function ConfigureSingle() {
     <div className="min-h-screen relative">
       <div className="fixed inset-0 bg-gray-100" style={{ zIndex: -1 }} />
       <div className="relative z-10 flex justify-center flex-1 min-h-screen">
-        <div className="w-1/3 h-1/3 p-10 px-20 bg-white rounded-lg shadow-md">
+        <div className="w-1/3 h-1/3 p-10 px-20 bg-white rounded-lg shadow-md mb-10">
+          <style>{loadingBarStyles}</style>
           <h2 className="text-4xl text-left font-bold mb-10">
             {getModelTitle()}
           </h2>
@@ -801,6 +832,7 @@ export default function ConfigureSingle() {
               {message}
             </p>
           )}
+          {isLoading && <div className="loading-bar"></div>}
           {renderForm()}
         </div>
       </div>

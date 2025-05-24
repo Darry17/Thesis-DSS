@@ -61,7 +61,7 @@ const Navigation = () => {
           className={`flex space-x-4 list-none ${
             isWhiteText ? "text-white" : "text-black"
           }`}>
-          <li className="list-none">
+          <li>
             <NavLink
               to="/"
               className={({ isActive }) =>
