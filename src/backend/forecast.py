@@ -16,6 +16,7 @@ from models.wind_forecast_dhr_hourly import run_forecast as run_dhr_forecast_win
 from models.wind_forecast_dhr_daily import run_forecast as run_dhr_forecast_wind_daily
 from models.wind_forecast_esn_hourly import run_forecast as run_esn_forecast_wind_hourly
 from models.wind_forecast_esn_daily import run_forecast as run_esn_forecast_wind_daily
+from models.wind_forecast_hybrid_hourly import run_forecast as run_hybrid_forecast_wind_hourly
 from db import SessionLocal
 from model import Forecast, DHRForecast, ESNForecast, HybridForecast , HistoryLog
 from sqlalchemy.orm import Session
@@ -789,12 +790,29 @@ async def upload_file_hybrid(
         if not os.path.exists(temp_path):
             raise HTTPException(status_code=404, detail="Temp file not found")
 
-        if forecast_type != "solar":
-            raise HTTPException(status_code=400, detail="Invalid forecast type")
-
         # Call the hybrid forecast function using the structured configs
         if forecast_type == "solar":
             output_files = run_hybrid_forecast_solar_hourly(
+                csv_path=temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "fourier_terms": fourier_terms,
+                    "reg_strength": reg_strength,
+                    "ar_order": ar_order,
+                    "window": window,
+                    "polyorder": polyorder,
+                    "lags": lags,
+                    "N_res": N_res,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "sparsity": sparsity,
+                    "lambda_reg": lambda_reg,
+                    "n_features": n_features,
+                }
+            )
+        elif forecast_type == "wind":
+            output_files = run_hybrid_forecast_wind_hourly(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -929,6 +947,28 @@ async def upload_file_hybrid(
                     "n_features": n_features,
                 }
             )
+        elif forecast_type == "wind":
+            output_files = run_hybrid_forecast_wind_hourly(
+                csv_path=temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "fourier_terms": fourier_terms,
+                    "reg_strength": reg_strength,
+                    "ar_order": ar_order,
+                    "window": window,
+                    "polyorder": polyorder,
+                    "lags": lags,
+                    "N_res": N_res,
+                    "rho": rho,
+                    "alpha": alpha,
+                    "sparsity": sparsity,
+                    "lambda_reg": lambda_reg,
+                    "n_features": n_features,
+                }
+            )
+        else:
+            raise HTTPException(status_code=400, detail="Invalid forecast type")
         
         logger.info(f"Generated files: {output_files}")
 

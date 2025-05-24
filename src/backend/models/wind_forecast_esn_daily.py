@@ -10,19 +10,6 @@ from reservoirpy.nodes import Reservoir, Ridge, Input
 from datetime import timedelta, datetime
 
 def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily", params=None):
-    """
-    Run daily wind power forecasting using Echo State Networks (ESN)
-    
-    Parameters:
-    - csv_path: Path to the CSV file containing wind power data
-    - steps: Number of days to forecast ahead
-    - output_dir: Directory to save forecast results
-    - forecast_type: Type of forecast ("daily")
-    - params: Dictionary containing ESN hyperparameters
-    
-    Returns:
-    - List of file paths [csv_path, plot_path]
-    """
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     
@@ -167,43 +154,6 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
         val_mae = mean_absolute_error(y_val_true_original, y_val_pred_original)
         print(f"Validation RMSE: {val_rmse:.4f}")
         print(f"Validation MAE: {val_mae:.4f}")
-    
-    # Test model if test set is available
-    if len(X_test) > 0:
-        print("Generating forecasts on test set...")
-        y_test_pred = model.run(X_test)
-        if isinstance(y_test_pred, list):
-            y_test_pred = np.array(y_test_pred)
-        if y_test_pred.shape != y_test.shape:
-            print(f"Warning: Reshaping test predictions from {y_test_pred.shape} to match {y_test.shape}")
-            y_test_pred = y_test_pred.reshape(y_test.shape)
-        y_test_pred_inv = scaler_target.inverse_transform(y_test_pred)
-        y_test_true_inv = scaler_target.inverse_transform(y_test)
-        y_test_pred_original = np.expm1(y_test_pred_inv)
-        y_test_true_original = np.expm1(y_test_true_inv)
-        y_test_pred_original = np.maximum(y_test_pred_original, 0)
-        rmse = np.sqrt(mean_squared_error(y_test_true_original, y_test_pred_original))
-        mae = mean_absolute_error(y_test_true_original, y_test_pred_original)
-        cvrmse = (rmse / np.mean(y_test_true_original)) * 100
-        print(f"Test RMSE: {rmse:.4f}")
-        print(f"Test MAE: {mae:.4f}")
-        print(f"Test CVRMSE: {cvrmse:.2f}%")
-        
-        # Save test results plot if needed
-        test_plot_path = os.path.join(output_dir, f"test_results_{timestamp}.png")
-        plt.figure(figsize=(15, 6))
-        test_indices = df_resampled.index[train_size + val_size:train_size + val_size + len(y_test)]
-        plt.plot(test_indices, y_test_true_original, label='Actual Daily Wind Power', color='blue')
-        plt.plot(test_indices, y_test_pred_original, label='Predicted Daily Wind Power', color='red')
-        plt.title('ESN Model: Actual vs Predicted Daily Wind Power (Test Set)')
-        plt.xlabel('Date')
-        plt.ylabel('Daily Average Wind Power')
-        plt.legend()
-        plt.grid(True)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.savefig(test_plot_path, dpi=300, bbox_inches='tight')
-        plt.close()
     
     # Prepare for forecasting
     historical_period = 14  # 2 weeks of daily data
