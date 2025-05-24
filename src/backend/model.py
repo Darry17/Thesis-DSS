@@ -71,6 +71,7 @@ class HistoryLog(Base):
     id = Column(Integer, primary_key=True, index=True)
     forecast_id = Column(Integer, nullable=True)
     file_name = Column(String(255), nullable=False)
+    forecast_type = Column(String(50), nullable=False)
     granularity = Column(String(50), nullable=False)
     steps = Column(Integer, nullable=False)
     model = Column(String(50), nullable=False)
@@ -81,6 +82,7 @@ class DeletedForecast(Base):
     id = Column(Integer, primary_key=True, index=True)
     forecast_id = Column(Integer, nullable=True)
     file_name = Column(String(255), nullable=False)
+    forecast_type = Column(String(50), nullable=False)
     granularity = Column(String(50), nullable=False)
     steps = Column(Integer, nullable=False)
     model = Column(String(50), nullable=False)
@@ -202,6 +204,7 @@ class UserResponse(BaseModel):
 # Pydantic Models
 class HistoryLogCreate(BaseModel):
     file_name: str
+    forecast_type: str
     granularity: str
     steps: int
     model: str
@@ -213,6 +216,7 @@ class HistoryLogResponse(BaseModel):
     id: int
     forecast_id: Optional[int] = None
     file_name: str
+    forecast_type: str
     granularity: str
     steps: int
     model: str

@@ -16,6 +16,8 @@ export default function ConfigureSingle() {
   const forecastType = query.get("forecastType");
   const tempFilename = query.get("tempFilename");
   const steps = query.get("steps");
+  const energyDemand = query.get("energyDemand");
+  const maxCapacity = query.get("maxCapacity");
   const granularity = query.get("granularity");
   const model = query.get("model");
   const tempId = query.get("tempId");
@@ -102,12 +104,12 @@ export default function ConfigureSingle() {
         };
       } else if (granularity === "Daily") {
         return {
-          lags: "",
-          N_res: "",
-          rho: "",
-          alpha: "",
-          sparsity: "",
-          lambda_reg: "",
+          lags: "4",
+          N_res: "610",
+          rho: "0.1032449387",
+          alpha: "0.9637796974",
+          sparsity: "0.8910025925",
+          lambda_reg: "0.41",
         };
       }
     }
@@ -287,6 +289,8 @@ export default function ConfigureSingle() {
           forecastType: forecastType,
           model: model,
           steps: steps,
+          energyDemand: energyDemand,
+          maxCapacity: maxCapacity,
           granularity: granularity,
           data: forecastData,
           tempFilename: tempFilename,
@@ -330,6 +334,7 @@ export default function ConfigureSingle() {
       formData.append("tempFilename", tempFilename);
       formData.append("forecast_type", forecastType);
       formData.append("steps", steps);
+      formData.append("forecast_id", forecastId); // Add forecast_id here
 
       if (model === "DHR") {
         formData.append("fourier_terms", dhrParams.fourier_terms);
@@ -419,6 +424,8 @@ export default function ConfigureSingle() {
             original_filename: originalFilename,
             model: model,
             steps: steps,
+            energyDemand: energyDemand,
+            maxCapacity: maxCapacity,
             granularity: granularity,
             data: forecastData,
             tempFilename: tempFilename,

@@ -15,12 +15,9 @@ from reservoirpy.nodes import Reservoir, Ridge as RPRidge, Input
 def load_data(data_path):
     """Load and preprocess data for both models"""
     df = pd.read_csv(data_path, parse_dates=['time'], index_col='time')
-    # Define target and exogenous variables
     target_col = 'solar_power'
     exog_cols = ['GHI', 'DNI', 'DHI']
-    # Select relevant columns
     df = df[[target_col] + exog_cols]
-    # Resample to daily and interpolate
     df_resampled = df.resample('D').mean().interpolate()
     return df_resampled, target_col, exog_cols
 
@@ -38,7 +35,6 @@ def fourier_transform(t, n_harmonics=4, periods=[7, 365.25]):
 def create_dhr_features(df, target_col, exog_cols, fourier_terms, ar_order, window, polyorder):
     """Create features for DHR model including exogenous variables"""
     t = np.arange(len(df))
-    # Use multi-period fourier transform with both weekly and yearly seasonality
     fourier = fourier_transform(t, n_harmonics=fourier_terms)
     target = df[target_col].values
     exog_data = df[exog_cols].values
@@ -69,7 +65,6 @@ def predict_dhr(model, X):
 # -------------------
 def prepare_esn_data(data, exog_data):
     """Prepare data for ESN model with log transformation and scaling"""
-    # Clean and transform target data
     min_non_zero = np.min(data[data > 0]) if np.any(data > 0) else 1e-10
     data_cleaned = np.maximum(data, min_non_zero)
     data_log = np.log1p(data_cleaned)
@@ -78,15 +73,12 @@ def prepare_esn_data(data, exog_data):
         data_log = np.nan_to_num(data_log, nan=np.nanmean(data_log),
                                  posinf=np.nanmax(data_log), neginf=np.nanmin(data_log))
     
-    # Scale target
     scaler_target = MinMaxScaler(feature_range=(0.1, 0.9))
     data_scaled = scaler_target.fit_transform(data_log.reshape(-1, 1)).flatten()
     
-    # Scale exogenous variables
     scaler_exog = MinMaxScaler(feature_range=(0.1, 0.9))
     exog_scaled = scaler_exog.fit_transform(exog_data)
     
-    # Combine scaled target and exogenous data
     combined_data = np.column_stack([data_scaled, exog_scaled])
     return combined_data, scaler_target, scaler_exog
 
@@ -95,9 +87,9 @@ def create_sequences(data, lags):
     X, y = [], []
     for i in range(len(data) - lags):
         X.append(data[i:i + lags])
-        y.append(data[i + lags, 0])  # Target is first column
-    X = np.array(X)  # Shape: [n_samples, lags, n_features]
-    y = np.array(y).reshape(-1, 1)  # Shape: [n_samples, 1]
+        y.append(data[i + lags, 0])
+    X = np.array(X)
+    y = np.array(y).reshape(-1, 1)
     return X, y
 
 def build_esn_model(N_res, rho, sparsity, alpha, lambda_reg, input_dim):
@@ -118,15 +110,9 @@ def build_esn_model(N_res, rho, sparsity, alpha, lambda_reg, input_dim):
 def train_esn_model(model, X_train, y_train):
     """Train ESN model using model.fit with reshaped input"""
     try:
-        rp.verbosity(0)  # Suppress progress bars for speed
-        print(f"X_train shape: {X_train.shape}, y_train shape: {y_train.shape}")
-        
-        # Reshape X_train to [n_samples, lags * n_features]
+        rp.verbosity(0)
         n_samples, lags, n_features = X_train.shape
         X_train_reshaped = X_train.reshape(n_samples, lags * n_features)
-        print(f"Reshaped X_train shape: {X_train_reshaped.shape}")
-        
-        # Train with reshaped input
         model.fit(X_train_reshaped, y_train, warmup=0)
         print("ESN training complete!")
         return model
@@ -136,16 +122,16 @@ def train_esn_model(model, X_train, y_train):
 
 def predict_esn(model, X, scaler_target):
     """Generate and post-process ESN predictions with reshaped input"""
-    reservoir = model.nodes[1]  # Reservoir node
-    readout = model.nodes[2]    # Ridge readout node
+    reservoir = model.nodes[1]
+    readout = model.nodes[2]
     n_samples, lags, n_features = X.shape
     y_pred = []
 
     for i in range(n_samples):
-        sequence = X[i]  # Shape: [lags, n_features]
-        sequence_reshaped = sequence.reshape(lags * n_features)  # Shape: [lags * n_features]
-        state = reservoir.run(sequence_reshaped)  # Shape: [N_res]
-        pred = readout.run(state)  # Shape: [1]
+        sequence = X[i]
+        sequence_reshaped = sequence.reshape(lags * n_features)
+        state = reservoir.run(sequence_reshaped)
+        pred = readout.run(state)
         y_pred.append(pred[0])
 
     y_pred = np.array(y_pred).reshape(-1, 1)
@@ -205,41 +191,28 @@ def plot_results(dates, actual, dhr_preds, esn_preds, hybrid_preds, title="Model
     plt.gcf().autofmt_xdate()
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    plt.close()  # Close the figure to free memory
+    plt.close()
 
 def plot_forecast_with_history(df, forecast_df, target_col, steps, plot_path):
-    """
-    Plot forecast results with historical data - matching second code style exactly
-    Shows last 60 days of actual data connected seamlessly to forecast
-    """
-    # Get last two months (60 days) of actual data
+    """Plot forecast results with historical data"""
     two_months_ago_idx = max(0, len(df) - 60)
     actual_dates = df.index[two_months_ago_idx:].tolist()
     actual_values = df[target_col].values[two_months_ago_idx:]
     
-    # Extract forecast data
     forecast_dates = forecast_df['timestamp'].tolist()
     dhr_forecast = forecast_df['dhr_forecast'].tolist()
     esn_forecast = forecast_df['esn_forecast'].tolist()
     hybrid_forecast = forecast_df['hybrid_forecast'].tolist()
     
-    # Create continuous plot with no gap between actual and forecast
     plt.figure(figsize=(14, 7))
-    
-    # Plot actual data
     plt.plot(actual_dates, actual_values, label='Actual', color='black', linewidth=2)
-    
-    # Plot forecast data - connecting to the last actual point for seamless transition
     plt.plot([actual_dates[-1]] + forecast_dates, [actual_values[-1]] + dhr_forecast, 
              label='DHR Forecast', color='blue', linestyle='--', alpha=0.7)
     plt.plot([actual_dates[-1]] + forecast_dates, [actual_values[-1]] + esn_forecast, 
              label='ESN Forecast', color='green', linestyle='--', alpha=0.7)
     plt.plot([actual_dates[-1]] + forecast_dates, [actual_values[-1]] + hybrid_forecast, 
              label='Hybrid Forecast', color='red', linewidth=2)
-    
-    # Add vertical line at forecast start
     plt.axvline(x=df.index[-1], color='black', linestyle=':', label='Forecast Start', alpha=0.7)
-    
     plt.title(f'{steps}-Day Solar Power Forecast with Historical Data', fontsize=16)
     plt.xlabel('Date', fontsize=12)
     plt.ylabel('Solar Power', fontsize=12)
@@ -248,10 +221,10 @@ def plot_forecast_with_history(df, forecast_df, target_col, steps, plot_path):
     plt.gcf().autofmt_xdate()
     plt.tight_layout()
     plt.savefig(plot_path, dpi=300, bbox_inches='tight')
-    plt.close()  # Close the figure to free memory
+    plt.close()
 
 def plot_forecast(forecast_df, plot_path):
-    """Plot forecast results - simple version for compatibility"""
+    """Plot forecast results - simple version"""
     plt.figure(figsize=(14, 7))
     plt.plot(forecast_df['timestamp'], forecast_df['dhr_forecast'], 
              label='DHR Model', color='blue', linestyle='--', alpha=0.7)
@@ -259,7 +232,6 @@ def plot_forecast(forecast_df, plot_path):
              label='ESN Model', color='green', linestyle='--', alpha=0.7)
     plt.plot(forecast_df['timestamp'], forecast_df['hybrid_forecast'], 
              label='Hybrid Model', color='red', linewidth=2)
-    
     plt.title('Solar Power Forecast', fontsize=16)
     plt.xlabel('Date', fontsize=12)
     plt.ylabel('Solar Power', fontsize=12)
@@ -268,11 +240,12 @@ def plot_forecast(forecast_df, plot_path):
     plt.gcf().autofmt_xdate()
     plt.tight_layout()
     plt.savefig(plot_path, dpi=300, bbox_inches='tight')
-    plt.close()  # Close the figure to free memory
+    plt.close()
 
 # FORECAST GENERATION FUNCTION
 # ---------------------------
-def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights, steps, lags=7, exog_cols=['GHI', 'DNI', 'DHI'], output_dir="forecasts", timestamp=""):
+def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights, steps, 
+                     dhr_params, esn_params, exog_cols=['GHI', 'DNI', 'DHI'], output_dir="forecasts", timestamp=""):
     """Generate forecasts for specified number of steps"""
     target_col = 'solar_power'
     target = df[target_col].values
@@ -280,6 +253,8 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
 
     # Prepare ESN data
     combined_data, _, _ = prepare_esn_data(target, exog_data)
+    n_samples, n_features = combined_data.shape
+    actual_input_dim = esn_params['lags'] * n_features
     
     print(f"\nGenerating {steps}-step forecast...")
     forecast_dates = [df.index[-1] + timedelta(days=i+1) for i in range(steps)]
@@ -297,24 +272,23 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
     # Scale exog forecast
     exog_forecast_scaled = esn_scaler_exog.transform(exog_forecast)
     
-    # Fourier terms for forecast period with multiple periodicities
+    # Fourier terms for forecast period
     t = np.arange(len(df), len(df) + steps)
-    fourier_forecast = fourier_transform(t)  # Using multi-period fourier transform
+    fourier_forecast = fourier_transform(t, n_harmonics=dhr_params['fourier_terms'])
     
     # Initialize forecast lists
     dhr_forecast = []
     esn_forecast = []
     hybrid_forecast = []
     current_target = target.copy()
-    last_sequence = combined_data[-lags:].reshape(1, lags, -1)
+    last_sequence = combined_data[-esn_params['lags']:].reshape(1, esn_params['lags'], -1)
     
     for h in range(steps):
         # DHR FORECASTING
-        ar_order = 1
-        window = 7  # Changed for daily data
-        polyorder = 2
-        ar_features = current_target[-ar_order:]
-        smoothed = savgol_filter(current_target[-window:], window_length=window, polyorder=polyorder) if len(current_target) >= window else np.zeros(window)
+        ar_features = current_target[-dhr_params['ar_order']:]
+        smoothed = savgol_filter(current_target[-dhr_params['window']:], 
+                                window_length=dhr_params['window'], 
+                                polyorder=dhr_params['polyorder']) if len(current_target) >= dhr_params['window'] else np.zeros(dhr_params['window'])
         dhr_features = np.concatenate([ar_features, smoothed, fourier_forecast[h], exog_forecast[h]])
         dhr_features = dhr_features.reshape(1, -1)
         dhr_pred = dhr_model.predict(dhr_features)[0]
@@ -323,7 +297,7 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
         current_target = np.append(current_target, dhr_pred)
         
         # ESN FORECASTING
-        esn_pred = esn_model.run(last_sequence.reshape(1, lags * 4))  # Updated to match n_features (1 + 3 exog)
+        esn_pred = esn_model.run(last_sequence.reshape(1, actual_input_dim))
         esn_pred = np.array(esn_pred).reshape(-1, 1)
         esn_pred_value = esn_pred[0, 0]
         esn_pred_inv = esn_scaler_target.inverse_transform(esn_pred)
@@ -338,7 +312,7 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
         hybrid_value = weighted_average(np.array([dhr_pred]), np.array([esn_pred_original]), best_weights)[0]
         hybrid_forecast.append(hybrid_value)
     
-    # Create forecast DataFrame with timestamp column name matching second code
+    # Create forecast DataFrame
     forecast_df = pd.DataFrame({
         'timestamp': forecast_dates,
         'dhr_forecast': dhr_forecast,
@@ -351,31 +325,37 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
 def train_models(df, target_col, exog_cols, params=None):
     """Train both DHR and ESN models and return trained models with scalers"""
     
-    # Default parameters
-    default_params = {
-        'dhr': {
-            'fourier_terms': params.get('fourier_terms', 4),
-            'reg_strength': params.get('reg_strength', 0.006),
-            'ar_order': params.get('ar_order', 1),
-            'window': params.get('window', 23),
-            'polyorder': params.get('polyorder', 2)
-        },
-        'esn': {
-            'N_res': params.get('N_res', 800),
-            'rho': params.get('rho', 0.9308202574),
-            'sparsity': params.get('sparsity', 0.1335175715),
-            'alpha': params.get('alpha', 0.7191611348),
-            'lambda_reg': params.get('lambda_reg', 2.10E-08),
-            'lags': params.get('lags', 24),
-            'n_features': params.get('n_features', 5)
-        }
+    # Set default parameters if none provided
+    if params is None:
+        params = {}
+    
+    # DHR Model Parameters
+    dhr_params = {
+        'fourier_terms': params.get('fourier_terms', 4),
+        'reg_strength': params.get('reg_strength', 0.006),
+        'ar_order': params.get('ar_order', 1),
+        'window': params.get('window', 7),
+        'polyorder': params.get('polyorder', 2)
     }
     
-    if params is None:
-        params = default_params
+    # ESN Model Parameters
+    esn_params = {
+        'N_res': params.get('N_res', 800),
+        'rho': params.get('rho', 0.9308202574),
+        'sparsity': params.get('sparsity', 0.1335175715),
+        'alpha': params.get('alpha', 0.7191611348),
+        'lambda_reg': params.get('lambda_reg', 2.10E-08),
+        'lags': params.get('lags', 7)
+    }
     
-    dhr_params = params.get('dhr', default_params['dhr'])
-    esn_params = params.get('esn', default_params['esn'])
+    # Print parameters being used
+    print("DHR Parameters:")
+    for key, value in dhr_params.items():
+        print(f"  {key}: {value}")
+    
+    print("\nESN Parameters:")
+    for key, value in esn_params.items():
+        print(f"  {key}: {value}")
     
     # Create DHR features
     print("Creating DHR features...")
@@ -411,8 +391,14 @@ def train_models(df, target_col, exog_cols, params=None):
     # Create sequences for ESN
     print("Creating ESN sequences...")
     X_esn, y_esn = create_sequences(combined_data, esn_params['lags'])
+    n_samples, lags, n_features = X_esn.shape
+    actual_input_dim = lags * n_features
     
-    # Split ESN data to match DHR validation and test set sizes
+    # Update ESN parameters with actual dimensions
+    esn_params['n_features'] = n_features
+    esn_params['input_dim'] = actual_input_dim
+    
+    # Split ESN data
     print("Splitting data for ESN...")
     total_size = len(X_esn)
     train_size = int(total_size * 0.8)
@@ -422,8 +408,6 @@ def train_models(df, target_col, exog_cols, params=None):
     y_train_esn = y_esn[:train_size]
     X_val_esn = X_esn[train_size:train_size + val_size]
     y_val_esn = y_esn[train_size:train_size + val_size]
-    X_test_esn = X_esn[train_size + val_size:train_size + val_size + test_size]
-    y_test_esn = y_esn[train_size + val_size:train_size + val_size + test_size]
     
     # Build and train ESN model
     print("Building and training ESN model...")
@@ -433,7 +417,7 @@ def train_models(df, target_col, exog_cols, params=None):
         esn_params['sparsity'],
         esn_params['alpha'],
         esn_params['lambda_reg'],
-        input_dim=esn_params['lags'] * esn_params['n_features']
+        input_dim=actual_input_dim
     )
     esn_model = train_esn_model(esn_model, X_train_esn, y_train_esn)
     
@@ -443,58 +427,56 @@ def train_models(df, target_col, exog_cols, params=None):
     esn_val_preds = predict_esn(esn_model, X_val_esn, esn_scaler_target)
     best_weights = optimize_weights(dhr_val_preds, esn_val_preds.flatten(), y_val_dhr)
     
-    return {
-        'dhr_model': dhr_model,
-        'esn_model': esn_model,
-        'esn_scaler_target': esn_scaler_target,
-        'esn_scaler_exog': esn_scaler_exog,
-        'best_weights': best_weights,
-        'esn_params': esn_params
-    }
+    return dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights, dhr_params, esn_params
 
 def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily", params=None):
-
+    """Main function to run the forecasting process"""
+    
     os.makedirs(output_dir, exist_ok=True)
     
-    # Generate timestamp for unique filenames - matching second code format
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    
-    # Output file paths - matching second code naming convention
     csv_name = f"solar_hybrid_daily_{timestamp}_{steps}.csv"
     csv_path_output = os.path.join(output_dir, csv_name)
-    plot_name = f"solar_hybrid_hourly_{timestamp}_{steps}.png"
+    plot_name = f"solar_hybrid_daily_{timestamp}_{steps}.png"
     plot_path = os.path.join(output_dir, plot_name)
     
-    print("Loading data...")
-    df, target_col, exog_cols = load_data(csv_path)
-    print(f"Dataset shape: {df.shape}, Columns: {df.columns.tolist()}")
+    print(f"Starting solar power forecast...")
+    print(f"Input CSV: {csv_path}")
+    print(f"Forecast steps: {steps}")
+    print(f"Output directory: {output_dir}")
+    print(f"Custom parameters: {params}")
+    print(f"Timestamp: {timestamp}")
     
-    # Train models
-    print("Training models...")
-    models = train_models(df, target_col, exog_cols, params)
-    
-    # Generate forecast
-    print("Generating forecast...")
-    forecast_df = generate_forecast(
-        df,
-        models['dhr_model'],
-        models['esn_model'],
-        models['esn_scaler_target'],
-        models['esn_scaler_exog'],
-        models['best_weights'],
-        steps,
-        lags=models['esn_params']['lags'],
-        exog_cols=exog_cols,
-        output_dir=output_dir,
-        timestamp=timestamp
-    )
-    
-    # Save forecast to CSV - matching second code approach
-    forecast_df.to_csv(csv_path_output, index=False)
-    print(f"Forecast saved to {csv_path_output}")
-    
-    # Plot forecast results with historical data - using enhanced plotting function
-    plot_forecast_with_history(df, forecast_df, target_col, steps, plot_path)
-    print(f"Enhanced plot with historical data saved to {plot_path}")
-    
-    return [csv_path_output, plot_path]
+    try:
+        # Load data
+        print("Loading data...")
+        df, target_col, exog_cols = load_data(csv_path)
+        print(f"Dataset shape: {df.shape}, Columns: {df.columns.tolist()}")
+        
+        # Train models
+        print("Training models...")
+        dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, best_weights, dhr_params, esn_params = train_models(
+            df, target_col, exog_cols, params=params
+        )
+        
+        # Generate forecast
+        print("Generating forecast...")
+        forecast_df = generate_forecast(
+            df, dhr_model, esn_model, esn_scaler_target, esn_scaler_exog, 
+            best_weights, steps, dhr_params, esn_params, exog_cols, output_dir, timestamp
+        )
+        
+        # Save forecast to CSV
+        forecast_df.to_csv(csv_path_output, index=False)
+        print(f"Forecast saved to {csv_path_output}")
+        
+        # Plot forecast results with historical data
+        plot_forecast_with_history(df, forecast_df, target_col, steps, plot_path)
+        print(f"Enhanced plot with historical data saved to {plot_path}")
+        
+        print(f"\nForecast completed successfully!")
+        return [csv_path_output, plot_path]
+        
+    except Exception as e:
+        print(f"Error in run_forecast: {str(e)}")
+        raise e

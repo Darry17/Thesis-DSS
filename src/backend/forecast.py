@@ -15,6 +15,7 @@ from models.solar_forecast_hybrid_daily import run_forecast as run_hybrid_foreca
 from models.wind_forecast_dhr_hourly import run_forecast as run_dhr_forecast_wind_hourly
 from models.wind_forecast_dhr_daily import run_forecast as run_dhr_forecast_wind_daily
 from models.wind_forecast_esn_hourly import run_forecast as run_esn_forecast_wind_hourly
+from models.wind_forecast_esn_daily import run_forecast as run_esn_forecast_wind_daily
 from db import SessionLocal
 from model import Forecast, DHRForecast, ESNForecast, HybridForecast , HistoryLog
 from sqlalchemy.orm import Session
@@ -110,6 +111,7 @@ async def upload_file_dhr(
         history_log_entry = HistoryLog(
             forecast_id=forecast_entry.id,
             file_name=original_filename,
+            forecast_type=forecast_type,
             granularity=granularity,
             steps=steps,
             model="DHR"
@@ -147,6 +149,7 @@ async def upload_file_dhr(
     ar_order: int = Form(...),
     window: int = Form(...),
     polyorder: int = Form(...),
+    forecast_id: int = Form(...),
 ):
     temp_path = f"temp/{tempFilename}"
     db = SessionLocal()
@@ -182,6 +185,16 @@ async def upload_file_dhr(
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported forecast type: {forecast_type}")
 
+        # Log the generated files
+        logger.info(f"Generated files: {output_files}")
+
+        # Retrieve the existing forecast entry
+        forecast_entry = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+
+        # Update the filename
+        forecast_entry.filename = os.path.basename(output_files[0])
+        db.commit()
+        db.refresh(forecast_entry)  # Optional but good for safety
 
         # Fix download URL construction - match ESN format
         download_urls = [
@@ -284,6 +297,7 @@ async def upload_file_dhr(
         history_log_entry = HistoryLog(
             forecast_id=forecast_entry.id,
             file_name=original_filename,
+            forecast_type=forecast_type,
             granularity=granularity,
             steps=steps,
             model="DHR"
@@ -321,6 +335,7 @@ async def upload_file_dhr(
     ar_order: int = Form(...),
     window: int = Form(...),
     polyorder: int = Form(...),
+    forecast_id: int = Form(...),
 ):
     temp_path = f"temp/{tempFilename}"
     db = SessionLocal()
@@ -359,6 +374,13 @@ async def upload_file_dhr(
             # Log the generated files
             logger.info(f"Generated files: {output_files}")
 
+            # Retrieve the existing forecast entry
+            forecast_entry = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+
+            # Update the filename
+            forecast_entry.filename = os.path.basename(output_files[0])
+            db.commit()
+            db.refresh(forecast_entry)  # Optional but good for safety
 
             # Fix download URL construction - match ESN format
             download_urls = [
@@ -462,6 +484,7 @@ async def upload_file_esn(
         history_log_entry = HistoryLog(
             forecast_id=forecast_entry.id,
             file_name=original_filename,
+            forecast_type=forecast_type,
             granularity=granularity,
             steps=steps,
             model=model
@@ -495,6 +518,7 @@ async def upload_file_esn(
     alpha: float = Form(...),
     sparsity: float = Form(...),
     lambda_reg: float = Form(...),
+    forecast_id: int = Form(...),
 ):
     temp_path = f"temp/{tempFilename}"
     db = SessionLocal()
@@ -533,6 +557,14 @@ async def upload_file_esn(
             )
         
         logger.info(f"Generated files: {output_files}")
+
+        # Retrieve the existing forecast entry
+        forecast_entry = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+
+        # Update the filename
+        forecast_entry.filename = os.path.basename(output_files[0])
+        db.commit()
+        db.refresh(forecast_entry)  # Optional but good for safety
 
         download_urls = [
             f"http://localhost:8000/download/{os.path.basename(file)}"
@@ -586,7 +618,7 @@ async def upload_file_esn(
                 }
             )
         elif forecast_type == "wind":
-            output_files = run_esn_forecast_wind_hourly(
+            output_files = run_esn_forecast_wind_daily(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -631,6 +663,7 @@ async def upload_file_esn(
         history_log_entry = HistoryLog(
             forecast_id=forecast_entry.id,
             file_name=original_filename,
+            forecast_type=forecast_type,
             granularity=granularity,
             steps=steps,
             model=model
@@ -664,6 +697,7 @@ async def upload_file_esn(
     alpha: float = Form(...),
     sparsity: float = Form(...),
     lambda_reg: float = Form(...),
+    forecast_id: int = Form(...),
 ):
     temp_path = f"temp/{tempFilename}"
     db = SessionLocal()
@@ -687,7 +721,7 @@ async def upload_file_esn(
                 }
             )
         elif forecast_type == "wind":
-            output_files = run_esn_forecast_wind_hourly(
+            output_files = run_esn_forecast_wind_daily(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -702,6 +736,14 @@ async def upload_file_esn(
             )
         
         logger.info(f"Generated files: {output_files}")
+
+        # Retrieve the existing forecast entry
+        forecast_entry = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+
+        # Update the filename
+        forecast_entry.filename = os.path.basename(output_files[0])
+        db.commit()
+        db.refresh(forecast_entry)  # Optional but good for safety
 
         download_urls = [
             f"http://localhost:8000/download/{os.path.basename(file)}"
@@ -812,6 +854,7 @@ async def upload_file_hybrid(
         history_log_entry = HistoryLog(
             forecast_id=forecast_entry.id,
             file_name=original_filename,
+            forecast_type=forecast_type,
             granularity=granularity,
             steps=steps,
             model=model
@@ -888,6 +931,14 @@ async def upload_file_hybrid(
             )
         
         logger.info(f"Generated files: {output_files}")
+
+        # Retrieve the existing forecast entry
+        forecast_entry = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+
+        # Update the filename
+        forecast_entry.filename = os.path.basename(output_files[0])
+        db.commit()
+        db.refresh(forecast_entry)  # Optional but good for safety
 
         download_urls = [
             f"http://localhost:8000/download/{os.path.basename(file)}"
@@ -1001,6 +1052,7 @@ async def upload_file_hybrid(
         history_log_entry = HistoryLog(
             forecast_id=forecast_entry.id,
             file_name=original_filename,
+            forecast_type=forecast_type,
             granularity=granularity,
             steps=steps,
             model=model
@@ -1077,6 +1129,14 @@ async def upload_file_hybrid(
             )
         
         logger.info(f"Generated files: {output_files}")
+
+        # Retrieve the existing forecast entry
+        forecast_entry = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+
+        # Update the filename
+        forecast_entry.filename = os.path.basename(output_files[0])
+        db.commit()
+        db.refresh(forecast_entry)  # Optional but good for safety
 
         download_urls = [
             f"http://localhost:8000/download/{os.path.basename(file)}"

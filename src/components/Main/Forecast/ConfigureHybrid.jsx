@@ -17,6 +17,8 @@ const ConfigureHybrid = () => {
   const forecastType = query.get("forecastType");
   const tempFilename = query.get("tempFilename");
   const steps = query.get("steps");
+  const energyDemand = query.get("energyDemand");
+  const maxCapacity = query.get("maxCapacity");
   const granularity = query.get("granularity");
   const model = query.get("model");
   const tempId = query.get("tempId");
@@ -361,6 +363,8 @@ const ConfigureHybrid = () => {
           model: model,
           steps: steps,
           forecastType: forecastType,
+          energyDemand: energyDemand,
+          maxCapacity: maxCapacity,
           granularity: granularity,
           data: forecastData,
           tempFilename: tempFilename,
@@ -519,6 +523,8 @@ const ConfigureHybrid = () => {
             original_filename: originalFilename,
             model: model,
             steps: steps,
+            energyDemand: energyDemand,
+            maxCapacity: maxCapacity,
             granularity: granularity,
             data: forecastData,
             tempFilename: tempFilename,

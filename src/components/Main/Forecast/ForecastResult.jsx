@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import Papa from "papaparse"; // Import PapaParse for CSV parsing
 
 export default function ForecastResult() {
   const navigate = useNavigate();
@@ -7,19 +8,176 @@ export default function ForecastResult() {
   console.log("Received state:", state); // Debug log
 
   const imageUrl = state?.imageUrl;
-  const forecastData = state?.forecastData || {};
-
+  const [forecastData, setForecastData] = useState(state?.forecastData || {});
   const [config, setConfig] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  // Add this new state for recommendations
   const [recommendations, setRecommendations] = useState({
     batteryStorage: false,
     bidStrategically: false,
   });
+  const [fileContent, setFileContent] = useState("");
+  const [parsedCsvData, setParsedCsvData] = useState([]); // Store forecast values only
   const [isZoomed, setIsZoomed] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  // Log fileContent, parsedCsvData, and calculate sum/mean
+  useEffect(() => {
+    if (fileContent) {
+    }
+    if (parsedCsvData.length > 0) {
+      // Extract forecast values
+      const forecastValues = parsedCsvData
+        .map(
+          (row) =>
+            row.hybrid_forecast ??
+            row.forecasted_solar_power ??
+            row.forecasted_wind_power ??
+            row.forecast ??
+            null
+        )
+        .filter((value) => value !== null && !isNaN(value)); // Filter out null/invalid values
+
+      // Calculate sum and mean
+      const sum = forecastValues.reduce((acc, val) => acc + val, 0);
+      const mean = forecastValues.length > 0 ? sum / forecastValues.length : 0;
+
+      console.log("Mean of forecast values:", mean.toFixed(2)); // Round to 2 decimal places
+    }
+  }, [fileContent, parsedCsvData]);
+
+  // Fetch forecast data including filename
+  useEffect(() => {
+    const fetchForecastData = async () => {
+      if (!forecastData?.id) {
+        setError("No forecast ID provided");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const forecastId = parseInt(forecastData.id, 10);
+
+        if (isNaN(forecastId)) {
+          throw new Error("Invalid forecast ID");
+        }
+
+        console.log("Fetching forecast with ID:", forecastId);
+
+        const response = await fetch(
+          `http://localhost:8000/api/forecasts/${forecastId}`,
+          {
+            headers: {
+              Accept: "application/json",
+            },
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Response error:", response.status, errorText);
+          throw new Error(`Error fetching forecast: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log("Received forecast data:", data);
+        setForecastData((prev) => ({
+          ...prev,
+          ...data, // Merge fetched data, including filename
+        }));
+      } catch (err) {
+        console.error("Error fetching forecast data:", err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchForecastData();
+  }, [forecastData?.id]);
+
+  // Fetch and parse CSV file content (exclude timestamp)
+  useEffect(() => {
+    const fetchFileContent = async () => {
+      if (!forecastData?.filename) return;
+
+      try {
+        console.log("Fetching CSV file:", forecastData.filename);
+        const response = await fetch(
+          `http://localhost:8000/api/forecast-file/${forecastData.filename}`,
+          {
+            headers: {
+              Accept: "text/csv",
+            },
+          }
+        );
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch file content: ${response.statusText}`
+          );
+        }
+        const text = await response.text();
+        setFileContent(text);
+
+        // Parse CSV data
+        Papa.parse(text, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            console.log("Parsed CSV results:", results);
+
+            // Check for specific forecast columns
+            const firstRow = results.data[0] || {};
+            const forecastColumn = [
+              "hybrid_forecast",
+              "forecasted_solar_power",
+              "forecasted_wind_power",
+            ].find((col) => col in firstRow);
+
+            if (forecastColumn) {
+              // Extract only the forecast column values
+              const forecastData = results.data.map((row) => ({
+                [forecastColumn]: row[forecastColumn] ?? null,
+              }));
+              setParsedCsvData(forecastData);
+            } else {
+              // Fallback to generic column names
+              const forecastKey = Object.keys(firstRow).find(
+                (key) =>
+                  key.toLowerCase().includes("forecast") ||
+                  key.toLowerCase().includes("value") ||
+                  key.toLowerCase().includes("power")
+              );
+
+              if (forecastKey) {
+                const forecastData = results.data.map((row) => ({
+                  forecast: row[forecastKey] ?? null,
+                }));
+                setParsedCsvData(forecastData);
+              } else {
+                console.warn("No forecast column found in CSV");
+                setParsedCsvData([]);
+              }
+            }
+          },
+          error: (error) => {
+            console.error("CSV parsing error:", error);
+            setError("Error parsing CSV data");
+          },
+        });
+      } catch (err) {
+        console.error("Error fetching file content:", err);
+        setFileContent("Failed to load file content.");
+        setError(err.message);
+      }
+    };
+
+    fetchFileContent();
+  }, [forecastData?.filename]);
+
+  // Fetch configuration data
   useEffect(() => {
     const fetchConfiguration = async () => {
       if (!forecastData?.id || !forecastData?.model) {
@@ -30,8 +188,6 @@ export default function ForecastResult() {
       try {
         setIsLoading(true);
         setError(null);
-
-        // Fix the endpoint URL for ESN model
 
         const modelKey =
           forecastData.model.toLowerCase() === "dhr-esn"
@@ -46,7 +202,7 @@ export default function ForecastResult() {
         }
 
         const data = await response.json();
-        console.log("ESN Configuration data received:", data); // Debug log
+        console.log("Configuration data received:", data);
         setConfig(data);
       } catch (error) {
         console.error("Error fetching configuration:", error);
@@ -63,7 +219,7 @@ export default function ForecastResult() {
   const handleViewGraphs = () => {
     navigate("/view-graph", {
       state: {
-        data: forecastData?.data || [],
+        data: parsedCsvData, // Pass forecast values only
         forecastId: forecastData?.id,
       },
     });
@@ -74,7 +230,8 @@ export default function ForecastResult() {
     console.log("handleEdit - forecastData:", forecastData);
     const queryParams = new URLSearchParams({
       model: forecastData.model || "",
-      originalFileName: forecastData.original_filename || "",
+      originalFileName:
+        forecastData.filename || forecastData.original_filename || "",
       forecastType: forecastData.forecastType || "",
       steps: forecastData.steps || "",
       granularity: forecastData.granularity || "",
@@ -113,9 +270,7 @@ export default function ForecastResult() {
       },
     };
 
-    // Convert steps to number if it's a string
     const stepsNum = Number(steps);
-
     return stepLabels[granularity]?.[stepsNum] || `${steps} Steps`;
   };
 

@@ -14,6 +14,8 @@ const ModelSelection = () => {
   const originalFileName = query.get("originalFileName");
   const forecastType = query.get("forecastType");
 
+  const [energyDemand, setEnergyDemand] = useState("");
+  const [maxCapacity, setMaxCapacity] = useState("");
   const [granularity, setGranularity] = useState("Hourly");
   const [steps, setSteps] = useState("1");
   const [modelType, setModelType] = useState("");
@@ -68,7 +70,9 @@ const ModelSelection = () => {
         originalFileName
       )}&forecastType=${encodeURIComponent(
         forecastType
-      )}&granularity=${granularity}&steps=${steps}&modelType=${modelType}&model=${model}`
+      )}&granularity=${granularity}&steps=${steps}&modelType=${modelType}&model=${model}&energyDemand=${encodeURIComponent(
+        energyDemand
+      )}&maxCapacity=${encodeURIComponent(maxCapacity)}`
     );
   };
   const backgroundImage = forecastType
@@ -103,6 +107,50 @@ const ModelSelection = () => {
               {originalFileName || "No file selected"}
             </p>
           </div>
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="energyDemand"
+            className="block text-sm font-medium mb-1">
+            Energy Demand (kWh)
+          </label>
+          <input
+            type="text"
+            id="energyDemand"
+            name="energyDemand"
+            value={energyDemand}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^\d*\.?\d*$/.test(value)) {
+                setEnergyDemand(value);
+              }
+            }}
+            className="block w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="energyDemand"
+            className="block text-sm font-medium mb-1">
+            Max Energy Capacity (kWh)
+          </label>
+          <input
+            type="text"
+            id="maxCapacity"
+            name="maxCapacity"
+            value={maxCapacity}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^\d*\.?\d*$/.test(value)) {
+                setMaxCapacity(e.target.value);
+              }
+            }}
+            className="block w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
+          />
         </div>
 
         <div className="mb-4">

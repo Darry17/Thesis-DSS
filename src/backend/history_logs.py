@@ -32,6 +32,7 @@ def register_history_log_routes(app: FastAPI):
             
             db_log = HistoryLog(
                 file_name=log.file_name,
+                forecast_type=log.forecast_type,
                 granularity=log.granularity,
                 steps=log.steps,
                 model=log.model,
@@ -109,6 +110,7 @@ def register_history_log_routes(app: FastAPI):
             deleted_forecast = DeletedForecast(
                 forecast_id=forecast_id,
                 file_name=history_log.file_name,
+                forecast_type=history_log.forecast_type,
                 granularity=history_log.granularity,
                 steps=history_log.steps,
                 model=history_log.model,
@@ -140,6 +142,7 @@ def register_history_log_routes(app: FastAPI):
             recovered_log = HistoryLog(
                 forecast_id=deleted_forecast.forecast_id,
                 file_name=deleted_forecast.file_name,
+                forecast_type=deleted_forecast.forecast_type,
                 granularity=deleted_forecast.granularity,
                 steps=deleted_forecast.steps,
                 model=deleted_forecast.model,
