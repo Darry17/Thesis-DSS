@@ -4,7 +4,12 @@ import UnoCSS from "unocss/vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), UnoCSS()],
+  plugins: [
+    react(),
+    UnoCSS({
+      safelist: ["text-white", "text-black", "border-white", "border-black"],
+    }),
+  ],
   resolve: {
     alias: {
       "@": "/src",

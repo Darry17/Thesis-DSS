@@ -160,31 +160,61 @@ const ViewLogs = () => {
   };
 
   const createChartFromCsvData = (data) => {
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {
+      setError("No data available in CSV file");
+      return;
+    }
 
-    // Define color schemes
+    // Check if datetime or timestamp column exists
+    const hasDatetime = "datetime" in data[0];
+    const hasTimestamp = "timestamp" in data[0];
+    if (!hasDatetime && !hasTimestamp) {
+      setError("CSV file missing required 'datetime' or 'timestamp' column");
+      return;
+    }
+
     const colorSchemes = [
       {
         borderColor: "rgba(75, 192, 192, 1)",
         backgroundColor: "rgba(75, 192, 192, 0.2)",
-      }, // Teal
+      },
       {
         borderColor: "rgba(153, 102, 255, 1)",
         backgroundColor: "rgba(153, 102, 255, 0.2)",
-      }, // Purple
+      },
       {
         borderColor: "rgba(255, 159, 64, 1)",
         backgroundColor: "rgba(255, 159, 64, 0.2)",
-      }, // Orange
+      },
     ];
+
+    // Filter rows to ensure they have a valid date and at least one forecast value
+    const validData = data.filter((item) => {
+      const dateKey = hasDatetime ? "datetime" : "timestamp";
+      const hasDate =
+        item[dateKey] !== undefined &&
+        item[dateKey] !== null &&
+        item[dateKey] !== "";
+      const hasAtLeastOneForecast =
+        (item.dhr_forecast !== undefined && !isNaN(item.dhr_forecast)) ||
+        (item.esn_forecast !== undefined && !isNaN(item.esn_forecast)) ||
+        (item.hybrid_forecast !== undefined && !isNaN(item.hybrid_forecast));
+      return hasDate && hasAtLeastOneForecast;
+    });
+
+    if (validData.length === 0) {
+      setError("No valid data with dates and forecast values found in CSV");
+      return;
+    }
 
     const datasets = [];
 
-    // Add datasets for each forecast type
-    if ("dhr_forecast" in data[0]) {
+    if ("dhr_forecast" in validData[0]) {
       datasets.push({
         label: "DHR Forecast",
-        data: data.map((item) => item.dhr_forecast),
+        data: validData.map((item) =>
+          isNaN(item.dhr_forecast) ? null : item.dhr_forecast
+        ),
         borderColor: colorSchemes[0].borderColor,
         backgroundColor: colorSchemes[0].backgroundColor,
         tension: 0.1,
@@ -192,10 +222,12 @@ const ViewLogs = () => {
       });
     }
 
-    if ("esn_forecast" in data[0]) {
+    if ("esn_forecast" in validData[0]) {
       datasets.push({
         label: "ESN Forecast",
-        data: data.map((item) => item.esn_forecast),
+        data: validData.map((item) =>
+          isNaN(item.esn_forecast) ? null : item.esn_forecast
+        ),
         borderColor: colorSchemes[1].borderColor,
         backgroundColor: colorSchemes[1].backgroundColor,
         tension: 0.1,
@@ -203,10 +235,12 @@ const ViewLogs = () => {
       });
     }
 
-    if ("hybrid_forecast" in data[0]) {
+    if ("hybrid_forecast" in validData[0]) {
       datasets.push({
         label: "Hybrid Forecast",
-        data: data.map((item) => item.hybrid_forecast),
+        data: validData.map((item) =>
+          isNaN(item.hybrid_forecast) ? null : item.hybrid_forecast
+        ),
         borderColor: colorSchemes[2].borderColor,
         backgroundColor: colorSchemes[2].backgroundColor,
         tension: 0.1,
@@ -214,8 +248,14 @@ const ViewLogs = () => {
       });
     }
 
+    if (datasets.length === 0) {
+      setError("No valid forecast columns found in CSV data");
+      return;
+    }
+
+    const dateKey = hasDatetime ? "datetime" : "timestamp";
     setChartData({
-      labels: data.map((item) => item.timestamp),
+      labels: validData.map((item) => item[dateKey]),
       datasets: datasets,
     });
   };
@@ -289,6 +329,8 @@ const ViewLogs = () => {
 
       // Normalize the model type for consistent handling
       const modelType = (forecastData.model || "").toUpperCase();
+      const normalizedModelType =
+        modelType === "DHR-ESN" ? "HYBRID" : modelType;
       console.log("Model type:", modelType);
 
       // Handle different model types and their configuration endpoints
@@ -386,37 +428,6 @@ const ViewLogs = () => {
             if (Object.keys(extractedEsnConfig).length > 0) {
               setEsnConfig(extractedEsnConfig);
             }
-          }
-        }
-
-        // If hybrid config doesn't have what we need, try individual endpoints as fallback
-        if (!dhrConfig) {
-          try {
-            const dhrResponse = await fetch(
-              `http://localhost:8000/api/dhr-configurations/${forecastId}`
-            );
-            if (dhrResponse.ok) {
-              const dhrData = await dhrResponse.json();
-              setDhrConfig(dhrData);
-              console.log("DHR config fetched separately:", dhrData);
-            }
-          } catch (err) {
-            console.warn("Could not fetch DHR config separately:", err);
-          }
-        }
-
-        if (!esnConfig) {
-          try {
-            const esnResponse = await fetch(
-              `http://localhost:8000/api/esn-configurations/${forecastId}`
-            );
-            if (esnResponse.ok) {
-              const esnData = await esnResponse.json();
-              setEsnConfig(esnData);
-              console.log("ESN config fetched separately:", esnData);
-            }
-          } catch (err) {
-            console.warn("Could not fetch ESN config separately:", err);
           }
         }
       }

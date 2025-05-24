@@ -28,6 +28,7 @@ export default function ViewGraph() {
   const navigate = useNavigate();
   const [forecastData, setForecastData] = useState(null);
   const [csvData, setCsvData] = useState(null);
+  const [chartData, setChartData] = useState({ labels: [], datasets: [] }); // New state for chart data
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -102,7 +103,10 @@ export default function ViewGraph() {
       }
 
       const csvText = await response.text();
-      console.log("CSV data fetched successfully");
+      console.log("Raw CSV content:", csvText);
+      if (!csvText.trim()) {
+        throw new Error("CSV file is empty");
+      }
 
       // Parse CSV data
       Papa.parse(csvText, {
@@ -110,41 +114,48 @@ export default function ViewGraph() {
         dynamicTyping: true,
         skipEmptyLines: true,
         complete: (results) => {
-          console.log("Parsed CSV data:", results);
+          console.log("Parsed CSV data:", results.data);
+          console.log("Parsed CSV errors:", results.errors);
+          if (results.data.length === 0) {
+            setError("No data found in CSV file");
+            return;
+          }
 
           // Check for our specific forecast columns
           const firstRow = results.data[0] || {};
+          console.log("First row of CSV:", firstRow);
           const hasSpecificForecastColumns =
             "dhr_forecast" in firstRow ||
             "esn_forecast" in firstRow ||
             "hybrid_forecast" in firstRow;
 
           if (hasSpecificForecastColumns) {
-            // Keep the data as is since it already has our expected columns
             setCsvData(results.data);
           } else {
             // Handle possible column naming variations for generic forecast data
-            const processedData = results.data.map((row) => {
-              // Look for timestamp column (might be named timestamp, date, time, etc.)
-              const timestampKey = Object.keys(row).find(
-                (key) =>
-                  key.toLowerCase().includes("time") ||
-                  key.toLowerCase().includes("date")
-              );
+            const timestampKey = Object.keys(firstRow).find((key) =>
+              ["time", "date", "timestamp", "datetime"].some((term) =>
+                key.toLowerCase().includes(term)
+              )
+            );
 
-              // Look for forecast/value column
-              const forecastKey = Object.keys(row).find(
-                (key) =>
-                  key.toLowerCase().includes("forecast") ||
-                  key.toLowerCase().includes("value") ||
-                  key.toLowerCase().includes("power")
-              );
+            const forecastKey = Object.keys(firstRow).find((key) =>
+              ["forecast", "value", "power", "prediction", "hybrid"].some(
+                (term) => key.toLowerCase().includes(term)
+              )
+            );
 
-              return {
-                timestamp: row[timestampKey] || "Unknown",
-                forecast: row[forecastKey] || 0,
-              };
-            });
+            if (!timestampKey || !forecastKey) {
+              setError(
+                "CSV file missing required timestamp or forecast columns"
+              );
+              return;
+            }
+
+            const processedData = results.data.map((row) => ({
+              timestamp: row[timestampKey] || "Unknown",
+              forecast: row[forecastKey] || 0,
+            }));
 
             setCsvData(processedData);
           }
@@ -160,95 +171,169 @@ export default function ViewGraph() {
     }
   };
 
-  const handleBack = () => navigate(-1);
-  const handlePrint = () => window.print();
+  // Process chart data when csvData or state.data changes
+  useEffect(() => {
+    // Reset chart data and error
+    setChartData({ labels: [], datasets: [] });
+    setError(null);
 
-  // Use csvData for the chart if available, otherwise fallback to state.data
-  const chartData = {
-    labels:
-      csvData?.map((item) => item.timestamp) ||
-      state?.data?.map((item) => item.timestamp) ||
-      [],
-    datasets: [],
-  };
+    // Determine the date column key (datetime or timestamp)
+    const dateKey =
+      csvData && csvData.length > 0
+        ? "datetime" in csvData[0]
+          ? "datetime"
+          : "timestamp" in csvData[0]
+          ? "timestamp"
+          : null
+        : state?.data && state.data.length > 0
+        ? "timestamp" in state.data[0]
+          ? "timestamp"
+          : "datetime" in state.data[0]
+          ? "datetime"
+          : null
+        : null;
 
-  // Define color schemes for different forecast types
-  const colorSchemes = [
-    {
-      borderColor: "rgba(75, 192, 192, 1)",
-      backgroundColor: "rgba(75, 192, 192, 0.2)",
-    }, // Teal
-    {
-      borderColor: "rgba(153, 102, 255, 1)",
-      backgroundColor: "rgba(153, 102, 255, 0.2)",
-    }, // Purple
-    {
-      borderColor: "rgba(255, 159, 64, 1)",
-      backgroundColor: "rgba(255, 159, 64, 0.2)",
-    }, // Orange
-  ];
+    if (!dateKey && csvData?.length > 0) {
+      setError("CSV file missing required 'datetime' or 'timestamp' column");
+      return;
+    }
 
-  // If we have csvData with multiple forecasts
-  if (csvData && csvData.length > 0) {
-    // Check for hybrid forecast columns
-    const hasHybridForecasts =
-      csvData[0].hasOwnProperty("dhr_forecast") ||
-      csvData[0].hasOwnProperty("esn_forecast") ||
-      csvData[0].hasOwnProperty("hybrid_forecast");
+    const newChartData = { labels: [], datasets: [] };
 
-    if (hasHybridForecasts) {
-      // Add DHR forecast if it exists
-      if (csvData[0].hasOwnProperty("dhr_forecast")) {
-        chartData.datasets.push({
-          label: "DHR Forecast",
-          data: csvData.map((item) => item.dhr_forecast),
+    // Define color schemes for different forecast types
+    const colorSchemes = [
+      {
+        borderColor: "rgba(75, 192, 192, 1)",
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+      },
+      {
+        borderColor: "rgba(153, 102, 255, 1)",
+        backgroundColor: "rgba(153, 102, 255, 0.2)",
+      },
+      {
+        borderColor: "rgba(255, 159, 64, 1)",
+        backgroundColor: "rgba(255, 159, 64, 0.2)",
+      },
+    ];
+
+    // If we have csvData
+    if (csvData && csvData.length > 0 && dateKey) {
+      // Filter rows to ensure they have a valid date and at least one forecast value
+      const validData = csvData.filter((item) => {
+        const hasDate =
+          item[dateKey] !== undefined &&
+          item[dateKey] !== null &&
+          item[dateKey] !== "";
+        const hasAtLeastOneForecast =
+          (item.dhr_forecast !== undefined && !isNaN(item.dhr_forecast)) ||
+          (item.esn_forecast !== undefined && !isNaN(item.esn_forecast)) ||
+          (item.hybrid_forecast !== undefined &&
+            !isNaN(item.hybrid_forecast)) ||
+          (item.forecast !== undefined && !isNaN(item.forecast));
+        return hasDate && hasAtLeastOneForecast;
+      });
+
+      if (validData.length === 0) {
+        setError("No valid data with dates and forecast values found in CSV");
+        return;
+      }
+
+      newChartData.labels = validData.map((item) => item[dateKey]);
+
+      // Check for hybrid forecast columns
+      const hasHybridForecasts =
+        validData[0].hasOwnProperty("dhr_forecast") ||
+        validData[0].hasOwnProperty("esn_forecast") ||
+        validData[0].hasOwnProperty("hybrid_forecast");
+
+      if (hasHybridForecasts) {
+        // Add DHR forecast if it exists
+        if (validData[0].hasOwnProperty("dhr_forecast")) {
+          newChartData.datasets.push({
+            label: "DHR Forecast",
+            data: validData.map((item) =>
+              isNaN(item.dhr_forecast) ? null : item.dhr_forecast
+            ),
+            borderColor: colorSchemes[0].borderColor,
+            backgroundColor: colorSchemes[0].backgroundColor,
+            tension: 0.1,
+          });
+        }
+
+        // Add ESN forecast if it exists
+        if (validData[0].hasOwnProperty("esn_forecast")) {
+          newChartData.datasets.push({
+            label: "ESN Forecast",
+            data: validData.map((item) =>
+              isNaN(item.esn_forecast) ? null : item.esn_forecast
+            ),
+            borderColor: colorSchemes[1].borderColor,
+            backgroundColor: colorSchemes[1].backgroundColor,
+            tension: 0.1,
+          });
+        }
+
+        // Add Hybrid forecast if it exists
+        if (validData[0].hasOwnProperty("hybrid_forecast")) {
+          newChartData.datasets.push({
+            label: "Hybrid Forecast",
+            data: validData.map((item) =>
+              isNaN(item.hybrid_forecast) ? null : item.hybrid_forecast
+            ),
+            borderColor: colorSchemes[2].borderColor,
+            backgroundColor: colorSchemes[2].backgroundColor,
+            tension: 0.1,
+          });
+        }
+      } else {
+        // Fallback to generic forecast if no specific columns
+        newChartData.datasets.push({
+          label: "Forecast",
+          data: validData.map((item) =>
+            isNaN(item.forecast) ? null : item.forecast
+          ),
           borderColor: colorSchemes[0].borderColor,
           backgroundColor: colorSchemes[0].backgroundColor,
           tension: 0.1,
         });
       }
+    } else if (state?.data && state.data.length > 0 && dateKey) {
+      // Fallback to state data
+      const validStateData = state.data.filter((item) => {
+        const hasDate =
+          item[dateKey] !== undefined &&
+          item[dateKey] !== null &&
+          item[dateKey] !== "";
+        const hasForecast =
+          item.forecast !== undefined && !isNaN(item.forecast);
+        return hasDate && hasForecast;
+      });
 
-      // Add ESN forecast if it exists
-      if (csvData[0].hasOwnProperty("esn_forecast")) {
-        chartData.datasets.push({
-          label: "ESN Forecast",
-          data: csvData.map((item) => item.esn_forecast),
-          borderColor: colorSchemes[1].borderColor,
-          backgroundColor: colorSchemes[1].backgroundColor,
-          tension: 0.1,
-        });
+      if (validStateData.length === 0) {
+        setError(
+          "No valid data with dates and forecast values found in state data"
+        );
+        return;
       }
 
-      // Add Hybrid forecast if it exists
-      if (csvData[0].hasOwnProperty("hybrid_forecast")) {
-        chartData.datasets.push({
-          label: "Hybrid Forecast",
-          data: csvData.map((item) => item.hybrid_forecast),
-          borderColor: colorSchemes[2].borderColor,
-          backgroundColor: colorSchemes[2].backgroundColor,
-          tension: 0.1,
-        });
-      }
-    } else {
-      // Fallback to generic forecast if no specific columns
-      chartData.datasets.push({
+      newChartData.labels = validStateData.map((item) => item[dateKey]);
+      newChartData.datasets.push({
         label: "Forecast",
-        data: csvData.map((item) => item.forecast),
+        data: validStateData.map((item) =>
+          isNaN(item.forecast) ? null : item.forecast
+        ),
         borderColor: colorSchemes[0].borderColor,
         backgroundColor: colorSchemes[0].backgroundColor,
         tension: 0.1,
       });
     }
-  } else if (state?.data && state.data.length > 0) {
-    // Fallback to state data
-    chartData.datasets.push({
-      label: "Forecast",
-      data: state.data.map((item) => item.forecast),
-      borderColor: colorSchemes[0].borderColor,
-      backgroundColor: colorSchemes[0].backgroundColor,
-      tension: 0.1,
-    });
-  }
+
+    console.log("Setting chart data:", newChartData);
+    setChartData(newChartData);
+  }, [csvData, state?.data]); // Dependencies: re-run when csvData or state.data changes
+
+  const handleBack = () => navigate(-1);
+  const handlePrint = () => window.print();
 
   // Add print stylesheet
   useEffect(() => {

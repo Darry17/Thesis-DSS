@@ -7,7 +7,6 @@ const Navigation = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
 
-  // Check token and decode username on mount and route changes
   useEffect(() => {
     const token = localStorage.getItem("token")?.trim();
     if (token) {
@@ -17,21 +16,16 @@ const Navigation = () => {
         setIsLoggedIn(true);
       } catch (e) {
         console.error("Error decoding token:", e);
-        localStorage.removeItem("token"); // Clear invalid token
+        localStorage.removeItem("token");
         setIsLoggedIn(false);
         setUsername("");
       }
     } else {
       setIsLoggedIn(false);
       setUsername("");
-      // Optional: Redirect to login for protected routes
-      // if (location.pathname !== "/" && location.pathname !== "/history") {
-      //   navigate("/", { replace: true });
-      // }
     }
   }, [location.pathname, navigate]);
 
-  // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
@@ -39,18 +33,17 @@ const Navigation = () => {
     navigate("/", { replace: true });
   };
 
-  // Determine text color based on route
-  const isWhiteText = ["/", "/forecast", "/generate"].includes(
+  const isWhiteText = ["/", "/upload", "/model-selection"].includes(
     location.pathname
   );
 
   const forecastRelatedPages = [
+    "/upload",
     "/select-type",
     "/model-selection",
-    "/result",
     "/view-graph",
-    "/single-model-config",
-    "/hybrid-model-config",
+    "/configure-single",
+    "/configure-hybrid",
     "/result",
   ];
 
@@ -59,28 +52,29 @@ const Navigation = () => {
   const isHistoryRelated = ["/view-logs"].includes(location.pathname);
   const isForecastRelated = forecastRelatedPages.includes(location.pathname);
 
-  const linkClass = "block py-2 px-4 rounded";
+  const linkClass = "block px-4 rounded";
 
   return (
-    <div className="top-0 left-0 right-0 text-white p-4 font-medium">
-      <div className="flex justify-between items-center ">
-        {/* Navigation Links */}
+    <div className="top-0 left-0 right-0 p-4 font-semibold">
+      <div className="flex justify-between items-center text-lg">
         <ul
           className={`flex space-x-4 list-none ${
             isWhiteText ? "text-white" : "text-black"
           }`}>
-          <li className="list-none;">
+          <li className="list-none">
             <NavLink
               to="/"
               className={({ isActive }) =>
                 `${linkClass} ${
                   isActive
-                    ? `border-b-2 rounded-none underline-offset-8 text-inherit visited:text-inherit hover:text-inherit ${
-                        isActive && !isForecastRelated
-                          ? "border-white"
-                          : "border-black"
+                    ? `border-b-2 rounded-none underline-offset-8 ${
+                        isWhiteText
+                          ? "text-white border-white"
+                          : "text-black border-black"
                       }`
-                    : ""
+                    : isWhiteText
+                    ? "text-white no-underline"
+                    : "text-black no-underline"
                 }`
               }>
               Dashboard
@@ -92,12 +86,14 @@ const Navigation = () => {
               className={({ isActive }) =>
                 `${linkClass} ${
                   isActive || isForecastRelated
-                    ? `border-b-2 rounded-none underline-offset-8 text-inherit visited:text-inherit hover:text-inherit ${
-                        (isActive && !isForecastRelated) || isWhiteText
-                          ? "border-white"
-                          : "border-black"
+                    ? `border-b-2 rounded-none underline-offset-8 ${
+                        isWhiteText
+                          ? "text-white border-white"
+                          : "text-black border-black"
                       }`
-                    : ""
+                    : isWhiteText
+                    ? "text-white no-underline"
+                    : "text-black no-underline"
                 }`
               }>
               Forecast
@@ -109,10 +105,14 @@ const Navigation = () => {
               className={({ isActive }) =>
                 `${linkClass} ${
                   isActive || isHistoryRelated
-                    ? `border-b-2 pb-0 rounded-none no-underline ${
-                        isWhiteText ? "border-white" : "border-black"
+                    ? `border-b-2 rounded-none underline-offset-8 ${
+                        isWhiteText
+                          ? "text-white border-white"
+                          : "text-black border-black"
                       }`
-                    : ""
+                    : isWhiteText
+                    ? "text-white no-underline"
+                    : "text-black no-underline"
                 }`
               }>
               History
@@ -121,7 +121,7 @@ const Navigation = () => {
         </ul>
         <NavLink
           to="/login"
-          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600">
+          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 no-underline">
           Admin
         </NavLink>
       </div>
