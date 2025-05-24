@@ -118,7 +118,6 @@ def register_history_log_routes(app: FastAPI):
                 date=datetime.now()
             )
             db.add(deleted_forecast)
-            db.query(Forecast).filter(Forecast.id == forecast_id).delete()
             db.query(HistoryLog).filter(HistoryLog.forecast_id == forecast_id).delete()
             db.commit()
             return {"message": "Forecast deleted successfully"}

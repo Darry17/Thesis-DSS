@@ -64,7 +64,6 @@ class User(Base):
     password = Column(String(255), nullable=False)
     access_control = Column(String(20), nullable=False)
     created_at = Column(DateTime, default=datetime.now)
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
 
 class HistoryLog(Base):
     __tablename__ = "history_logs"

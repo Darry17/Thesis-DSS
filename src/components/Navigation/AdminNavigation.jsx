@@ -43,19 +43,6 @@ const AdminNavigation = () => {
         <ul className="flex flex-col space-y-5">
           <li>
             <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `${linkClass} ${
-                  isActive
-                    ? "bg-gray-300 border-l-4 border-black"
-                    : "hover:bg-gray-400"
-                }`
-              }>
-              Preset Configuration
-            </NavLink>
-          </li>
-          <li>
-            <NavLink
               to="/history"
               className={({ isActive }) =>
                 `${linkClass} ${

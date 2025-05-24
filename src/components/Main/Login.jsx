@@ -22,7 +22,7 @@ const Login = () => {
         })
         .then((response) => {
           // If token is valid, redirect to dashboard
-          navigate("/admin");
+          navigate("/history");
         })
         .catch((err) => {
           console.error("Token validation failed:", err);
@@ -48,7 +48,7 @@ const Login = () => {
       localStorage.setItem("token", response.data.access_token);
 
       // Redirect to dashboard
-      navigate("/admin");
+      navigate("/history");
     } catch (error) {
       console.error("Login failed:", error);
       if (error.response && error.response.status === 401) {

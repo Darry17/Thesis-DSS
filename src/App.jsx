@@ -15,7 +15,6 @@ import {
   ConfigureSingle,
   Dashboard,
   FileUpload,
-  Admin,
   Account,
   RecoveryLogs,
   Login,
@@ -130,7 +129,6 @@ const AppContent = () => {
             <Route path="/history" element={<History />} />
 
             <Route element={<ProtectedRoute />}>
-              <Route path="/admin" element={<Admin />} />
               <Route path="/accounts" element={<Account />} />
               <Route path="/recovery-logs" element={<RecoveryLogs />} />
             </Route>

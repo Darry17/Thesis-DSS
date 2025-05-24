@@ -154,6 +154,7 @@ const History = () => {
             <thead className="bg-gray-100">
               <tr>
                 <th className="py-3 px-4 text-left border-b">File Name</th>
+                <th className="py-3 px-4 text-left border-b">Forecast Type</th>
                 <th className="py-3 px-4 text-left border-b">Granularity</th>
                 <th className="py-3 px-4 text-left border-b">Steps</th>
                 <th className="py-3 px-4 text-left border-b">Model</th>
@@ -174,6 +175,11 @@ const History = () => {
                 logs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50">
                     <td className="py-3 px-4 border-b">{log.file_name}</td>
+                    <td className="py-3 px-4 border-b">
+                      {log.forecast_type.charAt(0).toUpperCase() +
+                        log.forecast_type.slice(1).toLowerCase()}
+                    </td>
+
                     <td className="py-3 px-4 border-b">{log.granularity}</td>
                     <td className="py-3 px-4 border-b">{log.steps}</td>
                     <td className="py-3 px-4 border-b">

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.middleware.cors import CORSMiddleware  # Import CORS middleware
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -12,7 +13,22 @@ from dotenv import load_dotenv
 from model import User, UserCreate, UserUpdate, UserResponse, LoginRequest
 from db import get_db
 
-router = APIRouter()
+# Initialize FastAPI app
+app = FastAPI()  # Changed from router to app for CORS middleware
+
+# Configure CORS
+origins = [
+    "http://localhost:5173",  # React frontend origin
+    "http://localhost:3000",  # Optional: add other origins if needed
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allow specific origins
+    allow_credentials=True,  # Allow cookies and credentials
+    allow_methods=["*"],    # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],    # Allow all headers
+)
 
 # Load environment variables
 load_dotenv()
@@ -60,6 +76,9 @@ def get_admin_user(current_user: dict = Depends(get_current_user)):
     if current_user["access_control"] != "ADMIN":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+# Router for API endpoints
+router = APIRouter()
 
 @router.post("/login")
 async def login(request: LoginRequest, db: Session = Depends(get_db)):
@@ -153,3 +172,6 @@ async def delete_user(
     db.delete(db_user)
     db.commit()
     return {"message": "User deleted successfully"}
+
+# Mount the router to the app
+app.include_router(router)
