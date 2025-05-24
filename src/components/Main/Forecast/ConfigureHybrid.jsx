@@ -544,11 +544,10 @@ const ConfigureHybrid = () => {
   };
 
   const getStepTitle = (stepNum) => {
-    const action = isEditing ? "Edit" : "Configure";
     if (stepNum === 1) {
-      return `${action} Dynamic Harmonic Regression`;
+      return `Dynamic Harmonic Regression`;
     } else {
-      return `${action} Echo State Network`;
+      return `Echo State Network`;
     }
   };
 

@@ -473,14 +473,13 @@ export default function ConfigureSingle() {
   };
 
   const getModelTitle = () => {
-    const action = isEditing ? "Edit" : "Configure";
     switch (model) {
       case "DHR":
-        return `${action} Dynamic Harmonic Regression`;
+        return `Dynamic Harmonic Regression`;
       case "ESN":
-        return `${action} Echo State Networks`;
+        return `Echo State Networks`;
       default:
-        return `${action} Model Configuration`;
+        return `Model Configuration`;
     }
   };
 
