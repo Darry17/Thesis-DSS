@@ -310,7 +310,7 @@ const ViewLogs = () => {
           setEsnConfig(esnData);
           console.log("ESN config fetched:", esnData);
         }
-      } else if (modelType === "HYBRID" || modelType === "DHR-ESN") {
+      } else if (modelType === "DHR-ESN") {
         // For hybrid models, fetch both configurations
 
         // First, fetch hybrid config which might contain both configurations
