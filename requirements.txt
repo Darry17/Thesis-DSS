@@ -6,3 +6,7 @@ mysql-connector-python
 PyMySQL
 PyJWT
 passlib[bcrypt]
+pandas
+numpy
+scikit-learn
+matplotlib
