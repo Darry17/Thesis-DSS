@@ -49,7 +49,7 @@ cd Thesis-DSS
 Frontend:
 
 ```bash
-npm install @tailwindcss/vite axios comlink fs papaparse react react-dom react-dropzone react-router-dom @eslint/js @types/react @types/react-dom @vitejs/plugin-react eslint eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-react-refresh globals vite worker-loader
+npm install @tailwindcss/vite axios comlink fs papaparse react react-dom react-dropzone react-router-dom @eslint/js @types/react @types/react-dom @vitejs/plugin-react eslint eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-react-refresh globals vite worker-loader unocss react-chartjs-2
 ```
 
 Backend:
