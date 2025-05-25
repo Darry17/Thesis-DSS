@@ -497,11 +497,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "fourier_terms" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Number of Fourier terms for capturing seasonality (default:{" "}
-                {forecastType === "solar" && granularity === "daily"
-                  ? "4"
-                  : "3"}
-                )
+                Number of Fourier terms for capturing seasonality
               </div>
             )}
           </label>
@@ -524,11 +520,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "window" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Window size for smoothing (default:{" "}
-                {forecastType === "solar" && granularity === "daily"
-                  ? "7"
-                  : "23"}
-                )
+                Window size for smoothing
               </div>
             )}
           </label>
@@ -553,11 +545,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "polyorder" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Order of polynomial for Savitzky-Golay smoothing (default:{" "}
-                {forecastType === "solar" && granularity === "daily"
-                  ? "2"
-                  : "3"}
-                )
+                Order of polynomial for Savitzky-Golay smoothing
               </div>
             )}
           </label>
@@ -580,11 +568,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "reg_strength" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Ridge regression regularization parameter (default:{" "}
-                {forecastType === "solar" && granularity === "daily"
-                  ? "0.006"
-                  : "0.0001000100524"}
-                )
+                Ridge regression regularization parameter
               </div>
             )}
           </label>
@@ -609,7 +593,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "trend_components" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Number of past values to use for autoregression (default: 3)
+                Number of past values to use for autoregression
               </div>
             )}
           </label>
@@ -656,7 +640,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "N_res" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Number of neurons in the reservoir (default: 800)
+                Number of neurons in the reservoir
               </div>
             )}
           </label>
@@ -680,7 +664,7 @@ export default function ConfigureSingle() {
             {tooltipVisible === "lambda_reg" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
                 Regularization parameter for ESN training. Helps prevent
-                overfitting (default: 0.000000021)
+                overfitting
               </div>
             )}
           </label>
@@ -705,7 +689,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "rho" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Controls echo state property (default: 0.93)
+                Controls echo state property
               </div>
             )}
           </label>
@@ -728,7 +712,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "alpha" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Scaling factor applied to the input data (default: 0.72)
+                Scaling factor applied to the input data
               </div>
             )}
           </label>
@@ -753,7 +737,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "sparsity" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Reservoir connectivity (default: 0.13)
+                Reservoir connectivity
               </div>
             )}
           </label>
@@ -776,7 +760,7 @@ export default function ConfigureSingle() {
             </span>
             {tooltipVisible === "lags" && (
               <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Number of time steps as input (default: 24)
+                Number of time steps as input
               </div>
             )}
           </label>
@@ -831,7 +815,7 @@ export default function ConfigureSingle() {
               {message}
             </p>
           )}
-          {isLoading && <div className="loading-bar"></div>}
+          {isLoading && <div className="ml-2 mb-7 loading-bar"></div>}
           {renderForm()}
         </div>
       </div>

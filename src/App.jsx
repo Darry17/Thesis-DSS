@@ -40,7 +40,7 @@ const AppContent = () => {
       "/",
       "/upload",
       "/generate",
-      "/select-forecast",
+      "/select-type",
       "/configure-single",
       "/configure-hybrid",
       "/login",
@@ -49,13 +49,7 @@ const AppContent = () => {
       "/recovery-logs",
     ];
 
-    const responsiveOverflowRoutes = [
-      "/history",
-      "/view-logs",
-      "/generate",
-      "/configure-single",
-      "/configure-hybrid",
-    ];
+    const responsiveOverflowRoutes = ["/history", "/view-logs", "/generate"];
 
     const handleOverflow = () => {
       const isResponsiveRoute = responsiveOverflowRoutes.includes(
@@ -64,9 +58,7 @@ const AppContent = () => {
       let isNoOverflow = false;
 
       // Target the root container and main content area
-      const rootContainer = document.querySelector(
-        ".min-h-screen.flex.flex-col"
-      );
+      const rootContainer = document.querySelector(".root-container");
       const mainContent = document.querySelector(".main-content");
       const viewportHeight = document.documentElement.clientHeight;
 
@@ -93,8 +85,8 @@ const AppContent = () => {
       document.body.classList.toggle("no-overflow", isNoOverflow);
     };
 
-    // Run initially with a delay to ensure DOM is rendered
-    setTimeout(handleOverflow, 300); // Increased to 300ms for safety
+    // Run initially with requestAnimationFrame for better timing
+    requestAnimationFrame(handleOverflow);
     window.addEventListener("resize", handleOverflow);
 
     // Cleanup on route change or unmount
@@ -105,7 +97,7 @@ const AppContent = () => {
   }, [location.pathname, isLoggedIn]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="root-container min-h-screen flex flex-col">
       {!isAdminRoute && <Navigation />}
       <div className="flex flex-1">
         {isAdminRoute && <AdminNavigation />}
@@ -127,7 +119,6 @@ const AppContent = () => {
             <Route path="/view-logs" element={<ViewLogs />} />
             <Route path="/login" element={<Login />} />
             <Route path="/history" element={<History />} />
-
             <Route element={<ProtectedRoute />}>
               <Route path="/accounts" element={<Account />} />
               <Route path="/recovery-logs" element={<RecoveryLogs />} />

@@ -55,6 +55,8 @@ class TempCleanupMiddleware(BaseHTTPMiddleware):
     def clear_temp_folder(self):
         try:
             for filename in os.listdir(self.temp_folder):
+                if filename == '.gitignore':
+                    continue  # Skip .gitignore files
                 file_path = os.path.join(self.temp_folder, filename)
                 try:
                     if os.path.isfile(file_path):

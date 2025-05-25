@@ -63,15 +63,44 @@ export default function ForecastResult() {
     // Set recommendation
     if (mean > upperbound) {
       setRecommendation(
-        "Forecast analysis shows that generation is likely to exceed demand by more than 10%. Please begin charging battery energy storage systems, consider exporting excess power to the external grid if available, and initiate curtailment of solar or wind units to prevent grid overvoltage. You may also notify large consumers to increase their load through demand response programs."
+        <div>
+          <h3 class="semi-bold">Overgenerate</h3>
+          <p>
+            Forecast analysis shows that generation is likely to exceed demand
+            by more than 10%. Please begin charging battery energy storage
+            systems, consider exporting excess power to the external grid if
+            available, and initiate curtailment of solar or wind units to
+            prevent grid overvoltage. You may also notify large consumers to
+            increase their load through demand response programs.
+          </p>
+        </div>
       );
     } else if (mean < lowerbound) {
       setRecommendation(
-        "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits."
+        <div>
+          <h3 class="semi-bold">Undergenerated</h3>
+          <p>
+            The system anticipates a generation shortfall of over 10% compared
+            to demand. Please dispatch backup generation units immediately,
+            initiate energy imports if grid interconnection is available, and
+            issue a demand response call to reduce load in non-critical sectors.
+            Pre-charge energy storage systems during off-peak hours if time
+            permits.
+          </p>
+        </div>
       );
     } else {
       setRecommendation(
-        "Forecasts indicate that renewable generation and load demand are balanced within a ±10% range. Maintain current grid operations and monitor system frequency. You may optimize the charge/discharge cycle of storage units and schedule minor grid maintenance during this stable period."
+        <div>
+          <h3 class="semi-bold">Balance</h3>
+          <p>
+            Forecasts indicate that renewable generation and load demand are
+            balanced within a ±10% range. Maintain current grid operations and
+            monitor system frequency. You may optimize the charge/discharge
+            cycle of storage units and schedule minor grid maintenance during
+            this stable period.
+          </p>
+        </div>
       );
     }
 

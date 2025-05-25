@@ -8,3 +8,31 @@ body {
   margin: 0;
   height: 100%;
 }
+
+/* src/styles.css */
+.root-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  width: 100%;
+  flex: 1;
+}
+
+.no-overflow {
+  overflow: hidden;
+}
+
+.overflow-y-auto {
+  overflow-y: auto;
+}
+
+.overflow-y-hidden {
+  overflow-y: hidden;
+}
+
+.pl-64 {
+  padding-left: 16rem;
+}

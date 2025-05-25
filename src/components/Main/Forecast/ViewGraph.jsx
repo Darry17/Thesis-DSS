@@ -28,7 +28,7 @@ export default function ViewGraph() {
   const navigate = useNavigate();
   const [forecastData, setForecastData] = useState(null);
   const [csvData, setCsvData] = useState(null);
-  const [chartData, setChartData] = useState({ labels: [], datasets: [] }); // New state for chart data
+  const [chartData, setChartData] = useState({ labels: [], datasets: [] });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -36,12 +36,10 @@ export default function ViewGraph() {
   useEffect(() => {
     const fetchForecastData = async () => {
       try {
-        // Check if state exists
         if (!state || !state.forecastId) {
           throw new Error("No forecast ID provided");
         }
 
-        // Ensure forecastId is a number
         const forecastId = parseInt(state.forecastId, 10);
 
         if (isNaN(forecastId)) {
@@ -70,7 +68,6 @@ export default function ViewGraph() {
         console.log("Received forecast data:", data);
         setForecastData(data);
 
-        // After getting forecast data, fetch the CSV file if a filename exists
         if (data.filename) {
           await fetchCsvData(data.filename);
         }
@@ -108,7 +105,6 @@ export default function ViewGraph() {
         throw new Error("CSV file is empty");
       }
 
-      // Parse CSV data
       Papa.parse(csvText, {
         header: true,
         dynamicTyping: true,
@@ -121,7 +117,6 @@ export default function ViewGraph() {
             return;
           }
 
-          // Check for our specific forecast columns
           const firstRow = results.data[0] || {};
           console.log("First row of CSV:", firstRow);
           const hasSpecificForecastColumns =
@@ -132,7 +127,6 @@ export default function ViewGraph() {
           if (hasSpecificForecastColumns) {
             setCsvData(results.data);
           } else {
-            // Handle possible column naming variations for generic forecast data
             const timestampKey = Object.keys(firstRow).find((key) =>
               ["time", "date", "timestamp", "datetime"].some((term) =>
                 key.toLowerCase().includes(term)
@@ -140,9 +134,14 @@ export default function ViewGraph() {
             );
 
             const forecastKey = Object.keys(firstRow).find((key) =>
-              ["forecast", "value", "power", "prediction", "hybrid"].some(
-                (term) => key.toLowerCase().includes(term)
-              )
+              [
+                "forecast",
+                "forecasted_solar_power",
+                "value",
+                "power",
+                "prediction",
+                "hybrid",
+              ].some((term) => key.toLowerCase().includes(term))
             );
 
             if (!timestampKey || !forecastKey) {
@@ -154,10 +153,25 @@ export default function ViewGraph() {
 
             const processedData = results.data.map((row) => ({
               timestamp: row[timestampKey] || "Unknown",
-              forecast: row[forecastKey] || 0,
+              forecast:
+                row[forecastKey] !== undefined
+                  ? parseFloat(row[forecastKey])
+                  : null,
             }));
 
-            setCsvData(processedData);
+            const validData = processedData.filter(
+              (item) =>
+                item.timestamp !== "Unknown" &&
+                item.forecast !== null &&
+                !isNaN(item.forecast)
+            );
+
+            if (validData.length === 0) {
+              setError("No valid forecast data found in CSV");
+              return;
+            }
+
+            setCsvData(validData);
           }
         },
         error: (error) => {
@@ -173,11 +187,9 @@ export default function ViewGraph() {
 
   // Process chart data when csvData or state.data changes
   useEffect(() => {
-    // Reset chart data and error
     setChartData({ labels: [], datasets: [] });
     setError(null);
 
-    // Determine the date column key (datetime or timestamp)
     const dateKey =
       csvData && csvData.length > 0
         ? "datetime" in csvData[0]
@@ -200,7 +212,6 @@ export default function ViewGraph() {
 
     const newChartData = { labels: [], datasets: [] };
 
-    // Define color schemes for different forecast types
     const colorSchemes = [
       {
         borderColor: "rgba(75, 192, 192, 1)",
@@ -216,9 +227,7 @@ export default function ViewGraph() {
       },
     ];
 
-    // If we have csvData
     if (csvData && csvData.length > 0 && dateKey) {
-      // Filter rows to ensure they have a valid date and at least one forecast value
       const validData = csvData.filter((item) => {
         const hasDate =
           item[dateKey] !== undefined &&
@@ -240,14 +249,12 @@ export default function ViewGraph() {
 
       newChartData.labels = validData.map((item) => item[dateKey]);
 
-      // Check for hybrid forecast columns
       const hasHybridForecasts =
         validData[0].hasOwnProperty("dhr_forecast") ||
         validData[0].hasOwnProperty("esn_forecast") ||
         validData[0].hasOwnProperty("hybrid_forecast");
 
       if (hasHybridForecasts) {
-        // Add DHR forecast if it exists
         if (validData[0].hasOwnProperty("dhr_forecast")) {
           newChartData.datasets.push({
             label: "DHR Forecast",
@@ -260,7 +267,6 @@ export default function ViewGraph() {
           });
         }
 
-        // Add ESN forecast if it exists
         if (validData[0].hasOwnProperty("esn_forecast")) {
           newChartData.datasets.push({
             label: "ESN Forecast",
@@ -273,7 +279,6 @@ export default function ViewGraph() {
           });
         }
 
-        // Add Hybrid forecast if it exists
         if (validData[0].hasOwnProperty("hybrid_forecast")) {
           newChartData.datasets.push({
             label: "Hybrid Forecast",
@@ -286,9 +291,8 @@ export default function ViewGraph() {
           });
         }
       } else {
-        // Fallback to generic forecast if no specific columns
         newChartData.datasets.push({
-          label: "Forecast",
+          label: "Solar Power Forecast",
           data: validData.map((item) =>
             isNaN(item.forecast) ? null : item.forecast
           ),
@@ -298,7 +302,6 @@ export default function ViewGraph() {
         });
       }
     } else if (state?.data && state.data.length > 0 && dateKey) {
-      // Fallback to state data
       const validStateData = state.data.filter((item) => {
         const hasDate =
           item[dateKey] !== undefined &&
@@ -318,7 +321,7 @@ export default function ViewGraph() {
 
       newChartData.labels = validStateData.map((item) => item[dateKey]);
       newChartData.datasets.push({
-        label: "Forecast",
+        label: "Solar Power Forecast",
         data: validStateData.map((item) =>
           isNaN(item.forecast) ? null : item.forecast
         ),
@@ -330,12 +333,11 @@ export default function ViewGraph() {
 
     console.log("Setting chart data:", newChartData);
     setChartData(newChartData);
-  }, [csvData, state?.data]); // Dependencies: re-run when csvData or state.data changes
+  }, [csvData, state?.data]);
 
   const handleBack = () => navigate(-1);
   const handlePrint = () => window.print();
 
-  // Add print stylesheet
   useEffect(() => {
     const style = document.createElement("style");
     style.id = "print-style";
@@ -374,7 +376,7 @@ export default function ViewGraph() {
     plugins: {
       title: {
         display: true,
-        text: "Forecast Over Time",
+        text: "Solar Power Forecast Over Time",
         font: {
           size: 16,
         },
@@ -388,15 +390,13 @@ export default function ViewGraph() {
         title: { display: true, text: "Timestamp" },
         ticks: { maxRotation: 45 },
       },
-      y: { title: { display: true, text: "Forecast" } },
+      y: { title: { display: true, text: "Power (kW)" } },
     },
   };
 
-  // Determine if we have actual data to display
   const hasData =
     (csvData && csvData.length > 0) || (state?.data && state.data.length > 0);
 
-  // Check if we have multiple forecasts (hybrid case)
   const hasMultipleForecasts =
     csvData &&
     csvData.length > 0 &&
@@ -404,14 +404,18 @@ export default function ViewGraph() {
       "esn_forecast" in csvData[0] ||
       "hybrid_forecast" in csvData[0]);
 
-  // For single step forecasts
   const isSingleStep =
     forecastData?.steps === 1 &&
     !hasMultipleForecasts &&
     ((csvData && csvData.length === 1) ||
       (state?.data && state.data.length === 1));
   const singleStepValue =
-    csvData?.[0]?.forecast || state?.data?.[0]?.forecast || "N/A";
+    csvData?.[0]?.forecast !== undefined && !isNaN(csvData[0].forecast)
+      ? csvData[0].forecast.toFixed(2)
+      : state?.data?.[0]?.forecast !== undefined &&
+        !isNaN(state.data[0].forecast)
+      ? state.data[0].forecast.toFixed(2)
+      : "N/A";
 
   return (
     <div className="p-6 max-w-7xl mx-auto print-container">
@@ -446,7 +450,12 @@ export default function ViewGraph() {
               {isSingleStep ? (
                 <div className="h-[500px] bg-gray-50 flex items-center justify-center">
                   <div className="text-gray-700 text-xl font-semibold">
-                    1-Step Forecast: {singleStepValue}
+                    1-Step Forecast: {singleStepValue} kW
+                    {singleStepValue === "0.00" && (
+                      <span className="block text-sm text-gray-500 mt-1">
+                        No solar power generated at this time
+                      </span>
+                    )}
                   </div>
                 </div>
               ) : hasMultipleForecasts ? (

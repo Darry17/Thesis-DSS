@@ -8,7 +8,6 @@ function useQuery() {
 
 const ConfigureHybrid = () => {
   const [step, setStep] = useState(1);
-
   const navigate = useNavigate();
   const location = useLocation();
   const query = useQuery();
@@ -24,7 +23,6 @@ const ConfigureHybrid = () => {
   const tempId = query.get("tempId");
   const forecastId = query.get("forecastId");
 
-  // Determine if we're in edit mode
   const isEditing = location.state?.isEditing || false;
   const existingConfig = location.state?.existingConfig || null;
 
@@ -120,15 +118,14 @@ const ConfigureHybrid = () => {
   const [tooltipVisible, setTooltipVisible] = useState({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load existing configuration if in edit mode
   useEffect(() => {
     if (isEditing && existingConfig) {
       console.log("Loading existing config:", existingConfig);
       setDhrParams({
         fourier_terms: existingConfig.fourier_terms,
-        reg_strength: existingConfig.reg_strength,
-        ar_order: existingConfig.ar_order,
         window: existingConfig.window,
+        ar_order: existingConfig.ar_order,
+        reg_strength: existingConfig.reg_strength,
         polyorder: existingConfig.polyorder,
       });
 
@@ -142,12 +139,10 @@ const ConfigureHybrid = () => {
         n_features: existingConfig.n_features,
       });
     } else if (isEditing && forecastId) {
-      // Fetch configuration if we have forecastId but no config
       fetchExistingConfig();
     }
   }, [isEditing, existingConfig, forecastId]);
 
-  // Function to fetch existing configuration
   const fetchExistingConfig = async () => {
     if (!forecastId) return;
 
@@ -159,9 +154,9 @@ const ConfigureHybrid = () => {
 
       setDhrParams({
         fourier_terms: config.dhr?.fourier_terms,
-        reg_strength: config.dhr?.reg_strength,
-        ar_order: config.dhr?.ar_order,
         window: config.dhr?.window,
+        ar_order: config.dhr?.ar_order,
+        reg_strength: config.dhr?.reg_strength,
         polyorder: config.dhr?.polyorder,
       });
 
@@ -182,11 +177,9 @@ const ConfigureHybrid = () => {
     }
   };
 
-  // Show tooltip on hover for specific field
   const showTooltip = (field) =>
     setTooltipVisible((prev) => ({ ...prev, [field]: true }));
 
-  // Hide tooltip on mouse leave
   const hideTooltip = (field) =>
     setTooltipVisible((prev) => ({ ...prev, [field]: false }));
 
@@ -207,6 +200,38 @@ const ConfigureHybrid = () => {
     n_features: "Number of input features used in the ESN model.",
   };
 
+  const customLabels = {
+    fourier_terms: "Fourier Order",
+    reg_strength: "Regularization",
+    ar_order: "AR Order",
+    window: "Window Length",
+    polyorder: "Polyorder",
+    lags: "Lags",
+    N_res: "Reservoir Neurons",
+    rho: "Spectral Radius",
+    alpha: "Leaking Rate",
+    sparsity: "Sparsity",
+    lambda_reg: "Lambda Regularization",
+    n_features: "Number of Features",
+  };
+
+  const dhrParamOrder = [
+    "fourier_terms",
+    "window",
+    "polyorder",
+    "reg_strength",
+    "ar_order",
+  ];
+  const esnParamOrder = [
+    "N_res",
+    "lambda_reg",
+    "rho",
+    "alpha",
+    "sparsity",
+    "lags",
+    "n_features",
+  ];
+
   const handleChange = (e, setParams) => {
     const { name, value } = e.target;
     setParams((prev) => {
@@ -217,6 +242,34 @@ const ConfigureHybrid = () => {
       };
     });
   };
+
+  // CSS for the loading bar (already present, kept for reference)
+  const loadingBarStyles = `
+  .loading-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+    margin-top: 1rem;
+  }
+  .loading-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 30%;
+    height: 100%;
+    background-color: #4caf50;
+    animation: loading 1.5s infinite ease-in-out;
+  }
+  @keyframes loading {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(300%); }
+    100% { transform: translateX(300%); }
+  }
+`;
 
   const validateStep = () => {
     const newErrors = {};
@@ -281,7 +334,7 @@ const ConfigureHybrid = () => {
     if (!validateStep()) return;
 
     setIsLoading(true);
-    setMessage("Processing...");
+    setMessage("");
 
     try {
       if (isEditing) {
@@ -326,11 +379,9 @@ const ConfigureHybrid = () => {
     const response = await axios.post(endpoint, formData);
     console.log("Response data:", response.data);
 
-    // Instead of using array indices, use the returned keys
     const downloadUrls = response.data?.download_urls || [];
     const forecastId = response.data?.forecast_id || null;
 
-    // Find the CSV and image URLs
     const csvUrl = downloadUrls.find((url) => url.endsWith(`_${steps}.csv`));
     const imageUrl = downloadUrls.find((url) => url.endsWith(`_${steps}.png`));
 
@@ -356,13 +407,13 @@ const ConfigureHybrid = () => {
 
     navigate("/result", {
       state: {
-        imageUrl, // This should now be properly passed
+        imageUrl,
         forecastData: {
           id: forecastId,
           original_filename: originalFilename,
           model: model,
           steps: steps,
-          forecastType: forecastType,
+          forecastType: query.get("forecastType"),
           energyDemand: energyDemand,
           maxCapacity: maxCapacity,
           granularity: granularity,
@@ -375,21 +426,15 @@ const ConfigureHybrid = () => {
 
   const handleUpdate = async () => {
     try {
-      // Log the forecast ID being used to ensure it's valid
       console.log("Updating forecast with ID:", forecastId);
 
-      // Ensure forecastId is a valid integer
       const parsedForecastId = parseInt(forecastId);
       if (isNaN(parsedForecastId)) {
         throw new Error("Invalid forecast ID");
       }
 
-      // Create configuration data matching the FastAPI HybridForecastCreate model structure
       const configData = {
-        // Add forecast_id to match the HybridForecastCreate model requirements
         forecast_id: parsedForecastId,
-
-        // Flattened structure instead of nested dhr/esn objects
         fourier_terms: parseInt(dhrParams.fourier_terms),
         reg_strength: parseFloat(dhrParams.reg_strength),
         ar_order: parseInt(dhrParams.ar_order),
@@ -404,17 +449,13 @@ const ConfigureHybrid = () => {
         n_features: parseFloat(esnParams.n_features),
       };
 
-      // Log the data being sent for debugging
       console.log(
         "Sending configuration data:",
         JSON.stringify(configData, null, 2)
       );
 
-      // First API call to update configuration
-      const endpoint = `http://localhost:8000/api/hybrid-configurations/${parsedForecastId}`;
-
-      // Add debug headers and response logging
       try {
+        const endpoint = `http://localhost:8000/api/hybrid-configurations/${parsedForecastId}`;
         const configResponse = await axios.put(endpoint, configData, {
           headers: {
             "Content-Type": "application/json",
@@ -430,21 +471,16 @@ const ConfigureHybrid = () => {
         throw configErr;
       }
 
-      // Prepare form data for the second API call
       const formData = new FormData();
       formData.append("tempFilename", tempFilename || "");
       formData.append("forecast_type", forecastType || "");
       formData.append("steps", steps || "");
-      formData.append("forecast_id", parsedForecastId); // Add forecast_id here
-
-      // DHR parameters
+      formData.append("forecast_id", parsedForecastId);
       formData.append("fourier_terms", dhrParams.fourier_terms);
       formData.append("reg_strength", dhrParams.reg_strength);
       formData.append("ar_order", dhrParams.ar_order);
       formData.append("window", dhrParams.window);
       formData.append("polyorder", dhrParams.polyorder);
-
-      // ESN parameters
       formData.append("lags", esnParams.lags);
       formData.append("N_res", esnParams.N_res);
       formData.append("rho", esnParams.rho);
@@ -453,19 +489,16 @@ const ConfigureHybrid = () => {
       formData.append("lambda_reg", esnParams.lambda_reg);
       formData.append("n_features", esnParams.n_features);
 
-      // Debug log the FormData
       console.log("FormData entries:");
       for (let pair of formData.entries()) {
         console.log(pair[0] + ": " + pair[1]);
       }
 
-      // Second API call to generate new forecast
       const uploadEndpoint = `http://localhost:8000/upload/edit-hybrid/${
         granularity?.toLowerCase() || ""
       }`;
       console.log("Making request to:", uploadEndpoint);
 
-      // Try/catch the second API call separately
       let response;
       try {
         response = await axios.post(uploadEndpoint, formData);
@@ -475,28 +508,23 @@ const ConfigureHybrid = () => {
           "Upload error details:",
           uploadErr.response?.data || uploadErr.message
         );
-        // Continue execution - we can still navigate with just the updated config
         setMessage("Configuration updated but forecast regeneration failed.");
       }
 
       let imageUrl = null;
       let forecastData = [];
 
-      // Check if we got a successful response from the second call
       if (response && response.data) {
-        // Check if the response has download_urls
         if (
           response.data.download_urls &&
           Array.isArray(response.data.download_urls)
         ) {
           const downloadUrls = response.data.download_urls;
-
           const csvUrl = downloadUrls.find((url) =>
             url.endsWith(`_${steps}.csv`)
           );
           imageUrl = downloadUrls.find((url) => url.endsWith(`_${steps}.png`));
 
-          // Fetch forecast data if CSV URL is available
           if (csvUrl) {
             try {
               const csvResponse = await axios.get(csvUrl);
@@ -514,7 +542,6 @@ const ConfigureHybrid = () => {
         }
       }
 
-      // Navigate to result page with whatever data we have
       navigate("/result", {
         state: {
           imageUrl,
@@ -539,7 +566,7 @@ const ConfigureHybrid = () => {
       console.error("Error in handleUpdate:", error);
       const errorDetail = error.response?.data?.detail || error.message;
       setMessage(`Update failed: ${errorDetail}`);
-      throw error; // Re-throw to be caught by handleSubmit
+      throw error;
     }
   };
 
@@ -552,101 +579,103 @@ const ConfigureHybrid = () => {
   };
 
   const renderInput = (name, value, setParams) => (
-    <div key={name} className="w-full md:w-1/2 mb-6 relative">
-      <div className="flex space-x-10">
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1 capitalize">
-            {name.replace(/_/g, " ")}
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip(name)}
-              onMouseLeave={() => hideTooltip(name)}>
-              ⓘ
-            </span>
-          </label>
-
-          {tooltipVisible[name] && descriptions[name] && (
-            <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-              {descriptions[name]}
-            </div>
-          )}
-
-          <input
-            type="text"
-            name={name}
-            value={value === undefined || value === null ? "" : String(value)}
-            onChange={(e) => handleChange(e, setParams)}
-            className={`w-full p-2 border rounded-md ${
-              errors[name] ? "border-red-500" : "border-black-300"
-            }`}
-          />
-
-          {errors[name] && (
-            <p className="text-red-600 text-sm mt-1">{errors[name]}</p>
-          )}
+    <div key={name} className="relative">
+      <label className="block text-m font-medium mb-1 capitalize">
+        {customLabels[name].replace(/_/g, " ")}
+        <span
+          className="text-gray-500 cursor-pointer ml-2"
+          onMouseEnter={() => showTooltip(name)}
+          onMouseLeave={() => hideTooltip(name)}>
+          ⓘ
+        </span>
+      </label>
+      {tooltipVisible[name] && descriptions[name] && (
+        <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
+          {descriptions[name]}
         </div>
-      </div>
+      )}
+      <input
+        type="text"
+        name={name}
+        value={value === undefined || value === null ? "" : String(value)}
+        onChange={(e) => handleChange(e, setParams)}
+        className={`w-full p-2 border rounded-md`}
+      />
+      {errors[name] && (
+        <p className="text-red-600 text-sm mt-1">{errors[name]}</p>
+      )}
     </div>
   );
 
+  const renderForm = (params, setParams) => {
+    const paramOrder = step === 1 ? dhrParamOrder : esnParamOrder;
+    return (
+      <div className="grid grid-cols-2 gap-x-10 gap-y-4">
+        {paramOrder.map((key) => renderInput(key, params[key], setParams))}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen relative">
-      {message && <p className="mb-4 text-center text-red-600">{message}</p>}
-      {step === 1 && (
-        <>
-          <div className="fixed inset-0 bg-gray-100" style={{ zIndex: -1 }} />
-          <div className="relative z-10 flex justify-center flex-1 min-h-screen">
-            <div className="w-1/3 h-1/3 p-10 px-20 bg-white rounded-lg shadow-md">
-              <h2 className="text-4xl text-left font-bold mb-10">
-                {getStepTitle(1)}
-              </h2>
-              {Object.entries(dhrParams).map(([key, value]) =>
-                renderInput(key, value, setDhrParams)
-              )}
+      <div className="fixed inset-0 bg-gray-100" style={{ zIndex: -1 }} />
+      <div className="relative z-10 flex justify-center flex-1 min-h-screen">
+        <div className="w-1/3 h-1/3 p-10 px-20 bg-white rounded-lg shadow-md mb-10">
+          <style>{loadingBarStyles}</style>
+          <h2 className="text-4xl text-left font-bold mb-10">
+            {getStepTitle(step)}
+          </h2>
+          {message && (
+            <p
+              className={`mb-4 text-center ${
+                message.includes("failed") ? "text-red-500" : "text-green-500"
+              }`}>
+              {message}
+            </p>
+          )}
+          {isLoading && <div className="ml-2 mb-7 loading-bar"></div>}
+          {step === 1 && (
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-4">
+              {renderForm(dhrParams, setDhrParams)}
               <div className="flex justify-between mt-6">
                 {isEditing && (
                   <button
                     onClick={() => navigate(-1)}
-                    className="bg-red-700 text-white py-2 px-4 rounded hover:bg-red-600">
+                    className="bg-red-700 text-white py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                    disabled={isLoading}>
                     Cancel
                   </button>
                 )}
                 <button
                   onClick={handleNextStep}
-                  className="ml-auto bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+                  className="ml-auto bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                  disabled={isLoading}>
                   Next
                 </button>
               </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {step === 2 && (
-        <div className="relative z-10 flex justify-center flex-1 min-h-screen">
-          <div className="w-1/3 h-1/3 p-10 px-20 bg-white rounded-lg shadow-md">
-            <h2 className="text-4xl text-left font-bold mb-10">
-              {getStepTitle(2)}
-            </h2>
-            {Object.entries(esnParams).map(([key, value]) =>
-              renderInput(key, value, setEsnParams)
-            )}
-            <div className="flex justify-between mt-6">
-              <button
-                onClick={handleBack}
-                className="bg-gray-400 text-white py-2 px-4 rounded hover:bg-gray-500">
-                Back
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700"
-                disabled={isLoading}>
-                {isLoading ? "Processing..." : isEditing ? "Update" : "Submit"}
-              </button>
-            </div>
-          </div>
+            </form>
+          )}
+          {step === 2 && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {renderForm(esnParams, setEsnParams)}
+              <div className="flex justify-end space-x-4 mt-6">
+                <button
+                  onClick={handleBack}
+                  className="bg-red-700 text-white py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                  disabled={isLoading}>
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                  disabled={isLoading}>
+                  {isEditing ? "Update" : "Submit"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 };

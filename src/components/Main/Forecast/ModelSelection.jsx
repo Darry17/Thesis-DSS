@@ -113,7 +113,7 @@ const ModelSelection = () => {
           <label
             htmlFor="energyDemand"
             className="block text-sm font-medium mb-1">
-            Energy Demand (kWh)
+            Energy Demand (kW)
           </label>
           <input
             type="text"
@@ -135,7 +135,7 @@ const ModelSelection = () => {
           <label
             htmlFor="energyDemand"
             className="block text-sm font-medium mb-1">
-            Max Energy Capacity (kWh)
+            Max Energy Capacity (kW)
           </label>
           <input
             type="text"
