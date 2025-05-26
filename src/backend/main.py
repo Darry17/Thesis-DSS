@@ -13,58 +13,58 @@ from db import engine, get_db
 import os
 import shutil
 
-# Define the middleware class
-class TempCleanupMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, temp_folder: str):
-        super().__init__(app)
-        self.temp_folder = temp_folder
-        os.makedirs(self.temp_folder, exist_ok=True)
-        self.active_sessions = set()
+# # Define the middleware class
+# class TempCleanupMiddleware(BaseHTTPMiddleware):
+#     def __init__(self, app, temp_folder: str):
+#         super().__init__(app)
+#         self.temp_folder = temp_folder
+#         os.makedirs(self.temp_folder, exist_ok=True)
+#         self.active_sessions = set()
 
-    async def dispatch(self, request: Request, call_next):
-        # Check if this is a protected path
-        protected_paths = [
-            "/upload",
-            "/select-type",
-            "/model-selection",
-            "/configure-single",
-            "/configure-hybrid",
-            "/view-graph",
-            "/result"
-        ]
+#     async def dispatch(self, request: Request, call_next):
+#         # Check if this is a protected path
+#         protected_paths = [
+#             "/upload",
+#             "/select-type",
+#             "/model-selection",
+#             "/configure-single",
+#             "/configure-hybrid",
+#             "/view-graph",
+#             "/result"
+#         ]
         
-        # Generate or get session ID
-        session_id = request.cookies.get("session_id") or str(uuid.uuid4())
+#         # Generate or get session ID
+#         session_id = request.cookies.get("session_id") or str(uuid.uuid4())
         
-        response = await call_next(request)
+#         response = await call_next(request)
         
-        # Only clear if not in protected paths and session is ending
-        if request.url.path not in protected_paths:
-            if session_id in self.active_sessions:
-                self.active_sessions.remove(session_id)
-                self.clear_temp_folder()
-            else:
-                self.active_sessions.add(session_id)
+#         # Only clear if not in protected paths and session is ending
+#         if request.url.path not in protected_paths:
+#             if session_id in self.active_sessions:
+#                 self.active_sessions.remove(session_id)
+#                 self.clear_temp_folder()
+#             else:
+#                 self.active_sessions.add(session_id)
         
-        # Set session cookie if not already set
-        if "session_id" not in request.cookies:
-            response.set_cookie(key="session_id", value=session_id)
+#         # Set session cookie if not already set
+#         if "session_id" not in request.cookies:
+#             response.set_cookie(key="session_id", value=session_id)
             
-        return response
+#         return response
 
-    def clear_temp_folder(self):
-        try:
-            for filename in os.listdir(self.temp_folder):
-                if filename == '.gitignore':
-                    continue  # Skip .gitignore files
-                file_path = os.path.join(self.temp_folder, filename)
-                try:
-                    if os.path.isfile(file_path):
-                        os.unlink(file_path)
-                except Exception as e:
-                    print(f'Failed to delete {file_path}. Reason: {e}')
-        except Exception as e:
-            print(f'Failed to clear temp folder. Reason: {e}')
+#     def clear_temp_folder(self):
+#         try:
+#             for filename in os.listdir(self.temp_folder):
+#                 if filename == '.gitignore':
+#                     continue  # Skip .gitignore files
+#                 file_path = os.path.join(self.temp_folder, filename)
+#                 try:
+#                     if os.path.isfile(file_path):
+#                         os.unlink(file_path)
+#                 except Exception as e:
+#                     print(f'Failed to delete {file_path}. Reason: {e}')
+#         except Exception as e:
+#             print(f'Failed to clear temp folder. Reason: {e}')
 
 app = FastAPI()
 
@@ -77,10 +77,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.add_middleware(
-    TempCleanupMiddleware,
-    temp_folder="temp"  # or your actual temp folder path
-)
+# app.add_middleware(
+#     TempCleanupMiddleware,
+#     temp_folder="temp"  # or your actual temp folder path
+# )
 
 # Database setup
 Base.metadata.create_all(bind=engine)

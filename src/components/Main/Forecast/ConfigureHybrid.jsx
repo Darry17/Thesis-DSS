@@ -462,7 +462,7 @@ const ConfigureHybrid = () => {
           },
         });
         console.log("Configuration update response:", configResponse.data);
-        setMessage("Configuration updated successfully!");
+        setMessage("");
       } catch (configErr) {
         console.error(
           "Configuration update error details:",
