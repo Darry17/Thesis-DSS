@@ -234,12 +234,39 @@ const ConfigureHybrid = () => {
 
   const handleChange = (e, setParams) => {
     const { name, value } = e.target;
+
+    // List of fields that should allow decimal values
+    const decimalFields = [
+      "reg_strength",
+      "rho",
+      "alpha",
+      "sparsity",
+      "lambda_reg",
+    ];
+
     setParams((prev) => {
-      const parsed = parseFloat(value);
-      return {
-        ...prev,
-        [name]: value === "" ? "" : isNaN(parsed) ? "" : parsed,
-      };
+      // Allow empty input or partial decimal (e.g., "0.", ".")
+      if (value === "" || value === ".") {
+        return { ...prev, [name]: value };
+      }
+
+      // For decimal fields, allow valid decimal numbers or partial decimals
+      if (decimalFields.includes(name)) {
+        // Check if the value is a valid number or a partial decimal (e.g., "0.", "-0.")
+        const isValidDecimal = /^-?\d*\.?\d*$/.test(value);
+        if (isValidDecimal) {
+          return { ...prev, [name]: value };
+        }
+        return prev; // Ignore invalid input
+      }
+
+      // For integer fields, parse as integer
+      const parsed = parseInt(value, 10);
+      if (!isNaN(parsed)) {
+        return { ...prev, [name]: parsed };
+      }
+
+      return prev; // Ignore invalid input
     });
   };
 
@@ -273,48 +300,104 @@ const ConfigureHybrid = () => {
 
   const validateStep = () => {
     const newErrors = {};
+
+    const parseValue = (value, isDecimal) => {
+      if (value === "" || value === ".") return NaN;
+      return isDecimal ? parseFloat(value) : parseInt(value, 10);
+    };
+
     if (step === 1) {
-      if (
-        !Number.isInteger(dhrParams.fourier_terms) ||
-        dhrParams.fourier_terms <= 0
-      ) {
-        newErrors.fourier_terms = "Must be a positive integer.";
-      }
-      if (dhrParams.reg_strength < 0) {
-        newErrors.reg_strength = "Must be zero or positive.";
-      }
-      if (!Number.isInteger(dhrParams.ar_order) || dhrParams.ar_order < 0) {
-        newErrors.ar_order = "Must be zero or positive integer.";
-      }
-      if (!Number.isInteger(dhrParams.window) || dhrParams.window <= 0) {
-        newErrors.window = "Must be a positive integer.";
-      }
-      if (!Number.isInteger(dhrParams.polyorder) || dhrParams.polyorder < 0) {
-        newErrors.polyorder = "Must be zero or positive integer.";
-      }
+      const checks = [
+        {
+          key: "fourier_terms",
+          value: parseValue(dhrParams.fourier_terms, false),
+          check: (val) => Number.isInteger(val) && val > 0,
+          error: "Must be a positive integer.",
+        },
+        {
+          key: "reg_strength",
+          value: parseValue(dhrParams.reg_strength, true),
+          check: (val) => !isNaN(val) && val >= 0,
+          error: "Must be zero or positive.",
+        },
+        {
+          key: "ar_order",
+          value: parseValue(dhrParams.ar_order, false),
+          check: (val) => Number.isInteger(val) && val >= 0,
+          error: "Must be zero or positive integer.",
+        },
+        {
+          key: "window",
+          value: parseValue(dhrParams.window, false),
+          check: (val) => Number.isInteger(val) && val > 0,
+          error: "Must be a positive integer.",
+        },
+        {
+          key: "polyorder",
+          value: parseValue(dhrParams.polyorder, false),
+          check: (val) => Number.isInteger(val) && val >= 0,
+          error: "Must be zero or positive integer.",
+        },
+      ];
+
+      checks.forEach(({ key, value, check, error }) => {
+        if (!check(value)) {
+          newErrors[key] = error;
+        }
+      });
     } else if (step === 2) {
-      if (!Number.isInteger(esnParams.lags) || esnParams.lags <= 0) {
-        newErrors.lags = "Must be a positive integer.";
-      }
-      if (!Number.isInteger(esnParams.N_res) || esnParams.N_res <= 0) {
-        newErrors.N_res = "Must be a positive integer.";
-      }
-      if (esnParams.rho <= 0 || esnParams.rho > 1) {
-        newErrors.rho = "Must be > 0 and ≤ 1.";
-      }
-      if (esnParams.alpha < 0 || esnParams.alpha > 1) {
-        newErrors.alpha = "Must be between 0 and 1.";
-      }
-      if (esnParams.sparsity < 0 || esnParams.sparsity > 1) {
-        newErrors.sparsity = "Must be between 0 and 1.";
-      }
-      if (esnParams.lambda_reg < 0) {
-        newErrors.lambda_reg = "Must be zero or positive.";
-      }
-      if (esnParams.n_features < 0) {
-        newErrors.n_features = "Must be zero or positive.";
-      }
+      const checks = [
+        {
+          key: "lags",
+          value: parseValue(esnParams.lags, false),
+          check: (val) => Number.isInteger(val) && val > 0,
+          error: "Must be a positive integer.",
+        },
+        {
+          key: "N_res",
+          value: parseValue(esnParams.N_res, false),
+          check: (val) => Number.isInteger(val) && val > 0,
+          error: "Must be a positive integer.",
+        },
+        {
+          key: "rho",
+          value: parseValue(esnParams.rho, true),
+          check: (val) => !isNaN(val) && val > 0 && val <= 1,
+          error: "Must be > 0 and ≤ 1.",
+        },
+        {
+          key: "alpha",
+          value: parseValue(esnParams.alpha, true),
+          check: (val) => !isNaN(val) && val >= 0 && val <= 1,
+          error: "Must be between 0 and 1.",
+        },
+        {
+          key: "sparsity",
+          value: parseValue(esnParams.sparsity, true),
+          check: (val) => !isNaN(val) && val >= 0 && val <= 1,
+          error: "Must be between 0 and 1.",
+        },
+        {
+          key: "lambda_reg",
+          value: parseValue(esnParams.lambda_reg, true),
+          check: (val) => !isNaN(val) && val >= 0,
+          error: "Must be zero or positive.",
+        },
+        {
+          key: "n_features",
+          value: parseValue(esnParams.n_features, false),
+          check: (val) => Number.isInteger(val) && val >= 0,
+          error: "Must be zero or positive.",
+        },
+      ];
+
+      checks.forEach(({ key, value, check, error }) => {
+        if (!check(value)) {
+          newErrors[key] = error;
+        }
+      });
     }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

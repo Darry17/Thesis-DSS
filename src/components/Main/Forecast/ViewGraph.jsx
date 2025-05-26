@@ -405,12 +405,17 @@ export default function ViewGraph() {
       "hybrid_forecast" in csvData[0]);
 
   const isSingleStep =
-    forecastData?.steps === 1 &&
-    !hasMultipleForecasts &&
+    ((forecastData?.steps === 1 && !hasMultipleForecasts) ||
+      (forecastData?.steps === 0 && hasMultipleForecasts)) &&
     ((csvData && csvData.length === 1) ||
       (state?.data && state.data.length === 1));
+
   const singleStepValue =
-    csvData?.[0]?.forecast !== undefined && !isNaN(csvData[0].forecast)
+    hasMultipleForecasts &&
+    csvData?.[0]?.hybrid_forecast !== undefined &&
+    !isNaN(csvData[0].hybrid_forecast)
+      ? csvData[0].hybrid_forecast.toFixed(2)
+      : csvData?.[0]?.forecast !== undefined && !isNaN(csvData[0].forecast)
       ? csvData[0].forecast.toFixed(2)
       : state?.data?.[0]?.forecast !== undefined &&
         !isNaN(state.data[0].forecast)
@@ -459,8 +464,15 @@ export default function ViewGraph() {
                   </div>
                 </div>
               ) : hasMultipleForecasts ? (
-                <div className="h-[500px]">
-                  <Line data={chartData} options={options} />
+                <div className="h-[500px] bg-gray-50 flex items-center justify-center">
+                  <div className="text-gray-700 text-xl font-semibold">
+                    1-Step Forecast: {singleStepValue} kW
+                    {singleStepValue === "0.00" && (
+                      <span className="block text-sm text-gray-500 mt-1">
+                        No solar power generated at this time
+                      </span>
+                    )}
+                  </div>
                 </div>
               ) : hasData ? (
                 <div className="h-[500px]">
