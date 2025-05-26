@@ -770,7 +770,7 @@ const ViewLogs = () => {
           </h1>
           <button
             onClick={handleBack}
-            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+            className="px-4 py-2 bg-red-500 border-none text-white rounded-xl hover:bg-red-600 cursor-pointer">
             Back
           </button>
         </div>

@@ -28,7 +28,7 @@ const Dashboard = () => {
           <div className="flex justify-center mt-6">
             <button
               onClick={() => navigate("/upload")}
-              className="bg-white w-[300px] h-[70px] text-black rounded-3xl px-4 py-2 font-bold text-2xl hover:bg-gray-300 transition cursor-pointer">
+              className="bg-white border-none w-[300px] h-[70px] text-black rounded-3xl px-4 py-2 font-bold text-2xl hover:bg-gray-300 transition cursor-pointer">
               Forecast
             </button>
           </div>

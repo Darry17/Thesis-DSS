@@ -54,7 +54,7 @@ export default function SelectType() {
             </span>
             <button
               onClick={() => handleSelect("Solar")}
-              className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-500 transition-colors">
+              className="px-6 py-3 bg-green-600 border-none text-white rounded-md hover:bg-green-500 transition-colors">
               Solar
             </button>
           </div>
@@ -64,7 +64,7 @@ export default function SelectType() {
             </span>
             <button
               onClick={() => handleSelect("Wind")}
-              className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-500 transition-colors">
+              className="px-6 py-3 bg-green-600 border-none text-white rounded-md hover:bg-green-500 transition-colors">
               Wind
             </button>
           </div>

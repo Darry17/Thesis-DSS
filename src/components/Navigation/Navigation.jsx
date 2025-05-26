@@ -121,7 +121,7 @@ const Navigation = () => {
         </ul>
         <NavLink
           to="/login"
-          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 no-underline">
+          className="px-3 py-1 bg-green-500 border-none text-white text-xs rounded hover:bg-green-600 no-underline">
           Admin
         </NavLink>
       </div>

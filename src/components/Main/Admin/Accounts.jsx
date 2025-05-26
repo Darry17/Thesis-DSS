@@ -217,12 +217,12 @@ const Accounts = () => {
                     <td className="py-3">
                       <button
                         onClick={() => handleEdit(account)}
-                        className="bg-green-100 text-green-600 px-4 py-1 rounded mr-10 hover:bg-green-200 font-medium">
+                        className="bg-green-100 text-green-600 border-none px-4 py-1 rounded mr-10 hover:bg-green-200 font-medium">
                         EDIT
                       </button>
                       <button
                         onClick={() => handleDelete(account.id)}
-                        className="bg-red-100 text-red-600 px-4 py-1 rounded hover:bg-red-200 font-medium">
+                        className="bg-red-100 text-red-600 border-none px-4 py-1 rounded hover:bg-red-200 font-medium">
                         DELETE
                       </button>
                     </td>
@@ -270,7 +270,7 @@ const Accounts = () => {
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                className="bg-blue-500 border-none text-white px-4 py-2 rounded-md hover:bg-blue-600">
                 {editingId ? "Update Account" : "Add Account"}
               </button>
               {editingId && (
@@ -282,7 +282,7 @@ const Accounts = () => {
                     setPassword("");
                     setAccessControl("ADMIN");
                   }}
-                  className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">
+                  className="bg-gray-500 border-none text-white px-4 py-2 rounded-md hover:bg-gray-600">
                   Cancel
                 </button>
               )}

@@ -110,7 +110,7 @@ export default function FileUpload() {
                 <button
                   onClick={handleNext}
                   disabled={uploading}
-                  className="py-2 px-4 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-colors disabled:opacity-50">
+                  className="py-2 px-4 rounded-lg text-white bg-blue-500 border-none hover:bg-blue-600 transition-colors disabled:opacity-50">
                   {uploading ? "Uploading..." : "Proceed"}
                 </button>
               </>

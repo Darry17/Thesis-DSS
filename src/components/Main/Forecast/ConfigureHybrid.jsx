@@ -641,14 +641,14 @@ const ConfigureHybrid = () => {
                 {isEditing && (
                   <button
                     onClick={() => navigate(-1)}
-                    className="bg-red-700 text-white py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                    className="bg-red-700 border-none text-white py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
                     disabled={isLoading}>
                     Cancel
                   </button>
                 )}
                 <button
                   onClick={handleNextStep}
-                  className="ml-auto bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                  className="ml-auto bg-green-600 border-none text-white py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
                   disabled={isLoading}>
                   Next
                 </button>

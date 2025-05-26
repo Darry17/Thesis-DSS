@@ -611,13 +611,13 @@ export default function ConfigureSingle() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+          className="px-4 py-2 bg-red-700 border-none text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
           disabled={isLoading}>
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+          className="px-4 py-2 bg-green-500 border-none text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
           disabled={isLoading}>
           {isEditing ? "Update" : "Submit"}
         </button>
@@ -777,13 +777,13 @@ export default function ConfigureSingle() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="px-4 py-2 bg-red-700 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+          className="px-4 py-2 bg-red-700 border-none text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
           disabled={isLoading}>
           Cancel
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+          className="px-4 py-2 bg-green-500 border-none text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
           disabled={isLoading}>
           {isEditing ? "Update" : "Submit"}
         </button>

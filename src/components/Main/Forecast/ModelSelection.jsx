@@ -228,13 +228,13 @@ const ModelSelection = () => {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors">
+            className="px-4 py-2 bg-red-500 border-none text-white rounded hover:bg-red-600 transition-colors">
             Cancel
           </button>
           <button
             type="submit"
             disabled={!granularity || !steps || !modelType || !model}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            className="px-4 py-2 bg-green-500 border-none text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             Submit
           </button>
         </div>

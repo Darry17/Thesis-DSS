@@ -189,13 +189,13 @@ const History = () => {
                       <div className="flex gap-6">
                         <button
                           onClick={() => handleView(log.forecast_id)}
-                          className="px-3 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 cursor-pointer">
+                          className="px-3 py-1 bg-green-500 border-none text-white text-xs rounded hover:bg-green-600 cursor-pointer">
                           VIEW
                         </button>
                         {isLoggedIn && (
                           <button
                             onClick={() => handleDelete(log.forecast_id)}
-                            className="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 cursor-pointer">
+                            className="px-3 py-1 bg-red-500 border-none text-white text-xs rounded hover:bg-red-600 cursor-pointer">
                             DELETE
                           </button>
                         )}

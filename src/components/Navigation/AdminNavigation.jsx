@@ -37,7 +37,7 @@ const AdminNavigation = () => {
   const linkClass = "block py-2 px-4 rounded w-80% text-left";
 
   return (
-    <div className="w-20% bg-[#999696] text-black p-4 font-medium min-h-screen fixed top-0 left-0 h-full">
+    <div className="w-20% bg-blue-950 text-white p-4 font-medium min-h-screen fixed top-0 left-0 h-full">
       <div className="flex flex-col h-full text-lg font-semibold">
         {/* Navigation Links */}
         <ul className="flex flex-col space-y-5 list-none">
@@ -47,8 +47,8 @@ const AdminNavigation = () => {
               className={({ isActive }) =>
                 `${linkClass} ${
                   isActive
-                    ? "bg-gray-300 border-l-4 border-black no-underline text-black"
-                    : "hover:bg-gray-400 no-underline text-black"
+                    ? "bg-gray-300 border-l-4 border-black no-underline text-blue-950"
+                    : "hover:bg-blue-900 no-underline text-white"
                 }`
               }>
               History
@@ -60,8 +60,8 @@ const AdminNavigation = () => {
               className={({ isActive }) =>
                 `${linkClass} ${
                   isActive
-                    ? "bg-gray-300 border-l-4 border-black no-underline text-black"
-                    : "hover:bg-gray-400 no-underline text-black"
+                    ? "bg-gray-300 border-l-4 border-black no-underline text-blue-950"
+                    : "hover:bg-blue-900 no-underline text-white"
                 }`
               }>
               Accounts
@@ -73,8 +73,8 @@ const AdminNavigation = () => {
               className={({ isActive }) =>
                 `${linkClass} ${
                   isActive
-                    ? "bg-gray-300 border-l-4 border-black no-underline text-black"
-                    : "hover:bg-gray-400 no-underline text-black"
+                    ? "bg-gray-300 border-l-4 border-black no-underline text-blue-950"
+                    : "hover:bg-blue-900 no-underline text-white"
                 }`
               }>
               Recovery Logs
@@ -86,10 +86,10 @@ const AdminNavigation = () => {
 
         <div className="mb-4">
           <div className="flex flex-col space-y-2 space-x-10 mb-10">
-            <span className="px-10 py-2 text-gray-800">{username}</span>
+            <span className="px-10 py-2 text-white">{username}</span>
             <button
               onClick={handleLogout}
-              className="w-20 px-4 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 hover:scale-105 cursor-pointer transition transform duration-200 text-left">
+              className="w-20 px-4 py-2 bg-red-500 border-none text-white text-sm rounded hover:bg-red-600 hover:scale-105 cursor-pointer transition transform duration-200 text-left">
               Logout
             </button>
           </div>

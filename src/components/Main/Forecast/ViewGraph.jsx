@@ -433,12 +433,12 @@ export default function ViewGraph() {
             <div className="space-x-8">
               <button
                 onClick={handleBack}
-                className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 cursor-pointer">
+                className="px-4 py-2 bg-red-500 border-none text-white rounded-xl hover:bg-red-600 cursor-pointer">
                 Back
               </button>
               <button
                 onClick={handlePrint}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 cursor-pointer">
+                className="px-4 py-2 bg-green-600 border-none text-white rounded-xl hover:bg-green-700 cursor-pointer">
                 Print
               </button>
             </div>

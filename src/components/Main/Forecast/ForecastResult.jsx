@@ -620,7 +620,7 @@ export default function ForecastResult() {
             <div className="flex items-center justify-between">
               <button
                 onClick={handleViewGraphs}
-                className="py-2 px-4 bg-gray-200 text-black rounded-md hover:bg-gray-300 border-b-2 border-green-500 cursor-pointer">
+                className="py-2 px-4 bg-gray-200  text-black rounded-md hover:bg-gray-300 border-b-2 border-green-500 cursor-pointer">
                 View Graphs
               </button>
 
@@ -658,7 +658,7 @@ export default function ForecastResult() {
           <div className="flex space-x-4 mt-8 mb-4">
             <button
               onClick={handleEdit}
-              className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 cursor-pointer"
+              className="bg-green-600 border-none text-white px-6 py-2 rounded-md hover:bg-green-700 cursor-pointer"
               disabled={isLoading}>
               Edit
             </button>
