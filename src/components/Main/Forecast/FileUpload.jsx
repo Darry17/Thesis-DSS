@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
+import Papa from "papaparse";
 
 export default function FileUpload() {
   const [file, setFile] = useState(null);
@@ -8,14 +9,61 @@ export default function FileUpload() {
   const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
 
+  // Define required columns
+  const requiredColumns = [
+    "time",
+    "load_power",
+    "wind_power",
+    "solar_power",
+    "DHI",
+    "DNI",
+    "GHI",
+    "Dew Point",
+    "Solar Zenith Angle",
+    "Wind Speed",
+    "Relative Humidity",
+    "Temperature",
+  ];
+
   const onDrop = (acceptedFiles, fileRejections) => {
     if (fileRejections.length > 0) {
       setMessage("Only .csv files are allowed.");
       setFile(null);
       return;
     }
-    setFile(acceptedFiles[0]);
-    setMessage("");
+
+    const selectedFile = acceptedFiles[0];
+
+    // Parse CSV to validate columns
+    Papa.parse(selectedFile, {
+      header: true,
+      preview: 1, // Only need the header row
+      complete: (result) => {
+        const headers = result.meta.fields;
+        const missingColumns = requiredColumns.filter(
+          (col) => !headers.includes(col)
+        );
+
+        if (missingColumns.length > 0) {
+          setMessage(`Missing required columns: ${missingColumns.join(", ")}`);
+          setFile(null);
+        } else if (headers.length > requiredColumns.length) {
+          setMessage(
+            `Extra columns detected. Please include only: ${requiredColumns.join(
+              ", "
+            )}`
+          );
+          setFile(null);
+        } else {
+          setFile(selectedFile);
+          setMessage("");
+        }
+      },
+      error: (error) => {
+        setMessage("Error parsing CSV file: " + error.message);
+        setFile(null);
+      },
+    });
   };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -24,7 +72,6 @@ export default function FileUpload() {
     maxFiles: 1,
   });
 
-  // Function to upload file to backend /temp-upload
   const uploadTempFile = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -43,7 +90,7 @@ export default function FileUpload() {
 
       const data = await response.json();
       setUploading(false);
-      return data; // { temp_filename, temp_id }
+      return data;
     } catch (error) {
       setUploading(false);
       setMessage(error.message || "Upload failed");
@@ -52,18 +99,16 @@ export default function FileUpload() {
   };
 
   const handleNext = async (e) => {
-    e.stopPropagation(); // Prevent dropzone click event
+    e.stopPropagation();
 
     if (!file) {
-      setMessage("Please select a CSV file.");
+      setMessage("Please select a valid CSV file.");
       return;
     }
 
-    // Upload the file first
     const uploadResult = await uploadTempFile(file);
-    if (!uploadResult) return; // upload failed, error message set
+    if (!uploadResult) return;
 
-    // Then navigate, passing along the temp info
     navigate(
       `/select-type?tempId=${encodeURIComponent(
         uploadResult.temp_id
@@ -86,7 +131,6 @@ export default function FileUpload() {
         }}
       />
       <div className="fixed inset-0 bg-black/60" style={{ zIndex: -1 }} />
-      {/* Background overlays omitted for brevity */}
       <div className="w-full max-w-2xl px-4 flex flex-col items-center">
         <h1 className="text-[50px] font-bold mb-5 flex justify-center text-white">
           Upload CSV File
@@ -97,7 +141,6 @@ export default function FileUpload() {
             isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
           }`}>
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            {/* SVG omitted for brevity */}
             {file ? (
               <>
                 <p className="mb-2 text-sm text-green-600">
