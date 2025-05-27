@@ -175,19 +175,6 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="hourly"
         print(f"Test RMSE: {rmse:.4f}")
         print(f"Test MAE: {mae:.4f}")
         print(f"Test CVRMSE: {cvrmse:.2f}%")
-        
-        # Save test results plot if needed
-        test_plot_path = os.path.join(output_dir, f"wind_test_results_{timestamp}.png")
-        plt.figure(figsize=(15, 6))
-        plt.plot(y_test_true_original, label='Actual Wind Power', color='blue')
-        plt.plot(y_test_pred_original, label='Predicted Wind Power', color='red')
-        plt.title('ESN Model: Actual vs Predicted Wind Power (Test Set)')
-        plt.xlabel('Time Steps')
-        plt.ylabel('Wind Power')
-        plt.legend()
-        plt.grid(True)
-        plt.savefig(test_plot_path, dpi=300, bbox_inches='tight')
-        plt.close()
     
     # Prepare for forecasting
     historical_period = 336  # 2 weeks (14 days * 24 hours)

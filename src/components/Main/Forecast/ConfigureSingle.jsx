@@ -29,7 +29,6 @@ export default function ConfigureSingle() {
 
   // Initialize state with default values based on forecastType and granularity
   const getDefaultDhrParams = () => {
-    // Default parameters for solar forecast
     if (forecastType === "solar") {
       if (granularity === "Hourly") {
         return {
@@ -67,11 +66,10 @@ export default function ConfigureSingle() {
         };
       }
     }
+    return {};
   };
 
-  // Initialize state with default values based on forecastType and granularity
   const getDefaultEsnParams = () => {
-    // Default parameters for solar forecast
     if (forecastType === "solar") {
       if (granularity === "Hourly") {
         return {
@@ -113,15 +111,15 @@ export default function ConfigureSingle() {
         };
       }
     }
+    return {};
   };
 
   const [dhrParams, setDhrParams] = useState(getDefaultDhrParams());
-
   const [esnParams, setEsnParams] = useState(getDefaultEsnParams());
-
   const [message, setMessage] = useState("");
-  const [tooltipVisible, setTooltipVisible] = useState(null);
+  const [tooltipVisible, setTooltipVisible] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
   // Load existing configuration if in edit mode
   useEffect(() => {
@@ -146,21 +144,25 @@ export default function ConfigureSingle() {
         });
       } else if (model === "ESN") {
         setEsnParams({
-          lags: existingConfig.lags?.toString(),
-          N_res: existingConfig.N_res?.toString(),
-          rho: existingConfig.rho?.toString(),
-          alpha: existingConfig.alpha?.toString(),
-          sparsity: existingConfig.sparsity?.toString(),
-          lambda_reg: existingConfig.lambda_reg?.toString(),
+          lags: existingConfig.lags?.toString() || getDefaultEsnParams().lags,
+          N_res:
+            existingConfig.N_res?.toString() || getDefaultEsnParams().N_res,
+          rho: existingConfig.rho?.toString() || getDefaultEsnParams().rho,
+          alpha:
+            existingConfig.alpha?.toString() || getDefaultEsnParams().alpha,
+          sparsity:
+            existingConfig.sparsity?.toString() ||
+            getDefaultEsnParams().sparsity,
+          lambda_reg:
+            existingConfig.lambda_reg?.toString() ||
+            getDefaultEsnParams().lambda_reg,
         });
       }
     } else if (isEditing && forecastId) {
-      // Fetch configuration if we have forecastId but no config
       fetchExistingConfig();
     }
   }, [isEditing, existingConfig, model, forecastId, forecastType, granularity]);
 
-  // Function to fetch existing configuration
   const fetchExistingConfig = async () => {
     if (!forecastId) return;
 
@@ -186,12 +188,14 @@ export default function ConfigureSingle() {
         });
       } else if (model === "ESN") {
         setEsnParams({
-          lags: config.lags?.toString(),
-          N_res: config.N_res?.toString(),
-          rho: config.rho?.toString(),
-          alpha: config.alpha?.toString(),
-          sparsity: config.sparsity?.toString(),
-          lambda_reg: config.lambda_reg?.toString(),
+          lags: config.lags?.toString() || getDefaultEsnParams().lags,
+          N_res: config.N_res?.toString() || getDefaultEsnParams().N_res,
+          rho: config.rho?.toString() || getDefaultEsnParams().rho,
+          alpha: config.alpha?.toString() || getDefaultEsnParams().alpha,
+          sparsity:
+            config.sparsity?.toString() || getDefaultEsnParams().sparsity,
+          lambda_reg:
+            config.lambda_reg?.toString() || getDefaultEsnParams().lambda_reg,
         });
       }
     } catch (error) {
@@ -202,51 +206,204 @@ export default function ConfigureSingle() {
     }
   };
 
-  const showTooltip = (field) => setTooltipVisible(field);
-  const hideTooltip = () => setTooltipVisible(null);
+  const showTooltip = (field) =>
+    setTooltipVisible((prev) => ({ ...prev, [field]: true }));
+  const hideTooltip = (field) =>
+    setTooltipVisible((prev) => ({ ...prev, [field]: false }));
+
+  const descriptions = {
+    fourier_terms: "Number of Fourier terms for capturing seasonality.",
+    reg_strength: "Ridge regression regularization parameter.",
+    ar_order: "Number of past values to use for autoregression.",
+    window: "Window size for smoothing.",
+    polyorder: "Order of polynomial for Savitzky-Golay smoothing.",
+    lags: "Number of time steps as input.",
+    N_res: "Number of neurons in the reservoir.",
+    rho: "Controls echo state property.",
+    alpha: "Scaling factor applied to the input data.",
+    sparsity: "Reservoir connectivity.",
+    lambda_reg:
+      "Regularization parameter for ESN training. Helps prevent overfitting.",
+  };
+
+  const customLabels = {
+    fourier_terms: "Fourier Order",
+    reg_strength: "Regularization",
+    ar_order: "AR Order",
+    window: "Window Length",
+    polyorder: "Polyorder",
+    lags: "Lags",
+    N_res: "Reservoir Size",
+    rho: "Spectral Radius",
+    alpha: "Input Scaling",
+    sparsity: "Sparsity",
+    lambda_reg: "Regularization",
+  };
+
+  const dhrParamOrder = [
+    "fourier_terms",
+    "window",
+    "polyorder",
+    "reg_strength",
+    "ar_order",
+  ];
+  const esnParamOrder = [
+    "N_res",
+    "lambda_reg",
+    "rho",
+    "alpha",
+    "sparsity",
+    "lags",
+  ];
+
+  const integerFields = [
+    "fourier_terms",
+    "ar_order",
+    "window",
+    "polyorder",
+    "lags",
+    "N_res",
+  ];
+  const decimalFields = [
+    "reg_strength",
+    "rho",
+    "alpha",
+    "sparsity",
+    "lambda_reg",
+  ];
 
   const handleChange = (e, modelType) => {
     const { name, value } = e.target;
-    if (modelType === "DHR") {
-      setDhrParams((prev) => ({ ...prev, [name]: value }));
-    } else if (modelType === "ESN") {
-      setEsnParams((prev) => ({ ...prev, [name]: value }));
+    const setParams = modelType === "DHR" ? setDhrParams : setEsnParams;
+
+    // Allow empty input or partial decimal for decimal fields
+    if (value === "" || (decimalFields.includes(name) && value === ".")) {
+      setParams((prev) => ({ ...prev, [name]: value }));
+      return;
+    }
+
+    // For integer fields, only allow digits
+    if (integerFields.includes(name)) {
+      if (/^\d*$/.test(value)) {
+        setParams((prev) => ({ ...prev, [name]: value }));
+      }
+      return;
+    }
+
+    // For decimal fields, allow valid decimal patterns
+    if (decimalFields.includes(name)) {
+      const isValidDecimal = /^-?\d*\.?\d*$/.test(value);
+      if (isValidDecimal) {
+        setParams((prev) => ({ ...prev, [name]: value }));
+      }
+      return;
     }
   };
 
-  // CSS for the loading bar
-  const loadingBarStyles = `
-  .loading-bar {
-    width: 100%;
-    height: 4px;
-    background-color: #e0e0e0;
-    border-radius: 2px;
-    overflow: hidden;
-    position: relative;
-    margin-top: 1rem;
-  }
-  .loading-bar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 30%;
-    height: 100%;
-    background-color: #4caf50;
-    animation: loading 1.5s infinite ease-in-out;
-  }
-  @keyframes loading {
-    0% { transform: translateX(-100%); }
-    50% { transform: translateX(300%); }
-    100% { transform: translateX(300%); }
-  }
-`;
+  const validateForm = () => {
+    const newErrors = {};
 
-  // Modified handleSubmit function
+    const parseValue = (value, isDecimal) => {
+      if (value === "" || value === ".") return NaN;
+      return isDecimal ? parseFloat(value) : parseInt(value, 10);
+    };
+
+    if (model === "DHR") {
+      const checks = [
+        {
+          key: "fourier_terms",
+          value: parseValue(dhrParams.fourier_terms, false),
+          check: (val) => Number.isInteger(val) && val > 0,
+          error: "Must be a positive integer.",
+        },
+        {
+          key: "reg_strength",
+          value: parseValue(dhrParams.reg_strength, true),
+          check: (val) => !isNaN(val) && val >= 0,
+          error: "Must be zero or positive.",
+        },
+        {
+          key: "ar_order",
+          value: parseValue(dhrParams.ar_order, false),
+          check: (val) => Number.isInteger(val) && val >= 0,
+          error: "Must be zero or positive integer.",
+        },
+        {
+          key: "window",
+          value: parseValue(dhrParams.window, false),
+          check: (val) => Number.isInteger(val) && val > 0,
+          error: "Must be a positive integer.",
+        },
+        {
+          key: "polyorder",
+          value: parseValue(dhrParams.polyorder, false),
+          check: (val) => Number.isInteger(val) && val >= 0,
+          error: "Must be zero or positive integer.",
+        },
+      ];
+
+      checks.forEach(({ key, value, check, error }) => {
+        if (!check(value)) {
+          newErrors[key] = error;
+        }
+      });
+    } else if (model === "ESN") {
+      const checks = [
+        {
+          key: "lags",
+          value: parseValue(esnParams.lags, false),
+          check: (val) => Number.isInteger(val) && val > 0,
+          error: "Must be a positive integer.",
+        },
+        {
+          key: "N_res",
+          value: parseValue(esnParams.N_res, false),
+          check: (val) => Number.isInteger(val) && val > 0,
+          error: "Must be a positive integer.",
+        },
+        {
+          key: "rho",
+          value: parseValue(esnParams.rho, true),
+          check: (val) => !isNaN(val) && val > 0 && val <= 1,
+          error: "Must be > 0 and ≤ 1.",
+        },
+        {
+          key: "alpha",
+          value: parseValue(esnParams.alpha, true),
+          check: (val) => !isNaN(val) && val >= 0 && val <= 1,
+          error: "Must be between 0 and 1.",
+        },
+        {
+          key: "sparsity",
+          value: parseValue(esnParams.sparsity, true),
+          check: (val) => !isNaN(val) && val >= 0 && val <= 1,
+          error: "Must be between 0 and 1.",
+        },
+        {
+          key: "lambda_reg",
+          value: parseValue(esnParams.lambda_reg, true),
+          check: (val) => !isNaN(val) && val >= 0,
+          error: "Must be zero or positive.",
+        },
+      ];
+
+      checks.forEach(({ key, value, check, error }) => {
+        if (!check(value)) {
+          newErrors[key] = error;
+        }
+      });
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
+
     setIsLoading(true);
-    setMessage(""); // Clear any previous message
+    setMessage("");
 
     try {
       if (isEditing) {
@@ -272,8 +429,6 @@ export default function ConfigureSingle() {
     formData.append("model", model);
     formData.append("temp_id", tempId);
 
-    const endpoint = `http://localhost:8000/upload/${model.toLowerCase()}/${granularity.toLowerCase()}`;
-
     if (model === "DHR") {
       formData.append("fourier_terms", dhrParams.fourier_terms);
       formData.append("reg_strength", dhrParams.reg_strength);
@@ -288,6 +443,8 @@ export default function ConfigureSingle() {
       formData.append("sparsity", esnParams.sparsity);
       formData.append("lambda_reg", esnParams.lambda_reg);
     }
+
+    const endpoint = `http://localhost:8000/upload/${model.toLowerCase()}/${granularity.toLowerCase()}`;
 
     const response = await axios.post(endpoint, formData);
     console.log("Upload response:", response);
@@ -329,7 +486,6 @@ export default function ConfigureSingle() {
   };
 
   const handleUpdate = async () => {
-    // First, update the configuration
     let configData;
     if (model === "DHR") {
       configData = {
@@ -353,17 +509,15 @@ export default function ConfigureSingle() {
     }
 
     try {
-      // First API call to update configuration
       const endpoint = `http://localhost:8000/api/${model.toLowerCase()}-configurations/${forecastId}`;
       await axios.put(endpoint, configData);
       console.log("Configuration updated successfully");
 
-      // Prepare form data for the second API call
       const formData = new FormData();
       formData.append("tempFilename", tempFilename);
       formData.append("forecast_type", forecastType);
       formData.append("steps", steps);
-      formData.append("forecast_id", forecastId); // Add forecast_id here
+      formData.append("forecast_id", forecastId);
 
       if (model === "DHR") {
         formData.append("fourier_terms", dhrParams.fourier_terms);
@@ -380,7 +534,6 @@ export default function ConfigureSingle() {
         formData.append("lambda_reg", esnParams.lambda_reg);
       }
 
-      // Second API call to generate new forecast
       const endpoint1 = `http://localhost:8000/upload/edit-${model.toLowerCase()}/${granularity.toLowerCase()}`;
       const response = await axios.post(endpoint1, formData);
       console.log("Upload response:", response);
@@ -388,20 +541,17 @@ export default function ConfigureSingle() {
       let imageUrl = null;
       let forecastData = [];
 
-      // Check if the response has download_urls
       if (
         response.data &&
         response.data.download_urls &&
         Array.isArray(response.data.download_urls)
       ) {
         const downloadUrls = response.data.download_urls;
-
         const csvUrl = downloadUrls.find((url) =>
           url.endsWith(`_${steps}.csv`)
         );
         imageUrl = downloadUrls.find((url) => url.endsWith(`_${steps}.png`));
 
-        // Fetch forecast data if CSV URL is available
         if (csvUrl) {
           const csvResponse = await axios.get(csvUrl);
           const lines = csvResponse.data.split("\n").slice(1);
@@ -416,21 +566,15 @@ export default function ConfigureSingle() {
         console.log(
           "No download_urls in response, attempting to fetch forecast directly"
         );
-
-        // Alternative approach: fetch the forecast data directly using the forecast ID
         try {
           const forecastResponse = await axios.get(
             `http://localhost:8000/api/forecasts/${forecastId}`
           );
           console.log("Direct forecast fetch response:", forecastResponse);
-
           if (forecastResponse.data) {
-            // Try to get image URL from the forecast data if available
             if (forecastResponse.data.image_url) {
               imageUrl = forecastResponse.data.image_url;
             }
-
-            // Try to get forecast data if available
             if (forecastResponse.data.data) {
               forecastData = forecastResponse.data.data;
             }
@@ -440,11 +584,9 @@ export default function ConfigureSingle() {
             "Failed to fetch forecast data directly:",
             forecastError
           );
-          // Continue with empty data since we at least updated the configuration
         }
       }
 
-      // Navigate to result page with whatever data we have
       navigate("/result", {
         state: {
           imageUrl,
@@ -468,7 +610,7 @@ export default function ConfigureSingle() {
     } catch (error) {
       console.error("Error in handleUpdate:", error);
       setMessage(`Update failed: ${error.message}`);
-      throw error; // Re-throw to be caught by handleSubmit
+      throw error;
     }
   };
 
@@ -483,129 +625,44 @@ export default function ConfigureSingle() {
     }
   };
 
+  const renderInput = (name, value, modelType) => (
+    <div key={name} className="relative">
+      <label className="block text-m font-medium mb-1">
+        {customLabels[name]}
+        <span
+          className="text-gray-500 cursor-pointer ml-2"
+          onMouseEnter={() => showTooltip(name)}
+          onMouseLeave={() => hideTooltip(name)}>
+          ⓘ
+        </span>
+      </label>
+      {tooltipVisible[name] && descriptions[name] && (
+        <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
+          {descriptions[name]}
+        </div>
+      )}
+      <input
+        type="text"
+        name={name}
+        value={value === undefined || value === null ? "" : String(value)}
+        onChange={(e) => handleChange(e, modelType)}
+        className={`w-full p-2 border rounded-md ${
+          errors[name] ? "border-red-500" : ""
+        }`}
+        step={integerFields.includes(name) ? "1" : "any"}
+        min={integerFields.includes(name) ? "0" : undefined}
+      />
+      {errors[name] && (
+        <p className="text-red-600 text-sm mt-1">{errors[name]}</p>
+      )}
+    </div>
+  );
+
   const renderDHRForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex space-x-10">
-        <div className="flex-1 relative">
-          <label className="block text-m font-medium mb-1">
-            Fourier Order
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("fourier_terms")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "fourier_terms" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Number of Fourier terms for capturing seasonality
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="fourier_terms"
-            value={dhrParams.fourier_terms}
-            onChange={(e) => handleChange(e, "DHR")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-        <div className="flex-1 relative">
-          <label className="block text-m font-medium mb-1">
-            Window Length
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("window")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "window" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Window size for smoothing
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="window"
-            value={dhrParams.window}
-            onChange={(e) => handleChange(e, "DHR")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-      </div>
-      <div className="flex space-x-10">
-        <div className="flex-1 relative">
-          <label className="block text-m font-medium mb-1">
-            Polyorder
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("polyorder")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "polyorder" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Order of polynomial for Savitzky-Golay smoothing
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="polyorder"
-            value={dhrParams.polyorder}
-            onChange={(e) => handleChange(e, "DHR")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1">
-            Regularization
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("reg_strength")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "reg_strength" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Ridge regression regularization parameter
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="reg_strength"
-            value={dhrParams.reg_strength}
-            onChange={(e) => handleChange(e, "DHR")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-      </div>
-      <div className="flex space-x-10">
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1">
-            AR Order
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("trend_components")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "trend_components" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Number of past values to use for autoregression
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="ar_order"
-            onChange={(e) => handleChange(e, "DHR")}
-            value={dhrParams.ar_order}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-        <div className="flex-1"></div>
+      <div className="grid grid-cols-2 gap-x-10 gap-y-4">
+        {dhrParamOrder.map((key) => renderInput(key, dhrParams[key], "DHR"))}
+        <div></div> {/* Empty div for layout alignment */}
       </div>
       <div className="flex justify-end space-x-4 mt-10">
         <button
@@ -625,153 +682,10 @@ export default function ConfigureSingle() {
     </form>
   );
 
-  // Modified renderESNForm function
   const renderESNForm = () => (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="flex space-x-10">
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1">
-            Reservoir Size
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("N_res")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "N_res" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Number of neurons in the reservoir
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="N_res"
-            value={esnParams.N_res}
-            onChange={(e) => handleChange(e, "ESN")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1">
-            Regularization
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("lambda_reg")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "lambda_reg" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Regularization parameter for ESN training. Helps prevent
-                overfitting
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="lambda_reg"
-            value={esnParams.lambda_reg}
-            onChange={(e) => handleChange(e, "ESN")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-      </div>
-      <div className="flex space-x-10">
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1">
-            Spectral Radius
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("rho")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "rho" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Controls echo state property
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="rho"
-            value={esnParams.rho}
-            onChange={(e) => handleChange(e, "ESN")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1">
-            Input Scaling
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("alpha")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "alpha" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Scaling factor applied to the input data
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="alpha"
-            value={esnParams.alpha}
-            onChange={(e) => handleChange(e, "ESN")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-      </div>
-      <div className="flex space-x-10">
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1">
-            Sparsity
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("sparsity")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "sparsity" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Reservoir connectivity
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="sparsity"
-            value={esnParams.sparsity}
-            onChange={(e) => handleChange(e, "ESN")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-m font-medium mb-1">
-            Lags
-            <span
-              className="text-gray-500 cursor-pointer ml-2"
-              onMouseEnter={() => showTooltip("lags")}
-              onMouseLeave={hideTooltip}>
-              ⓘ
-            </span>
-            {tooltipVisible === "lags" && (
-              <div className="absolute bg-gray-800 text-white p-2 rounded text-xs max-w-xs z-10">
-                Number of time steps as input
-              </div>
-            )}
-          </label>
-          <input
-            type="text"
-            name="lags"
-            value={esnParams.lags}
-            onChange={(e) => handleChange(e, "ESN")}
-            className="w-full p-2 border rounded-md"
-          />
-        </div>
+      <div className="grid grid-cols-2 gap-x-10 gap-y-4">
+        {esnParamOrder.map((key) => renderInput(key, esnParams[key], "ESN"))}
       </div>
       <div className="flex justify-end space-x-4 mt-6">
         <button
@@ -797,6 +711,34 @@ export default function ConfigureSingle() {
     }
     return model === "ESN" ? renderESNForm() : renderDHRForm();
   };
+
+  // CSS for the loading bar
+  const loadingBarStyles = `
+    .loading-bar {
+      width: 100%;
+      height: 4px;
+      background-color: #e0e0e0;
+      border-radius: 2px;
+      overflow: hidden;
+      position: relative;
+      margin-top: 1rem;
+    }
+    .loading-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 30%;
+      height: 100%;
+      background-color: #4caf50;
+      animation: loading 1.5s infinite ease-in-out;
+    }
+    @keyframes loading {
+      0% { transform: translateX(-100%); }
+      50% { transform: translateX(300%); }
+      100% { transform: translateX(300%); }
+    }
+  `;
 
   return (
     <div className="min-h-screen relative">

@@ -183,22 +183,6 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
         print(f"Test RMSE: {rmse:.4f}")
         print(f"Test MAE: {mae:.4f}")
         print(f"Test CVRMSE: {cvrmse:.2f}%")
-        
-        # Save test results plot if needed
-        test_plot_path = os.path.join(output_dir, f"test_results_{timestamp}.png")
-        plt.figure(figsize=(15, 6))
-        test_indices = df_resampled.index[train_size + val_size:train_size + val_size + len(y_test)]
-        plt.plot(test_indices, y_test_true_original, label='Actual Daily Solar Power', color='blue')
-        plt.plot(test_indices, y_test_pred_original, label='Predicted Daily Solar Power', color='red')
-        plt.title('ESN Model: Actual vs Predicted Daily Solar Power (Test Set)')
-        plt.xlabel('Date')
-        plt.ylabel('Daily Average Solar Power')
-        plt.legend()
-        plt.grid(True)
-        plt.xticks(rotation=45)
-        plt.tight_layout()
-        plt.savefig(test_plot_path, dpi=300, bbox_inches='tight')
-        plt.close()
     
     # Prepare for forecasting
     historical_period = 60  # Approximately 2 months of daily data

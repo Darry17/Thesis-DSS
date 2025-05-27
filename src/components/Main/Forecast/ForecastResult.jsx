@@ -579,7 +579,10 @@ export default function ForecastResult() {
               {forecastData?.original_filename || "No filename available"}
             </h3>
             <h2 className="font-bold mb-4">
-              {forecastData?.model || "No model selected"}
+              {forecastData?.model || "No model selected"}(
+              {forecastData?.forecastType?.charAt(0).toUpperCase() +
+                forecastData?.forecastType?.slice(1)}
+              )
             </h2>
             <div className="h-48 rounded mb-4 overflow-hidden relative">
               {imageUrl ? (
