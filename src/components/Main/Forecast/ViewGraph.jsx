@@ -357,6 +357,60 @@ export default function ViewGraph() {
           left: 0;
           top: 0;
           width: 100%;
+          max-width: 100%;
+          padding: 5mm; /* Reduced padding for more space */
+          box-sizing: border-box;
+          height: auto;
+          min-height: 100vh; /* Ensure it takes full height */
+        }
+        .print-container .bg-white {
+          width: 100%;
+          max-width: 100%;
+          overflow: hidden;
+        }
+        .print-container .h-[500px] {
+          height: 100% !important; /* Reduced height to fit on one page */
+          width: 100% !important;
+          max-width: 100%;
+        }
+        canvas {
+          width: 100% !important;
+          height: 100% !important;
+          max-width: 100% !important;
+          max-height: 100% !important; /* Match container height */
+        }
+        .print-container .space-y-6 > div {
+          page-break-inside: avoid;
+        }
+        .print-container .p-4 {
+          padding: 1mm !important; /* Further reduced padding */
+        }
+        .print-container h3 {
+          font-size: 12px !important; /* Reduce heading size */
+        }
+        .print-container label {
+          font-size: 10px !important; /* Reduce label size */
+        }
+        .print-container input {
+          width: 50% !important;
+          max-width: 100%;
+          font-size: 10px !important; /* Reduce input text size */
+          padding: 1mm !important; /* Reduce input padding */
+        }
+        .print-container .text-xl {
+          font-size: 12px !important; /* Reduce large text size */
+        }
+        .print-container .text-lg {
+          font-size: 10px !important; /* Reduce medium text size */
+        }
+        @page {
+          size: A4;
+          margin: 5mm; /* Reduced margins to maximize space */
+          overflow: hidden; /* Prevent content from spilling to next page */
+        }
+        @page {
+          size: A4;
+          marks: none; /* Remove crop marks */
         }
       }
     `;
