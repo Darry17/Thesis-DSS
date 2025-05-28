@@ -296,14 +296,24 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
         two_months_ago_idx = 0
     actual_dates = df.index[two_months_ago_idx:].tolist()
     actual_values = df[target_col].values[two_months_ago_idx:]
-    
-    # Combine actual and forecast data
+
+    # Combine actual and forecast dates
     all_dates = actual_dates + forecast_dates
-    actual_extended = np.concatenate([actual_values, np.full(steps, np.nan)])  # Pad actual with NaN for forecast period
-    dhr_extended = np.concatenate([np.full(len(actual_values), np.nan), dhr_forecast])  # Pad forecast with NaN for actual period
-    esn_extended = np.concatenate([np.full(len(actual_values), np.nan), esn_forecast])
-    hybrid_extended = np.concatenate([np.full(len(actual_values), np.nan), hybrid_forecast])
-    
+
+    # For continuity, the forecast lines should start from the last actual value
+    last_actual = actual_values[-1]
+
+    # Extend actual values with NaN for the forecast period (for plotting purposes)
+    actual_extended = np.concatenate([actual_values, np.full(steps, np.nan)])
+
+    # Forecast arrays should start with the last actual value to ensure continuity
+    dhr_extended = np.concatenate([np.array([last_actual]), dhr_forecast])
+    esn_extended = np.concatenate([np.array([last_actual]), esn_forecast])
+    hybrid_extended = np.concatenate([np.array([last_actual]), hybrid_forecast])
+
+    # Adjust dates for forecast lines to include the last actual date
+    forecast_dates_with_start = [df.index[-1]] + forecast_dates
+
     # Create forecast DataFrame
     forecast_df = pd.DataFrame({
         'datetime': forecast_dates,
@@ -311,22 +321,22 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
         'esn_forecast': esn_forecast,
         'hybrid_forecast': hybrid_forecast
     })
-    
+
     # Save forecast
     csv_filename = f'wind_hybrid_daily_{timestamp}_{steps}.csv'
     csv_path_output = os.path.join(output_dir, csv_filename)
     forecast_df.to_csv(csv_path_output, index=False)
     print(f"Forecast saved to '{csv_path_output}'")
-    
+
     # Plot forecast with actual data and separation line
     plot_filename = f'wind_hybrid_daily_{timestamp}_{steps}.png'
     plot_path = os.path.join(output_dir, plot_filename)
-    
+
     plt.figure(figsize=(14, 7))
     plt.plot(all_dates, actual_extended, label='Actual', color='black', linewidth=2)
-    plt.plot(all_dates, dhr_extended, label='DHR Forecast', color='blue', linestyle='--')
-    plt.plot(all_dates, esn_extended, label='ESN Forecast', color='green', linestyle='--')
-    plt.plot(all_dates, hybrid_extended, label='Hybrid Forecast', color='red', linewidth=2)
+    plt.plot(forecast_dates_with_start, dhr_extended, label='DHR Forecast', color='blue', linestyle='--')
+    plt.plot(forecast_dates_with_start, esn_extended, label='ESN Forecast', color='green', linestyle='--')
+    plt.plot(forecast_dates_with_start, hybrid_extended, label='Hybrid Forecast', color='red', linewidth=2)
     plt.axvline(x=df.index[-1], color='black', linestyle=':', label='Forecast Start', alpha=0.7)
     plt.title(f'{steps}-Day Wind Power Forecast with Historical Data', fontsize=16)
     plt.xlabel('Date', fontsize=12)
