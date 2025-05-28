@@ -32,6 +32,8 @@ export default function ViewGraph() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const granularity = forecastData?.granularity;
+
   // Fetch forecast data on mount
   useEffect(() => {
     const fetchForecastData = async () => {
@@ -506,7 +508,7 @@ export default function ViewGraph() {
           <div className="space-y-6">
             <div className="bg-white p-4 rounded-lg border-gray-500 shadow">
               <h3 className="text-lg font-medium mb-2">Generated Power</h3>
-              {isSingleStep ? (
+              {isSingleStep && granularity === "hourly" ? (
                 <div className="h-[500px] bg-gray-50 flex items-center justify-center">
                   <div className="text-gray-700 text-xl font-semibold">
                     1-Step Forecast: {singleStepValue} kW

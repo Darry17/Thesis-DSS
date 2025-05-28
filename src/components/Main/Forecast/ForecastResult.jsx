@@ -244,6 +244,7 @@ export default function ForecastResult() {
       state: {
         data: parsedCsvData, // Pass forecast values only
         forecastId: forecastData?.id,
+        granularity: forecastData?.granularity,
       },
     });
   };
