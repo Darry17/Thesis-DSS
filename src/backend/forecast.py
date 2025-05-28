@@ -346,54 +346,64 @@ async def upload_file_dhr(
         if not os.path.exists(temp_path):
             raise HTTPException(status_code=404, detail="Temp file not found")
 
+        params = {
+            "fourier_terms": fourier_terms,
+            "reg_strength": reg_strength,
+            "ar_order": ar_order,
+            "window": window,
+            "polyorder": polyorder
+        }
+        
         if forecast_type == "solar":
             output_files, meta = run_dhr_forecast_solar_daily(
                 temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
-                params={
-                    "fourier_terms": fourier_terms,
-                    "reg_strength": reg_strength,
-                    "ar_order": ar_order,
-                    "window": window,
-                    "polyorder": polyorder
-                }
+                params=params
             )
         elif forecast_type == "wind":
             output_files, meta = run_dhr_forecast_wind_daily(
                 temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
-                params={
-                    "fourier_terms": fourier_terms,
-                    "reg_strength": reg_strength,
-                    "ar_order": ar_order,
-                    "window": window,
-                    "polyorder": polyorder
-                }
+                params=params
             )
-            
-            # Log the generated files
-            logger.info(f"Generated files: {output_files}")
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported forecast type: {forecast_type}")
 
-            # Retrieve the existing forecast entry
-            forecast_entry = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+        # Log the generated files
+        logger.info(f"Generated files: {output_files}")
 
-            # Update the filename
-            forecast_entry.filename = os.path.basename(output_files[0])
+        # Retrieve the existing forecast entry
+        forecast_entry = db.query(Forecast).filter(Forecast.id == forecast_id).first()
+        if not forecast_entry:
+            raise HTTPException(status_code=404, detail="Forecast not found")
+
+        # Update the filename (CSV)
+        forecast_entry.filename = os.path.basename(output_files[0])
+        db.commit()
+        db.refresh(forecast_entry)
+
+        # Update DHR configuration
+        dhr_entry = db.query(DHRForecast).filter(DHRForecast.forecast_id == forecast_id).first()
+        if dhr_entry:
+            dhr_entry.fourier_terms = fourier_terms
+            dhr_entry.reg_strength = reg_strength
+            dhr_entry.ar_order = ar_order
+            dhr_entry.window = window
+            dhr_entry.polyorder = polyorder
             db.commit()
-            db.refresh(forecast_entry)  # Optional but good for safety
+            db.refresh(dhr_entry)
 
-            # Fix download URL construction - match ESN format
-            download_urls = [
-                f"http://localhost:8000/download/{os.path.basename(file)}"
-                for file in output_files
-            ]
+        download_urls = [
+            f"http://localhost:8000/download/{os.path.basename(file)}"
+            for file in output_files
+        ]
 
-            return {
-                "message": "Files processed successfully",
-                "download_urls": download_urls,
-            }
+        return {
+            "message": "Files processed successfully",
+            "download_urls": download_urls,
+        }
 
     except Exception as e:
         logger.error(f"Error processing files: {str(e)}")
