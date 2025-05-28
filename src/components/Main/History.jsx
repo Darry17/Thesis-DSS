@@ -145,7 +145,7 @@ const History = () => {
             value={inputValue}
             onChange={handleInputChange}
             onKeyDown={handleSearch}
-            placeholder="Search by file name or model (press Enter to search)"
+            placeholder="Search by file name, forecast type, granularity, steps or model (press Enter to search)"
             className="w-full p-2 border border-gray-300 rounded"
           />
         </div>

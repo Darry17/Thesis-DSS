@@ -80,7 +80,10 @@ def register_history_log_routes(app: FastAPI):
                 query = query.filter(
                     or_(
                         HistoryLog.file_name.ilike(search_term),
-                        HistoryLog.model.ilike(search_term)
+                        HistoryLog.model.ilike(search_term),
+                        HistoryLog.forecast_type.ilike(search_term),
+                        HistoryLog.granularity.ilike(search_term),
+                        HistoryLog.steps.ilike(search_term)
                     )
                 )
             total_logs = query.count()
