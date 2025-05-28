@@ -175,10 +175,15 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="hourly"
     csv_path = os.path.join(output_dir, csv_name)
     forecast_df.to_csv(csv_path, index=False)
     
-    # Plotting
+    # Plotting with consistent dashed line
     plt.figure(figsize=(14, 6))
     plt.plot(historical_dates, historical_data, label='Actual (Last 2 weeks)', color='blue', linewidth=2)
-    plt.plot(forecast_dates, forecast_values, label=f'Forecast ({steps}h)', color='red', linestyle='--', linewidth=2)
+    
+    # Combine historical end point with forecast for continuous dashed line
+    combined_dates = [historical_dates[-1]] + forecast_dates
+    combined_values = [historical_data[-1]] + list(forecast_values)
+    plt.plot(combined_dates, combined_values, label=f'Forecast ({steps}h)', color='red', linestyle='--', linewidth=2)
+    
     plt.axvline(x=historical_dates[-1], color='green', linestyle=':', label='Forecast Start', linewidth=2)
     plt.title(f'Wind Power Forecast - {steps} Hour{"s" if steps > 1 else ""}')
     plt.xlabel('Time')

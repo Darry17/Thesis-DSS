@@ -330,11 +330,27 @@ def generate_forecast(df, dhr_model, esn_model, esn_scaler_target, esn_scaler_ex
     plot_filename = f'wind_hybrid_hourly_{timestamp}_{steps}.png'
     plot_path = os.path.join(output_dir, plot_filename)
     
+    # Combine actual and forecast data
+    all_dates = actual_dates + forecast_dates
+    actual_extended = np.concatenate([actual_values, np.full(steps, np.nan)])  # Pad actual with NaN for forecast period
+
+    # Ensure forecast lines start from the last actual value for continuity
+    last_actual = actual_values[-1]  # Last actual data point
+
+    # Create forecast arrays that start with the last actual value
+    dhr_extended = np.concatenate([[last_actual], dhr_forecast])  # Start with last actual value
+    esn_extended = np.concatenate([[last_actual], esn_forecast])
+    hybrid_extended = np.concatenate([[last_actual], hybrid_forecast])
+
+    # Adjust the dates for forecast lines to include the last actual date
+    forecast_dates_with_start = [actual_dates[-1]] + forecast_dates  # Include the last actual date for continuity
+
+    # Plot forecast with actual data and separation line
     plt.figure(figsize=(14, 7))
     plt.plot(all_dates, actual_extended, label='Actual', color='black', linewidth=2)
-    plt.plot(all_dates, dhr_extended, label='DHR Forecast', color='blue', linestyle='--')
-    plt.plot(all_dates, esn_extended, label='ESN Forecast', color='green', linestyle='--')
-    plt.plot(all_dates, hybrid_extended, label='Hybrid Forecast', color='red', linewidth=2)
+    plt.plot( forecast_dates_with_start, dhr_extended, label='DHR Forecast', color='blue', linestyle='--')
+    plt.plot( forecast_dates_with_start, esn_extended, label='ESN Forecast', color='green', linestyle='--')
+    plt.plot( forecast_dates_with_start, hybrid_extended, label='Hybrid Forecast', color='red', linewidth=2)
     plt.axvline(x=df.index[-1], color='black', linestyle=':', label='Forecast Start', alpha=0.7)
     plt.title(f'{steps}-Hour Wind Power Forecast with Historical Data', fontsize=16)
     plt.xlabel('Date', fontsize=12)
