@@ -101,7 +101,7 @@ const Login = () => {
           <div className="text-center pt-2">
             <button
               type="submit"
-              className={`bg-green-700 hover:bg-green-800 text-white font-medium py-2 px-6 rounded-full ${
+              className={`bg-green-700 border-none hover:bg-green-800 text-white font-medium py-2 px-6 rounded-full ${
                 isLoading ? "opacity-50 cursor-not-allowed" : ""
               }`}
               disabled={isLoading}>

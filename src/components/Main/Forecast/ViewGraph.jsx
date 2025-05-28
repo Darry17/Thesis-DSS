@@ -358,10 +358,10 @@ export default function ViewGraph() {
           top: 0;
           width: 100%;
           max-width: 100%;
-          padding: 5mm; /* Reduced padding for more space */
+          padding: 5mm;
           box-sizing: border-box;
           height: auto;
-          min-height: 100vh; /* Ensure it takes full height */
+          min-height: 100vh;
         }
         .print-container .bg-white {
           width: 100%;
@@ -369,7 +369,7 @@ export default function ViewGraph() {
           overflow: hidden;
         }
         .print-container .h-[500px] {
-          height: 100% !important; /* Reduced height to fit on one page */
+          height: 100% !important;
           width: 100% !important;
           max-width: 100%;
         }
@@ -377,40 +377,40 @@ export default function ViewGraph() {
           width: 100% !important;
           height: 100% !important;
           max-width: 100% !important;
-          max-height: 100% !important; /* Match container height */
+          max-height: 100% !important;
         }
         .print-container .space-y-6 > div {
           page-break-inside: avoid;
         }
         .print-container .p-4 {
-          padding: 1mm !important; /* Further reduced padding */
+          padding: 1mm !important;
         }
         .print-container h3 {
-          font-size: 12px !important; /* Reduce heading size */
+          font-size: 12px !important;
         }
         .print-container label {
-          font-size: 10px !important; /* Reduce label size */
+          font-size: 10px !important;
         }
         .print-container input {
           width: 50% !important;
           max-width: 100%;
-          font-size: 10px !important; /* Reduce input text size */
-          padding: 1mm !important; /* Reduce input padding */
+          font-size: 10px !important;
+          padding: 1mm !important;
         }
         .print-container .text-xl {
-          font-size: 12px !important; /* Reduce large text size */
+          font-size: 12px !important;
         }
         .print-container .text-lg {
-          font-size: 10px !important; /* Reduce medium text size */
+          font-size: 10px !important;
         }
         @page {
           size: A4;
-          margin: 5mm; /* Reduced margins to maximize space */
-          overflow: hidden; /* Prevent content from spilling to next page */
+          margin: 5mm;
+          overflow: hidden;
         }
         @page {
           size: A4;
-          marks: none; /* Remove crop marks */
+          marks: none;
         }
       }
     `;
@@ -517,7 +517,7 @@ export default function ViewGraph() {
                     )}
                   </div>
                 </div>
-              ) : hasMultipleForecasts ? (
+              ) : hasMultipleForecasts && forecastData?.steps === 1 ? (
                 <div className="h-[500px] bg-gray-50 flex items-center justify-center">
                   <div className="text-gray-700 text-xl font-semibold">
                     1-Step Forecast: {singleStepValue} kW

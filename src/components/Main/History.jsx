@@ -189,7 +189,7 @@ const History = () => {
                       <div className="flex gap-6">
                         <button
                           onClick={() => handleView(log.forecast_id)}
-                          className="px-3 py-1 bg-green-500 border-none text-white text-xs rounded hover:bg-green-600 cursor-pointer">
+                          className="px-3 py-1 bg-blue-500 border-none text-white text-xs rounded hover:bg-blue-600 cursor-pointer">
                           VIEW
                         </button>
                         {isLoggedIn && (

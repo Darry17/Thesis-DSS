@@ -623,7 +623,7 @@ export default function ForecastResult() {
             <div className="flex items-center justify-between">
               <button
                 onClick={handleViewGraphs}
-                className="py-2 px-4 bg-gray-200  text-black rounded-md hover:bg-gray-300 border-b-2 border-green-500 cursor-pointer">
+                className="py-2 px-4 bg-gray-200  text-black rounded-md hover:bg-gray-300 border-b-2 border-blue-500 cursor-pointer">
                 View Graphs
               </button>
 
