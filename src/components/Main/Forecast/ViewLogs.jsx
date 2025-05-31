@@ -109,21 +109,68 @@ const ViewLogs = () => {
           )
           .filter((value) => value !== null && !isNaN(value));
 
+        if (!forecastValues.length) {
+          setRecommendation({
+            title: "Invalid Data",
+            text: "No valid forecast data available.",
+          });
+          return;
+        }
+
         const sum = forecastValues.reduce((acc, val) => acc + val, 0);
         const mean =
           forecastValues.length > 0 ? sum / forecastValues.length : 0;
-        console.log("Forecast mean value:", mean);
+
+        if (mean < 0 || isNaN(mean)) {
+          setRecommendation({
+            title: "Invalid Forecast",
+            text: "Forecast contains negative or invalid values, which are not suitable for power generation.",
+          });
+          return;
+        }
+
+        if (energyDemand <= 0 || maxCapacity <= 0) {
+          setRecommendation({
+            title: "Invalid Input",
+            text: "Energy demand or max capacity must be positive.",
+          });
+          return;
+        }
 
         const normDemand = energyDemand / maxCapacity;
-        const upperbound = 0.9 * normDemand;
-        const lowerbound = 1.1 * normDemand;
+        const lowerBound = normDemand * 0.9; // 90% of demand
+        const upperBound = normDemand * 1.1; // 110% of demand
 
-        if (mean > upperbound) {
+        console.log(
+          "ForecastValues:",
+          forecastValues,
+          "Mean:",
+          mean,
+          "EnergyDemand:",
+          energyDemand,
+          "MaxCapacity:",
+          maxCapacity,
+          "NormDemand:",
+          normDemand,
+          "LowerBound:",
+          lowerBound,
+          "UpperBound:",
+          upperBound,
+          "In Balance Range:",
+          lowerBound <= mean && mean <= upperBound,
+          "Mean > UpperBound:",
+          mean > upperBound,
+          "Mean < LowerBound:",
+          mean < lowerBound
+        );
+
+        const epsilon = 1e-10; // Handle floating-point precision
+        if (mean > upperBound + epsilon) {
           setRecommendation({
             title: "Overgenerate",
             text: "Forecast analysis shows that generation is likely to exceed demand by more than 10%. Please begin charging battery energy storage systems, consider exporting excess power to the external grid if available, and initiate curtailment of solar or wind units to prevent grid overvoltage. You may also notify large consumers to increase their load through demand response programs.",
           });
-        } else if (mean < lowerbound) {
+        } else if (mean < lowerBound - epsilon) {
           setRecommendation({
             title: "Undergenerated",
             text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",

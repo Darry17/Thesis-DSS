@@ -26,8 +26,15 @@ export default function ForecastResult() {
   // Log fileContent, parsedCsvData, and calculate sum/mean
   useEffect(() => {
     if (fileContent) {
+      // Handle file content if needed
     }
-    if (parsedCsvData.length > 0) {
+
+    if (
+      parsedCsvData.length > 0 &&
+      energyDemand !== null &&
+      maxCapacity !== null &&
+      maxCapacity !== 0
+    ) {
       // Extract forecast values
       const forecastValues = parsedCsvData
         .map(
@@ -38,23 +45,71 @@ export default function ForecastResult() {
             row.forecast ??
             null
         )
-        .filter((value) => value !== null && !isNaN(value)); // Filter out null/invalid values
+        .filter((value) => value !== null && !isNaN(value));
+
+      if (!forecastValues.length) {
+        setRecommendation({
+          title: "Invalid Data",
+          text: "No valid forecast data available.",
+        });
+        return;
+      }
 
       // Calculate sum and mean
       const sum = forecastValues.reduce((acc, val) => acc + val, 0);
       const mean = forecastValues.length > 0 ? sum / forecastValues.length : 0;
 
+      if (mean < 0 || isNaN(mean)) {
+        setRecommendation({
+          title: "Invalid Forecast",
+          text: "Forecast contains negative or invalid values, which are not suitable for power generation.",
+        });
+        return;
+      }
+
+      if (energyDemand <= 0) {
+        setRecommendation({
+          title: "Invalid Input",
+          text: "Energy demand must be positive.",
+        });
+        return;
+      }
+
       // Normalize demand
       const normDemand = energyDemand / maxCapacity;
-      const upperbound = 0.9 * normDemand;
-      const lowerbound = 1.1 * normDemand;
+      const lowerBound = normDemand * 0.9; // 90% of demand
+      const upperBound = normDemand * 1.1; // 110% of demand
 
-      if (mean > upperbound) {
+      console.log(
+        "ForecastValues:",
+        forecastValues,
+        "Mean:",
+        mean,
+        "EnergyDemand:",
+        energyDemand,
+        "MaxCapacity:",
+        maxCapacity,
+        "NormDemand:",
+        normDemand,
+        "LowerBound:",
+        lowerBound,
+        "UpperBound:",
+        upperBound,
+        "In Balance Range:",
+        lowerBound <= mean && mean <= upperBound,
+        "Mean > UpperBound:",
+        mean > upperBound,
+        "Mean < LowerBound:",
+        mean < lowerBound
+      );
+
+      const epsilon = 1e-10; // Handle floating-point precision
+      if (mean > upperBound + epsilon) {
         setRecommendation({
           title: "Overgenerate",
           text: "Forecast analysis shows that generation is likely to exceed demand by more than 10%. Please begin charging battery energy storage systems, consider exporting excess power to the external grid if available, and initiate curtailment of solar or wind units to prevent grid overvoltage. You may also notify large consumers to increase their load through demand response programs.",
         });
-      } else if (mean < lowerbound) {
+      } else if (mean < lowerBound - epsilon) {
         setRecommendation({
           title: "Undergenerated",
           text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",
@@ -65,8 +120,13 @@ export default function ForecastResult() {
           text: "Forecasts indicate that renewable generation and load demand are balanced within a ±10% range. Maintain current grid operations and monitor system frequency. You may optimize the charge/discharge cycle of storage units and schedule minor grid maintenance during this stable period.",
         });
       }
+    } else {
+      setRecommendation({
+        title: "No Recommendation",
+        text: "Insufficient data to generate a recommendation. Ensure forecast data, energy demand, and max capacity are available and valid.",
+      });
     }
-  }, [fileContent, parsedCsvData]);
+  }, [fileContent, parsedCsvData, energyDemand, maxCapacity]);
 
   // Fetch forecast data including filename
   useEffect(() => {
