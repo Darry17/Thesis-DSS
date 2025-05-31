@@ -427,6 +427,8 @@ export default function ConfigureSingle() {
     formData.append("granularity", granularity);
     formData.append("steps", steps);
     formData.append("model", model);
+    formData.append("energy_demand", energyDemand);
+    formData.append("max_capacity", maxCapacity);
     formData.append("temp_id", tempId);
 
     if (model === "DHR") {
@@ -469,6 +471,8 @@ export default function ConfigureSingle() {
     navigate("/result", {
       state: {
         imageUrl,
+        energyDemand: energyDemand,
+        maxCapacity: maxCapacity,
         forecastData: {
           id: forecastId,
           original_filename: originalFilename,
@@ -590,6 +594,8 @@ export default function ConfigureSingle() {
       navigate("/result", {
         state: {
           imageUrl,
+          energyDemand: energyDemand,
+          maxCapacity: maxCapacity,
           forecastData: {
             id: forecastId,
             original_filename: originalFilename,

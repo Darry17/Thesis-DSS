@@ -49,7 +49,7 @@ const AppContent = () => {
       "/recovery-logs",
     ];
 
-    const responsiveOverflowRoutes = ["/view-logs", "/generate"];
+    const responsiveOverflowRoutes = ["/generate"];
 
     const handleOverflow = () => {
       const isResponsiveRoute = responsiveOverflowRoutes.includes(

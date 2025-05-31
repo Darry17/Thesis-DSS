@@ -441,6 +441,8 @@ const ConfigureHybrid = () => {
     formData.append("granularity", granularity);
     formData.append("steps", steps);
     formData.append("model", model);
+    formData.append("energy_demand", energyDemand);
+    formData.append("max_capacity", maxCapacity);
     formData.append("temp_id", tempId);
     formData.append("fourier_terms", dhrParams.fourier_terms);
     formData.append("reg_strength", dhrParams.reg_strength);
@@ -491,6 +493,8 @@ const ConfigureHybrid = () => {
     navigate("/result", {
       state: {
         imageUrl,
+        energyDemand: energyDemand,
+        maxCapacity: maxCapacity,
         forecastData: {
           id: forecastId,
           original_filename: originalFilename,
@@ -628,6 +632,8 @@ const ConfigureHybrid = () => {
       navigate("/result", {
         state: {
           imageUrl,
+          energyDemand: energyDemand,
+          maxCapacity: maxCapacity,
           forecastData: {
             id: parsedForecastId,
             original_filename: originalFilename,

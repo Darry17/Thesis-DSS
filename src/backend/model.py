@@ -13,6 +13,8 @@ class Forecast(Base):
     granularity = Column(String, nullable=False)
     steps = Column(Integer, nullable=False)
     model = Column(String, nullable=False)
+    energy_demand = Column(Float, nullable=False)
+    max_capacity = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.now)
     temp_id = Column(Integer, nullable=True)
 

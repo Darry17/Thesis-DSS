@@ -35,17 +35,28 @@ const ViewLogs = () => {
   const [chartData, setChartData] = useState(null);
   const [csvData, setCsvData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [recommendation, setRecommendation] = useState({
+    title: "",
+    text: "",
+  });
+  const [energyDemand, setEnergyDemand] = useState(null);
+  const [maxCapacity, setMaxCapacity] = useState(null);
 
   useEffect(() => {
     if (forecastId) {
       fetchForecastData();
       fetchHistoryLog();
-      fetchModelConfigurations();
     } else {
       setError("No forecast ID provided");
       console.error("No forecast ID provided");
     }
   }, [forecastId]);
+
+  useEffect(() => {
+    if (forecastData) {
+      fetchModelConfigurations();
+    }
+  }, [forecastData]);
 
   const fetchForecastData = async () => {
     try {
@@ -59,16 +70,75 @@ const ViewLogs = () => {
       }
 
       const data = await response.json();
+      console.log("API Response:", data);
       setForecastData(data);
 
-      // If there's a filename, try to fetch CSV data
+      const energyDemand = data.energyDemand || null;
+      const maxCapacity = data.maxCapacity || null;
+      setEnergyDemand(energyDemand);
+      setMaxCapacity(maxCapacity);
+      console.log("Energy Demand:", energyDemand);
+      console.log("Max Capacity:", maxCapacity);
+
+      let csvDataResult = null;
       if (data.filename) {
-        await fetchCsvData(data.filename);
-      } else {
-        // Fallback to the old file content approach if no CSV filename
-        if (data.filename) {
+        if (data.filename.endsWith(".csv")) {
+          csvDataResult = await fetchCsvData(data.filename);
+        } else {
           await fetchFileContent(data.filename);
         }
+      } else {
+        setError("No filename provided in forecast data");
+      }
+
+      if (
+        csvDataResult &&
+        csvDataResult.length > 0 &&
+        energyDemand !== null &&
+        maxCapacity !== null &&
+        maxCapacity !== 0
+      ) {
+        const forecastValues = csvDataResult
+          .map(
+            (row) =>
+              row.hybrid_forecast ??
+              row.forecasted_solar_power ??
+              row.forecasted_wind_power ??
+              row.forecast ??
+              null
+          )
+          .filter((value) => value !== null && !isNaN(value));
+
+        const sum = forecastValues.reduce((acc, val) => acc + val, 0);
+        const mean =
+          forecastValues.length > 0 ? sum / forecastValues.length : 0;
+        console.log("Forecast mean value:", mean);
+
+        const normDemand = energyDemand / maxCapacity;
+        const upperbound = 0.9 * normDemand;
+        const lowerbound = 1.1 * normDemand;
+
+        if (mean > upperbound) {
+          setRecommendation({
+            title: "Overgenerate",
+            text: "Forecast analysis shows that generation is likely to exceed demand by more than 10%. Please begin charging battery energy storage systems, consider exporting excess power to the external grid if available, and initiate curtailment of solar or wind units to prevent grid overvoltage. You may also notify large consumers to increase their load through demand response programs.",
+          });
+        } else if (mean < lowerbound) {
+          setRecommendation({
+            title: "Undergenerated",
+            text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",
+          });
+        } else {
+          setRecommendation({
+            title: "Balance",
+            text: "Forecasts indicate that renewable generation and load demand are balanced within a ±10% range. Maintain current grid operations and monitor system frequency. You may optimize the charge/discharge cycle of storage units and schedule minor grid maintenance during this stable period.",
+          });
+        }
+      } else {
+        setRecommendation({
+          title: "No Recommendation",
+          text: "Insufficient data to generate a recommendation. Ensure forecast data, energy demand, and max capacity are available and valid.",
+        });
       }
     } catch (error) {
       console.error("Error fetching forecast data:", error);
@@ -97,65 +167,54 @@ const ViewLogs = () => {
       const csvText = await response.text();
       console.log("CSV data fetched successfully");
 
-      // Parse CSV data
-      Papa.parse(csvText, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          console.log("Parsed CSV data:", results);
-
-          // Check for our specific forecast columns
-          const firstRow = results.data[0] || {};
-          const hasSpecificForecastColumns =
-            "dhr_forecast" in firstRow ||
-            "esn_forecast" in firstRow ||
-            "hybrid_forecast" in firstRow;
-
-          if (hasSpecificForecastColumns) {
-            // Keep the data as is since it already has our expected columns
-            setCsvData(results.data);
-
-            // Generate chart data
-            createChartFromCsvData(results.data);
-          } else {
-            // Handle possible column naming variations for generic forecast data
-            const processedData = results.data.map((row) => {
-              // Look for timestamp column (might be named timestamp, date, time, etc.)
-              const timestampKey = Object.keys(row).find(
-                (key) =>
-                  key.toLowerCase().includes("time") ||
-                  key.toLowerCase().includes("date")
-              );
-
-              // Look for forecast/value column
-              const forecastKey = Object.keys(row).find(
-                (key) =>
-                  key.toLowerCase().includes("forecast") ||
-                  key.toLowerCase().includes("value") ||
-                  key.toLowerCase().includes("power")
-              );
-
-              return {
-                timestamp: row[timestampKey] || "Unknown",
-                forecast: row[forecastKey] || 0,
-              };
-            });
-
-            setCsvData(processedData);
-
-            // Generate simple chart data
-            createSimpleChartFromCsvData(processedData);
-          }
-        },
-        error: (error) => {
-          console.error("CSV parsing error:", error);
-          setError("Error parsing CSV data");
-        },
+      const results = await new Promise((resolve, reject) => {
+        Papa.parse(csvText, {
+          header: true,
+          dynamicTyping: true,
+          skipEmptyLines: true,
+          complete: (results) => resolve(results),
+          error: (error) => reject(error),
+        });
       });
+
+      const firstRow = results.data[0] || {};
+      const hasSpecificForecastColumns =
+        "dhr_forecast" in firstRow ||
+        "esn_forecast" in firstRow ||
+        "hybrid_forecast" in firstRow;
+
+      if (hasSpecificForecastColumns) {
+        setCsvData(results.data);
+        createChartFromCsvData(results.data);
+        return results.data;
+      } else {
+        const processedData = results.data.map((row) => {
+          const timestampKey = Object.keys(row).find(
+            (key) =>
+              key.toLowerCase().includes("time") ||
+              key.toLowerCase().includes("date")
+          );
+          const forecastKey = Object.keys(row).find(
+            (key) =>
+              key.toLowerCase().includes("forecast") ||
+              key.toLowerCase().includes("value") ||
+              key.toLowerCase().includes("power")
+          );
+
+          return {
+            timestamp: row[timestampKey] || "Unknown",
+            forecast: row[forecastKey] || 0,
+          };
+        });
+
+        setCsvData(processedData);
+        createSimpleChartFromCsvData(processedData);
+        return processedData;
+      }
     } catch (err) {
       console.error("Error fetching CSV data:", err);
       setError(err.message);
+      return null;
     }
   };
 
@@ -165,7 +224,6 @@ const ViewLogs = () => {
       return;
     }
 
-    // Check if datetime or timestamp column exists
     const hasDatetime = "datetime" in data[0];
     const hasTimestamp = "timestamp" in data[0];
     if (!hasDatetime && !hasTimestamp) {
@@ -188,7 +246,6 @@ const ViewLogs = () => {
       },
     ];
 
-    // Filter rows to ensure they have a valid date and at least one forecast value
     const validData = data.filter((item) => {
       const dateKey = hasDatetime ? "datetime" : "timestamp";
       const hasDate =
@@ -290,8 +347,6 @@ const ViewLogs = () => {
       }
 
       const jsonContent = await fileResponse.json();
-      // Assuming jsonContent contains the data for the chart
-      // Example format: { timestamps: [...], values: [...] }
       if (jsonContent && jsonContent.timestamps && jsonContent.values) {
         setChartData({
           labels: jsonContent.timestamps,
@@ -314,26 +369,27 @@ const ViewLogs = () => {
 
   const fetchModelConfigurations = async () => {
     try {
-      const forecastResponse = await fetch(
-        `http://localhost:8000/api/forecasts/${forecastId}`
-      );
-
-      if (!forecastResponse.ok) {
-        throw new Error(
-          `Error fetching forecast: ${forecastResponse.statusText}`
+      let modelType;
+      if (!forecastData) {
+        const forecastResponse = await fetch(
+          `http://localhost:8000/api/forecasts/${forecastId}`
         );
+        if (!forecastResponse.ok) {
+          throw new Error(
+            `Error fetching forecast: ${forecastResponse.statusText}`
+          );
+        }
+        const data = await forecastResponse.json();
+        setForecastData(data);
+        modelType = (data.model || "").toUpperCase();
+      } else {
+        modelType = (forecastData.model || "").toUpperCase();
       }
 
-      const forecastData = await forecastResponse.json();
-      setForecastData(forecastData);
-
-      // Normalize the model type for consistent handling
-      const modelType = (forecastData.model || "").toUpperCase();
       const normalizedModelType =
         modelType === "DHR-ESN" ? "HYBRID" : modelType;
       console.log("Model type:", modelType);
 
-      // Handle different model types and their configuration endpoints
       if (modelType === "DHR") {
         const dhrResponse = await fetch(
           `http://localhost:8000/api/dhr-configurations/${forecastId}`
@@ -353,38 +409,26 @@ const ViewLogs = () => {
           console.log("ESN config fetched:", esnData);
         }
       } else if (modelType === "DHR-ESN") {
-        // For hybrid models, fetch both configurations
-
-        // First, fetch hybrid config which might contain both configurations
         const hybridResponse = await fetch(
           `http://localhost:8000/api/hybrid-configurations/${forecastId}`
         );
-
         if (hybridResponse.ok) {
           const hybridData = await hybridResponse.json();
           console.log("Hybrid config fetched:", hybridData);
 
-          // Check if the response has nested configs
-          if (hybridData.dhr_config) {
-            setDhrConfig(hybridData.dhr_config);
-          } else if (hybridData.dhr) {
-            setDhrConfig(hybridData.dhr);
+          if (hybridData.dhr_config || hybridData.dhr) {
+            setDhrConfig(hybridData.dhr_config || hybridData.dhr);
+          }
+          if (hybridData.esn_config || hybridData.esn) {
+            setEsnConfig(hybridData.esn_config || hybridData.esn);
           }
 
-          if (hybridData.esn_config) {
-            setEsnConfig(hybridData.esn_config);
-          } else if (hybridData.esn) {
-            setEsnConfig(hybridData.esn);
-          }
-
-          // If the hybrid data doesn't have nested configs, it might be a flat structure
           if (
             !hybridData.dhr_config &&
             !hybridData.esn_config &&
             !hybridData.dhr &&
             !hybridData.esn
           ) {
-            // Try to determine which fields belong to which model
             const possibleDhrFields = [
               "fourier_terms",
               "window",
@@ -402,29 +446,24 @@ const ViewLogs = () => {
               "n_features",
             ];
 
-            // Create config objects from the flat structure
             const extractedDhrConfig = {};
             const extractedEsnConfig = {};
 
-            // Extract DHR fields
             possibleDhrFields.forEach((field) => {
               if (field in hybridData) {
                 extractedDhrConfig[field] = hybridData[field];
               }
             });
 
-            // Extract ESN fields
             possibleEsnFields.forEach((field) => {
               if (field in hybridData) {
                 extractedEsnConfig[field] = hybridData[field];
               }
             });
 
-            // Set the configs if any fields were found
             if (Object.keys(extractedDhrConfig).length > 0) {
               setDhrConfig(extractedDhrConfig);
             }
-
             if (Object.keys(extractedEsnConfig).length > 0) {
               setEsnConfig(extractedEsnConfig);
             }
@@ -472,9 +511,7 @@ const ViewLogs = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        position: "top",
-      },
+      legend: { position: "top" },
       title: {
         display: true,
         text: "Power Generation Forecast",
@@ -483,22 +520,15 @@ const ViewLogs = () => {
     scales: {
       x: {
         display: true,
-        title: {
-          display: true,
-          text: "Time",
-        },
+        title: { display: true, text: "Time" },
       },
       y: {
         display: true,
-        title: {
-          display: true,
-          text: "Power (kW)",
-        },
+        title: { display: true, text: "Power (kW)" },
       },
     },
   };
 
-  // Check if CSV data has multiple forecasts
   const hasMultipleForecasts =
     csvData &&
     csvData.length > 0 &&
@@ -545,7 +575,7 @@ const ViewLogs = () => {
             type="text"
             value={forecastData?.original_filename || ""}
             readOnly
-            className="w-1/4 border border-gray-300 rounded p-2"
+            className="w-full border border-gray-300 rounded p-2"
           />
         </div>
         <div>
@@ -554,7 +584,7 @@ const ViewLogs = () => {
             type="text"
             value={forecastData?.filename || ""}
             readOnly
-            className="w-1/4 border border-gray-300 rounded p-2"
+            className="w-full border border-gray-300 rounded p-2"
           />
         </div>
         <div>
@@ -563,7 +593,7 @@ const ViewLogs = () => {
             type="text"
             value={forecastData?.granularity || ""}
             readOnly
-            className="w-1/4 border border-gray-300 rounded p-2"
+            className="w-full border border-gray-300 rounded p-2"
           />
         </div>
         <div>
@@ -572,7 +602,25 @@ const ViewLogs = () => {
             type="text"
             value={forecastData?.steps || ""}
             readOnly
-            className="w-1/4 border border-gray-300 rounded p-2"
+            className="w-full border border-gray-300 rounded p-2"
+          />
+        </div>
+        <div>
+          <label className="block font-medium">Energy Demand (kW)</label>
+          <input
+            type="text"
+            value={energyDemand ?? "N/A"}
+            readOnly
+            className="w-full border border-gray-300 rounded p-2"
+          />
+        </div>
+        <div>
+          <label className="block font-medium">Max Capacity (kW)</label>
+          <input
+            type="text"
+            value={maxCapacity ?? "N/A"}
+            readOnly
+            className="w-full border border-gray-300 rounded p-2"
           />
         </div>
       </div>
@@ -760,7 +808,7 @@ const ViewLogs = () => {
 
   return (
     <div className="p-6">
-      <div className="">
+      <div>
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-xl font-bold">
@@ -780,7 +828,30 @@ const ViewLogs = () => {
         {forecastId ? (
           <>
             <GraphPlaceholder />
-            <DatasetDetails />
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="w-full md:w-1/2">
+                <DatasetDetails />
+              </div>
+              <div className="w-full md:w-1/2">
+                <div className="mb-6 bg-white p-4 rounded-lg">
+                  <h3 className="text-gray-700 font-semibold mb-4">
+                    Recommendation
+                  </h3>
+                  {recommendation.title ? (
+                    <div>
+                      <h3 className="font-semibold">{recommendation.title}</h3>
+                      <p className="text-gray-600 text-justify leading-relaxed">
+                        {recommendation.text}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-600 text-justify leading-relaxed">
+                      No recommendation available
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
             {renderModelConfigurations()}
           </>
         ) : (

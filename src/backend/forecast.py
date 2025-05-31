@@ -39,6 +39,8 @@ async def upload_file_dhr(
     granularity: str = Form(...),
     steps: int = Form(...),
     model: str = Form(...),
+    max_capacity: float = Form(...),
+    energy_demand: float = Form(...),
     fourier_terms: int = Form(...),
     reg_strength: float = Form(...),
     ar_order: int = Form(...),
@@ -91,6 +93,8 @@ async def upload_file_dhr(
             granularity=granularity,
             steps=steps,
             model=model,
+            energy_demand=energy_demand,
+            max_capacity=max_capacity,
             temp_id=temp_id,
         )
         db.add(forecast_entry)
@@ -225,6 +229,8 @@ async def upload_file_dhr(
     granularity: str = Form(...),
     steps: int = Form(...),
     model: str = Form(...),
+    max_capacity: float = Form(...),
+    energy_demand: float = Form(...),
     fourier_terms: int = Form(...),
     reg_strength: float = Form(...),
     ar_order: int = Form(...),
@@ -277,6 +283,8 @@ async def upload_file_dhr(
             granularity=granularity,
             steps=steps,
             model=model,
+            energy_demand=energy_demand,
+            max_capacity=max_capacity,
             temp_id = temp_id,
         )
         db.add(forecast_entry)
@@ -421,6 +429,8 @@ async def upload_file_esn(
     granularity: str = Form(...),
     steps: int = Form(...),
     model: str = Form(...),
+    max_capacity: float = Form(...),
+    energy_demand: float = Form(...),
     lags: int = Form(...),
     N_res: int = Form(...),
     rho: float = Form(...),
@@ -474,6 +484,8 @@ async def upload_file_esn(
             granularity=granularity,
             steps=steps,
             model=model,
+            energy_demand=energy_demand,
+            max_capacity=max_capacity,
             temp_id = temp_id,
         )
         db.add(forecast_entry)
@@ -600,6 +612,8 @@ async def upload_file_esn(
     granularity: str = Form(...),
     steps: int = Form(...),
     model: str = Form(...),
+    max_capacity: float = Form(...),
+    energy_demand: float = Form(...),
     lags: int = Form(...),
     N_res: int = Form(...),
     rho: float = Form(...),
@@ -653,6 +667,8 @@ async def upload_file_esn(
             granularity=granularity,
             steps=steps,
             model=model,
+            energy_demand=energy_demand,
+            max_capacity=max_capacity,
             temp_id = temp_id,
         )
         db.add(forecast_entry)
@@ -779,6 +795,8 @@ async def upload_file_hybrid(
     granularity: str = Form(...),
     steps: int = Form(...),
     model: str = Form(...),
+    max_capacity: float = Form(...),
+    energy_demand: float = Form(...),
     fourier_terms: int = Form(...),
     reg_strength: float = Form(...),
     ar_order: int = Form(...),
@@ -855,6 +873,8 @@ async def upload_file_hybrid(
             granularity=granularity,
             steps=steps,
             model=model,
+            energy_demand=energy_demand,
+            max_capacity=max_capacity,
             temp_id=temp_id,
         )
         db.add(forecast_entry)
@@ -1016,6 +1036,8 @@ async def upload_file_hybrid(
     granularity: str = Form(...),
     steps: int = Form(...),
     model: str = Form(...),
+    max_capacity: float = Form(...),
+    energy_demand: float = Form(...),
     fourier_terms: int = Form(...),
     reg_strength: float = Form(...),
     ar_order: int = Form(...),
@@ -1092,6 +1114,8 @@ async def upload_file_hybrid(
             granularity=granularity,
             steps=steps,
             model=model,
+            energy_demand=energy_demand,
+            max_capacity=max_capacity,
             temp_id=temp_id,
         )
         db.add(forecast_entry)
@@ -1270,6 +1294,8 @@ async def get_forecast(forecast_id: int, db: Session = Depends(get_db)):
             "filename": forecast.filename,
             "original_filename": forecast.original_filename,
             "model": forecast.model,
+            "maxCapacity": forecast.max_capacity,
+            "energyDemand": forecast.energy_demand,
             "steps": forecast.steps,
             "granularity": forecast.granularity,
             "created_at": forecast.created_at.isoformat() if forecast.created_at else None

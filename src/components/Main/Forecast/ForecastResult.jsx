@@ -5,9 +5,11 @@ import Papa from "papaparse"; // Import PapaParse for CSV parsing
 export default function ForecastResult() {
   const navigate = useNavigate();
   const { state } = useLocation();
-  console.log("Received state:", state); // Debug log
+  console.log("Received state:", state);
 
   const imageUrl = state?.imageUrl;
+  const energyDemand = state?.energyDemand;
+  const maxCapacity = state?.maxCapacity;
   const [forecastData, setForecastData] = useState(state?.forecastData || {});
   const [config, setConfig] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,9 +22,6 @@ export default function ForecastResult() {
   const [parsedCsvData, setParsedCsvData] = useState([]); // Store forecast values only
   const [isZoomed, setIsZoomed] = useState(false);
   const [showModal, setShowModal] = useState(false);
-
-  const energyDemand = 1000; // Example value in kW, replace with fetched or passed data
-  const maxCapacity = 1200;
 
   // Log fileContent, parsedCsvData, and calculate sum/mean
   useEffect(() => {
@@ -60,7 +59,7 @@ export default function ForecastResult() {
           title: "Undergenerated",
           text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",
         });
-      } else {
+      } else if (mean > lowerbound && mean < upperbound) {
         setRecommendation({
           title: "Balance",
           text: "Forecasts indicate that renewable generation and load demand are balanced within a ±10% range. Maintain current grid operations and monitor system frequency. You may optimize the charge/discharge cycle of storage units and schedule minor grid maintenance during this stable period.",
