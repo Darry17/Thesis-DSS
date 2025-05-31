@@ -59,7 +59,7 @@ export default function ForecastResult() {
           title: "Undergenerated",
           text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",
         });
-      } else if (mean > lowerbound && mean < upperbound) {
+      } else {
         setRecommendation({
           title: "Balance",
           text: "Forecasts indicate that renewable generation and load demand are balanced within a ±10% range. Maintain current grid operations and monitor system frequency. You may optimize the charge/discharge cycle of storage units and schedule minor grid maintenance during this stable period.",
