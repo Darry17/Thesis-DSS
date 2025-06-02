@@ -116,10 +116,7 @@ const ViewLogs = () => {
     const stepsNum = Number(steps);
     if (isNaN(stepsNum)) {
       console.warn("Steps is not a valid number, using default:", steps);
-      return [
-        "Pre-charge battery storage overnight",
-        "Bid strategically in the day-ahead market",
-      ];
+      return ["No valid steps provided", "No valid steps provided"];
     }
 
     // Check if inputs are valid
@@ -130,8 +127,8 @@ const ViewLogs = () => {
         stepsNum,
       });
       return [
-        "Pre-charge battery storage overnight",
-        "Bid strategically in the day-ahead market",
+        "Invalid recommendation inputs. Please check the forecast data.",
+        "Ensure title, granularity, and steps are correctly defined.",
       ];
     }
 

@@ -409,6 +409,7 @@ export default function ForecastResult() {
     return (
       actions[title]?.[granularity]?.[steps] || [
         "No specific actions available",
+        "Please review the forecast manually",
       ]
     );
   };
