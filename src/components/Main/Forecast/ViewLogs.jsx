@@ -58,6 +58,86 @@ const ViewLogs = () => {
     }
   }, [forecastData]);
 
+  // Recommendation mapping based on granularity, steps, and title
+  const getRecommendationActions = (title, granularity, steps) => {
+    console.log("getRecommendationActions inputs:", {
+      title,
+      granularity,
+      steps,
+    });
+    const actions = {
+      Overgenerate: {
+        Hourly: {
+          1: [
+            "Curtail excess solar/wind immediately",
+            "Store surplus if possible",
+          ],
+          24: ["Pre-charge batteries", "Prepare for day-ahead overproduction"],
+          168: ["Adjust weekly procurement", "Prepare long-term export plans"],
+        },
+        Daily: {
+          1: ["Reduce planned imports", "Hold reserve from thermal units"],
+          7: ["Optimize storage rotation", "Consider selling excess energy"],
+          30: [
+            "Plan investment in grid-scale storage or export infrastructure",
+          ],
+        },
+      },
+      Undergenerate: {
+        Hourly: {
+          1: ["Dispatch spinning reserves", "Reduce non-critical loads"],
+          24: ["Alert load balancing systems", "Activate short-term contracts"],
+          168: ["Schedule maintenance deferment", "Boost flexible supply"],
+        },
+        Daily: {
+          1: ["Supplement with grid purchases", "Activate demand response"],
+          7: ["Prepare contingency reserves", "Adjust weekly load plans"],
+          30: [
+            "Revise energy supply strategy",
+            "Strengthen backup procurement",
+          ],
+        },
+      },
+      Balance: {
+        Hourly: {
+          1: ["Maintain real-time operations", "Continue monitoring"],
+          24: ["Keep current schedule", "Adjust for minor variability"],
+          168: ["Confirm forecast reliability", "Check for anomalies"],
+        },
+        Daily: {
+          1: ["Continue scheduled dispatch", "Monitor short-term shifts"],
+          7: ["Execute regular weekly plans", "Optimize distribution loads"],
+          30: ["Maintain baseline strategy", "Review long-term forecasts"],
+        },
+      },
+    };
+
+    // Convert steps to a number for proper lookup
+    const stepsNum = Number(steps);
+    if (isNaN(stepsNum)) {
+      console.warn("Steps is not a valid number, using default:", steps);
+      return [
+        "Pre-charge battery storage overnight",
+        "Bid strategically in the day-ahead market",
+      ];
+    }
+
+    // Check if inputs are valid
+    if (!title || !granularity || !actions[title]?.[granularity]?.[stepsNum]) {
+      console.warn("Invalid inputs for recommendation, using default:", {
+        title,
+        granularity,
+        stepsNum,
+      });
+      return [
+        "Pre-charge battery storage overnight",
+        "Bid strategically in the day-ahead market",
+      ];
+    }
+
+    return actions[title][granularity][stepsNum];
+  };
+
   const fetchForecastData = async () => {
     try {
       setLoading(true);
@@ -172,7 +252,7 @@ const ViewLogs = () => {
           });
         } else if (mean < lowerBound - epsilon) {
           setRecommendation({
-            title: "Undergenerated",
+            title: "Undergenerate",
             text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",
           });
         } else {
@@ -583,6 +663,13 @@ const ViewLogs = () => {
       "esn_forecast" in csvData[0] ||
       "hybrid_forecast" in csvData[0]);
 
+  // Get recommendation actions based on current state
+  const [actionA, actionB] = getRecommendationActions(
+    recommendation.title,
+    forecastData?.granularity,
+    forecastData?.steps
+  );
+
   const GraphPlaceholder = () => (
     <div className="mb-6">
       <h2 className="text-lg font-semibold mb-2">Generated Power</h2>
@@ -890,6 +977,32 @@ const ViewLogs = () => {
                       <p className="text-gray-600 text-justify leading-relaxed">
                         {recommendation.text}
                       </p>
+                      <div className="space-y-2 mt-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-600 font-medium">
+                              A
+                            </span>
+                            <p className="text-sm">{actionA}</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-green-600 border-green-600 focus:ring-green-500 cursor-pointer rounded accent-green-700"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-600 font-medium">
+                              B
+                            </span>
+                            <p className="text-sm">{actionB}</p>
+                          </div>
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 text-green-600 border-green-600 focus:ring-green-500 cursor-pointer rounded accent-green-700"
+                          />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-gray-600 text-justify leading-relaxed">

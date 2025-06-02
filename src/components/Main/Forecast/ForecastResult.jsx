@@ -111,7 +111,7 @@ export default function ForecastResult() {
         });
       } else if (mean < lowerBound - epsilon) {
         setRecommendation({
-          title: "Undergenerated",
+          title: "Undergenerate",
           text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",
         });
       } else {
@@ -356,6 +356,69 @@ export default function ForecastResult() {
     const stepsNum = Number(steps);
     return stepLabels[granularity]?.[stepsNum] || `${steps} Steps`;
   };
+
+  // Recommendation mapping based on granularity, steps, and title
+  const getRecommendationActions = (title, granularity, steps) => {
+    const actions = {
+      Overgenerate: {
+        Hourly: {
+          1: [
+            "Curtail excess solar/wind immediately",
+            "Store surplus if possible",
+          ],
+          24: ["Pre-charge batteries", "Prepare for day-ahead overproduction"],
+          168: ["Adjust weekly procurement", "Prepare long-term export plans"],
+        },
+        Daily: {
+          1: ["Reduce planned imports", "Hold reserve from thermal units"],
+          7: ["Optimize storage rotation", "Consider selling excess energy"],
+          30: [
+            "Plan investment in grid-scale storage or export infrastructure",
+          ],
+        },
+      },
+      Undergenerate: {
+        Hourly: {
+          1: ["Dispatch spinning reserves", "Reduce non-critical loads"],
+          24: ["Alert load balancing systems", "Activate short-term contracts"],
+          168: ["Schedule maintenance deferment", "Boost flexible supply"],
+        },
+        Daily: {
+          1: ["Supplement with grid purchases", "Activate demand response"],
+          7: ["Prepare contingency reserves", "Adjust weekly load plans"],
+          30: [
+            "Revise energy supply strategy",
+            "Strengthen backup procurement",
+          ],
+        },
+      },
+      Balance: {
+        Hourly: {
+          1: ["Maintain real-time operations", "Continue monitoring"],
+          24: ["Keep current schedule", "Adjust for minor variability"],
+          168: ["Confirm forecast reliability", "Check for anomalies"],
+        },
+        Daily: {
+          1: ["Continue scheduled dispatch", "Monitor short-term shifts"],
+          7: ["Execute regular weekly plans", "Optimize distribution loads"],
+          30: ["Maintain baseline strategy", "Review long-term forecasts"],
+        },
+      },
+    };
+
+    return (
+      actions[title]?.[granularity]?.[steps] || [
+        "No specific actions available",
+      ]
+    );
+  };
+
+  // Get recommendation actions based on current state
+  const [actionA, actionB] = getRecommendationActions(
+    recommendation.title,
+    forecastData?.granularity,
+    forecastData?.steps
+  );
 
   // Render configuration section based on model type
   const renderConfigSection = () => {
@@ -698,7 +761,9 @@ export default function ForecastResult() {
 
           {/* Recommendations */}
           <div className="bg-white p-4 rounded-lg">
-            <h3 className="text-gray-700 font-semibold mb-4">Recommendation</h3>
+            <h3 className="text-gray-700 font-semibold mb-4">
+              Recommendations
+            </h3>
             {recommendation.title ? (
               <div>
                 <h3 className="semi-bold">{recommendation.title}</h3>
@@ -711,6 +776,28 @@ export default function ForecastResult() {
                 No recommendation available
               </p>
             )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600 font-medium">A</span>
+                  <p className="text-sm">{actionA}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 text-green-600 border-green-600 focus:ring-green-500 cursor-pointer rounded accent-green-700"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600 font-medium">B</span>
+                  <p className="text-sm">{actionB}</p>
+                </div>
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 text-green-600 border-green-600 focus:ring-green-500 cursor-pointer rounded accent-green-700"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
