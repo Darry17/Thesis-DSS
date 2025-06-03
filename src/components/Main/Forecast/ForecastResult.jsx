@@ -783,20 +783,12 @@ export default function ForecastResult() {
                   <span className="text-green-600 font-medium">A</span>
                   <p className="text-sm">{actionA}</p>
                 </div>
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 text-green-600 border-green-600 focus:ring-green-500 cursor-pointer rounded accent-green-700"
-                />
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-green-600 font-medium">B</span>
                   <p className="text-sm">{actionB}</p>
                 </div>
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 text-green-600 border-green-600 focus:ring-green-500 cursor-pointer rounded accent-green-700"
-                />
               </div>
             </div>
           </div>
