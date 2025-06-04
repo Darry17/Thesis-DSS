@@ -37,10 +37,10 @@ const AdminNavigation = () => {
   const linkClass = "block py-2 px-4 rounded w-80% text-left";
 
   return (
-    <div className="w-20% bg-blue-950 text-white p-4 font-medium min-h-screen fixed top-0 left-0 h-full">
+    <div className="w-15% bg-blue-950 text-white p-4 font-medium min-h-screen fixed top-0 left-0 h-full">
       <div className="flex flex-col h-full text-lg font-semibold">
         {/* Navigation Links */}
-        <ul className="flex flex-col space-y-5 list-none">
+        <ul className="flex flex-col space-y-5  list-none ">
           <li>
             <NavLink
               to="/history"

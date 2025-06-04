@@ -150,118 +150,100 @@ const ViewLogs = () => {
       console.log("API Response:", data);
       setForecastData(data);
 
-      const energyDemand = data.energyDemand || null;
-      const maxCapacity = data.maxCapacity || null;
+      const energyDemand = data.energyDemand ?? null;
+      const maxCapacity = data.maxCapacity ?? null;
       setEnergyDemand(energyDemand);
       setMaxCapacity(maxCapacity);
-      console.log("Energy Demand:", energyDemand);
-      console.log("Max Capacity:", maxCapacity);
+
+      if (!data.filename) {
+        setRecommendation({
+          title: "Invalid Data",
+          text: "No filename provided in forecast data.",
+        });
+        setError("No filename provided in forecast data");
+        return;
+      }
 
       let csvDataResult = null;
-      if (data.filename) {
-        if (data.filename.endsWith(".csv")) {
-          csvDataResult = await fetchCsvData(data.filename);
-        } else {
-          await fetchFileContent(data.filename);
-        }
+      if (data.filename.endsWith(".csv")) {
+        csvDataResult = await fetchCsvData(data.filename);
       } else {
-        setError("No filename provided in forecast data");
+        await fetchFileContent(data.filename);
       }
 
       if (
-        csvDataResult &&
-        csvDataResult.length > 0 &&
-        energyDemand !== null &&
-        maxCapacity !== null &&
-        maxCapacity !== 0
+        !csvDataResult ||
+        csvDataResult.length === 0 ||
+        energyDemand === null ||
+        maxCapacity === null ||
+        energyDemand <= 0 ||
+        maxCapacity <= 0
       ) {
-        const forecastValues = csvDataResult
-          .map(
-            (row) =>
-              row.hybrid_forecast ??
-              row.forecasted_solar_power ??
-              row.forecasted_wind_power ??
-              row.forecast ??
-              null
-          )
-          .filter((value) => value !== null && !isNaN(value));
+        setRecommendation({
+          title: "Invalid Data",
+          text: "Insufficient or invalid data for recommendation. Ensure forecast data, energy demand, and max capacity are valid.",
+        });
+        return;
+      }
 
-        if (!forecastValues.length) {
-          setRecommendation({
-            title: "Invalid Data",
-            text: "No valid forecast data available.",
-          });
-          return;
-        }
+      const forecastValues = csvDataResult
+        .map(
+          (row) =>
+            row.hybrid_forecast ??
+            row.forecasted_solar_power ??
+            row.forecasted_wind_power ??
+            row.forecast ??
+            null
+        )
+        .filter((value) => value !== null && !isNaN(value));
 
-        const sum = forecastValues.reduce((acc, val) => acc + val, 0);
-        const mean =
-          forecastValues.length > 0 ? sum / forecastValues.length : 0;
+      if (!forecastValues.length) {
+        setRecommendation({
+          title: "Invalid Data",
+          text: "No valid forecast data available.",
+        });
+        return;
+      }
 
-        if (mean < 0 || isNaN(mean)) {
-          setRecommendation({
-            title: "Invalid Forecast",
-            text: "Forecast contains negative or invalid values, which are not suitable for power generation.",
-          });
-          return;
-        }
+      const sum = forecastValues.reduce((acc, val) => acc + val, 0);
+      const mean = forecastValues.length > 0 ? sum / forecastValues.length : 0;
 
-        if (energyDemand <= 0 || maxCapacity <= 0) {
-          setRecommendation({
-            title: "Invalid Input",
-            text: "Energy demand or max capacity must be positive.",
-          });
-          return;
-        }
+      if (mean < 0 || isNaN(mean)) {
+        setRecommendation({
+          title: "Invalid Forecast",
+          text: "Forecast contains negative or invalid values, which are not suitable for power generation.",
+        });
+        return;
+      }
 
-        const normDemand = energyDemand / maxCapacity;
-        const lowerBound = normDemand * 0.9; // 90% of demand
-        const upperBound = normDemand * 1.1; // 110% of demand
+      const normDemand = energyDemand / maxCapacity;
+      const lowerBound = normDemand * 0.9;
+      const upperBound = normDemand * 1.1;
+      const epsilon = 1e-10;
 
-        console.log(
-          "ForecastValues:",
-          forecastValues,
-          "Mean:",
-          mean,
-          "EnergyDemand:",
-          energyDemand,
-          "MaxCapacity:",
-          maxCapacity,
-          "NormDemand:",
-          normDemand,
-          "LowerBound:",
-          lowerBound,
-          "UpperBound:",
-          upperBound,
-          "In Balance Range:",
-          lowerBound <= mean && mean <= upperBound,
-          "Mean > UpperBound:",
-          mean > upperBound,
-          "Mean < LowerBound:",
-          mean < lowerBound
-        );
+      console.log("Recommendation Inputs:", {
+        mean,
+        energyDemand,
+        maxCapacity,
+        normDemand,
+        lowerBound,
+        upperBound,
+      });
 
-        const epsilon = 1e-10; // Handle floating-point precision
-        if (mean > upperBound + epsilon) {
-          setRecommendation({
-            title: "Overgenerate",
-            text: "Forecast analysis shows that generation is likely to exceed demand by more than 10%. Please begin charging battery energy storage systems, consider exporting excess power to the external grid if available, and initiate curtailment of solar or wind units to prevent grid overvoltage. You may also notify large consumers to increase their load through demand response programs.",
-          });
-        } else if (mean < lowerBound - epsilon) {
-          setRecommendation({
-            title: "Undergenerate",
-            text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",
-          });
-        } else {
-          setRecommendation({
-            title: "Balance",
-            text: "Forecasts indicate that renewable generation and load demand are balanced within a ±10% range. Maintain current grid operations and monitor system frequency. You may optimize the charge/discharge cycle of storage units and schedule minor grid maintenance during this stable period.",
-          });
-        }
+      if (mean > upperBound + epsilon) {
+        setRecommendation({
+          title: "Overgenerate",
+          text: "Forecast analysis shows that generation is likely to exceed demand by more than 10%. Please begin charging battery energy storage systems, consider exporting excess power to the external grid if available, and initiate curtailment of solar or wind units to prevent grid overvoltage. You may also notify large consumers to increase their load through demand response programs.",
+        });
+      } else if (mean < lowerBound - epsilon) {
+        setRecommendation({
+          title: "Undergenerate",
+          text: "The system anticipates a generation shortfall of over 10% compared to demand. Please dispatch backup generation units immediately, initiate energy imports if grid interconnection is available, and issue a demand response call to reduce load in non-critical sectors. Pre-charge energy storage systems during off-peak hours if time permits.",
+        });
       } else {
         setRecommendation({
-          title: "No Recommendation",
-          text: "Insufficient data to generate a recommendation. Ensure forecast data, energy demand, and max capacity are available and valid.",
+          title: "Balance",
+          text: "Forecasts indicate that renewable generation and load demand are balanced within a ±10% range. Maintain current grid operations and monitor system frequency. You may optimize the charge/discharge cycle of storage units and schedule minor grid maintenance during this stable period.",
         });
       }
     } catch (error) {
@@ -271,6 +253,16 @@ const ViewLogs = () => {
       setLoading(false);
     }
   };
+
+  // In the render section, update the call to getRecommendationActions:
+  const [actionA, actionB] =
+    recommendation.title && forecastData?.granularity && forecastData?.steps
+      ? getRecommendationActions(
+          recommendation.title,
+          forecastData.granularity,
+          forecastData.steps
+        )
+      : ["No action available", "No action available"];
 
   const fetchCsvData = async (filename) => {
     try {
@@ -620,7 +612,6 @@ const ViewLogs = () => {
       if (matchingLog) {
         setHistoryLog(matchingLog);
       } else {
-        console.warn(`No history log found for forecast ID: ${forecastId}`);
         setHistoryLog(null);
       }
     } catch (error) {
@@ -659,13 +650,6 @@ const ViewLogs = () => {
     ("dhr_forecast" in csvData[0] ||
       "esn_forecast" in csvData[0] ||
       "hybrid_forecast" in csvData[0]);
-
-  // Get recommendation actions based on current state
-  const [actionA, actionB] = getRecommendationActions(
-    recommendation.title,
-    forecastData?.granularity,
-    forecastData?.steps
-  );
 
   const GraphPlaceholder = () => (
     <div className="mb-6">
@@ -938,8 +922,8 @@ const ViewLogs = () => {
   };
 
   return (
-    <div className="p-6">
-      <div>
+    <div className="p-6 flex-1">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-xl font-bold">

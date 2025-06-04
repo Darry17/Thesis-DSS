@@ -25,6 +25,9 @@ export default function FileUpload() {
     "Temperature",
   ];
 
+  // Regular expression for validating time format (YYYY-MM-DD HH:MM:SS)
+  const timeFormatRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+
   const onDrop = (acceptedFiles, fileRejections) => {
     if (fileRejections.length > 0) {
       setMessage("Only .csv files are allowed.");
@@ -34,10 +37,9 @@ export default function FileUpload() {
 
     const selectedFile = acceptedFiles[0];
 
-    // Parse CSV to validate columns
+    // Parse CSV to validate columns and data
     Papa.parse(selectedFile, {
       header: true,
-      preview: 1, // Only need the header row
       complete: (result) => {
         const headers = result.meta.fields;
         const missingColumns = requiredColumns.filter(
@@ -47,17 +49,72 @@ export default function FileUpload() {
         if (missingColumns.length > 0) {
           setMessage(`Missing required columns: ${missingColumns.join(", ")}`);
           setFile(null);
-        } else if (headers.length > requiredColumns.length) {
+          return;
+        }
+
+        if (headers.length > requiredColumns.length) {
           setMessage(
             `Extra columns detected. Please include only: ${requiredColumns.join(
               ", "
             )}`
           );
           setFile(null);
-        } else {
-          setFile(selectedFile);
-          setMessage("");
+          return;
         }
+
+        // Validate data rows
+        let dataValid = true;
+        let errorMessage = "";
+
+        for (let i = 0; i < result.data.length; i++) {
+          const row = result.data[i];
+
+          // Skip empty or malformed rows (e.g., rows with all empty or null values)
+          const isRowEmpty = Object.values(row).every(
+            (value) => value === undefined || value === "" || value === null
+          );
+          if (isRowEmpty) continue;
+
+          // Validate time format
+          const timeValue = row["time"];
+          if (!timeValue || !timeFormatRegex.test(timeValue)) {
+            dataValid = false;
+            errorMessage = `Invalid or missing time format in row ${
+              i + 2
+            }. Expected format: YYYY-MM-DD HH:MM:SS`;
+            break;
+          }
+
+          // Validate numeric columns
+          const numericColumns = requiredColumns.filter(
+            (col) => col !== "time"
+          );
+          for (const col of numericColumns) {
+            const value = row[col];
+            if (
+              value === undefined ||
+              value === "" ||
+              isNaN(parseFloat(value))
+            ) {
+              dataValid = false;
+              errorMessage = `Invalid or missing numeric value for ${col} in row ${
+                i + 2
+              }`;
+              break;
+            }
+          }
+
+          if (!dataValid) break;
+        }
+
+        if (!dataValid) {
+          setMessage(errorMessage);
+          setFile(null);
+          return;
+        }
+
+        setFile(selectedFile);
+        setMessage("");
       },
       error: (error) => {
         setMessage("Error parsing CSV file: " + error.message);
