@@ -41,8 +41,6 @@ const AppContent = () => {
       "/upload",
       "/generate",
       "/select-type",
-      "/configure-single",
-      "/configure-hybrid",
       "/login",
       "/admin",
       "/accounts",

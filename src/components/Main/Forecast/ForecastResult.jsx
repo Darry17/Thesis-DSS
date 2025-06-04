@@ -320,6 +320,8 @@ export default function ForecastResult() {
       granularity: forecastData.granularity || "",
       forecastId: forecastData.id || "",
       tempFilename: forecastData.tempFilename || "",
+      energyDemand: energyDemand || "",
+      maxCapacity: maxCapacity || "",
     }).toString();
 
     const state = {

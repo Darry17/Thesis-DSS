@@ -750,13 +750,13 @@ const ConfigureHybrid = () => {
               <div className="flex justify-end space-x-4 mt-6">
                 <button
                   onClick={handleBack}
-                  className="bg-red-700 text-white py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
+                  className="bg-red-700 border-none text-white py-2 px-4 rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 cursor-pointer"
                   disabled={isLoading}>
                   Back
                 </button>
                 <button
                   type="submit"
-                  className="bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
+                  className="bg-green-600 border-none text-white py-2 px-4 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer"
                   disabled={isLoading}>
                   {isEditing ? "Update" : "Submit"}
                 </button>
