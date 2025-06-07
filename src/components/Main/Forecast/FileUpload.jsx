@@ -223,6 +223,9 @@ export default function FileUpload() {
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Only CSV files are accepted
                 </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Supported columns: {requiredColumns.join(", ")}
+                </p>
               </>
             )}
             {message && <p className="mt-4 text-sm text-red-500">{message}</p>}
