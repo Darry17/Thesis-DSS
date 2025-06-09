@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import Papa from "papaparse";
@@ -7,6 +7,7 @@ export default function FileUpload() {
   const [file, setFile] = useState(null);
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [showModal, setShowModal] = useState(false); // State for modal visibility
   const navigate = useNavigate();
 
   // Define required columns
@@ -27,6 +28,11 @@ export default function FileUpload() {
 
   // Regular expression for validating time format (YYYY-MM-DD HH:MM:SS)
   const timeFormatRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+
+  // Show modal on component mount
+  useEffect(() => {
+    setShowModal(true);
+  }, []);
 
   const onDrop = (acceptedFiles, fileRejections) => {
     if (fileRejections.length > 0) {
@@ -69,7 +75,7 @@ export default function FileUpload() {
         for (let i = 0; i < result.data.length; i++) {
           const row = result.data[i];
 
-          // Skip empty or malformed rows (e.g., rows with all empty or null values)
+          // Skip empty or malformed rows
           const isRowEmpty = Object.values(row).every(
             (value) => value === undefined || value === "" || value === null
           );
@@ -233,6 +239,32 @@ export default function FileUpload() {
           <input {...getInputProps()} />
         </div>
       </div>
+
+      {/* Modal for Disclaimer */}
+      {showModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">
+              Disclaimer
+            </h2>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              Please ensure your CSV file contains the required columns listed
+              below.
+            </p>
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
+              <span className="font-semibold">Supported columns:</span>{" "}
+              {requiredColumns.join(", ")}
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowModal(false)}
+                className="py-2 px-4 rounded-lg text-white bg-blue-500 border-none hover:bg-blue-600 transition-colors">
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
