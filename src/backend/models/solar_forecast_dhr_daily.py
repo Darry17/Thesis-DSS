@@ -10,8 +10,23 @@ import GPUtil
 import time
 import logging
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Setup logging with console and file output
+def setup_logging(output_dir, timestamp):
+    log_file = os.path.join(output_dir, f"forecast_log_{timestamp}.log")
+    # Clear any existing handlers to avoid duplicate logs
+    for handler in logging.getLogger().handlers[:]:
+        logging.getLogger().removeHandler(handler)
+    # Set up new logging configuration
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S,%f'[:-3],  # Milliseconds precision
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(log_file)
+        ]
+    )
+    logging.info(f"Logs will be saved to '{log_file}'")
 
 # --- Resource Monitoring Function ---
 def measure_resources(is_idle=True):
@@ -58,8 +73,10 @@ def measure_resources(is_idle=True):
     }
 
 # --- Evaluate Computational Efficiency ---
-def evaluate_computational_efficiency(execution_time, metrics):
+def evaluate_computational_efficiency(start_time, finish_time, execution_time, metrics):
     logging.info("Computational Efficiency Evaluation:")
+    logging.info(f"Start Time: {datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S,%f'[:-3])}")
+    logging.info(f"Finish Time: {datetime.fromtimestamp(finish_time).strftime('%Y-%m-%d %H:%M:%S,%f'[:-3])}")
     if execution_time < 10:
         logging.info(f"Execution Time: {execution_time:.2f} s (Excellent)")
     elif execution_time <= 30:
@@ -154,6 +171,12 @@ def generate_forecast(model, start_values, fourier_data, steps, params, ghi, dni
 
 # --- Modified run_forecast ---
 def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily", params=None):
+    # Setup timestamp for file naming
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    
+    # Initialize logging
+    setup_logging(output_dir, timestamp)
+    
     # Measure idle resources
     logging.info("Checking idle system resources...")
     idle_metrics = measure_resources(is_idle=True)
@@ -172,14 +195,14 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
             raise ValueError("Parameters must be provided")
     except Exception as e:
         logging.error(f"Security: Input validation error - {str(e)}")
-        return None, None, {"input_errors": 1}
+        return None, None, {"input_errors": 1}, None
     
     # File access safety
     try:
         df = df.resample('d').mean().interpolate()
     except Exception as e:
         logging.error(f"Security: File processing error - {str(e)}")
-        return None, None, {"file_errors": 1}
+        return None, None, {"file_errors": 1}, None
     
     # Create features
     try:
@@ -190,7 +213,7 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
                               polyorder=params['polyorder'])
     except Exception as e:
         logging.error(f"Feature creation error - {str(e)}")
-        return None, None, {"feature_errors": 1}
+        return None, None, {"feature_errors": 1}, None
     
     # Train model
     try:
@@ -198,7 +221,7 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
         model.fit(X, y)
     except Exception as e:
         logging.error(f"Model training error - {str(e)}")
-        return None, None, {"model_errors": 1}
+        return None, None, {"model_errors": 1}, None
     
     # Historical data
     last_month = 30
@@ -235,34 +258,35 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
         )
     except Exception as e:
         logging.error(f"Forecast generation error - {str(e)}")
-        return None, None, {"forecast_errors": 1}
+        return None, None, {"forecast_errors": 1}, None
     
     # End timing and measure runtime resources
-    end_time = time.perf_counter()
-    execution_time = end_time - start_time
+    finish_time = time.perf_counter()
+    execution_time = finish_time - start_time
     runtime_metrics = measure_resources(is_idle=False)
     runtime_metrics["execution_time"] = execution_time
     
     # Evaluate computational efficiency
-    evaluate_computational_efficiency(execution_time, runtime_metrics)
+    evaluate_computational_efficiency(start_time, finish_time, execution_time, runtime_metrics)
     
     # Save forecast
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    forecast_dates = pd.date_range(start=historical_dates[-1], periods=steps+1, freq='D')[1:]
-    forecast_df = pd.DataFrame({
-        'datetime': forecast_dates,
-        'forecasted_solar_power': forecast_values
-    })
-    
     try:
         os.makedirs(output_dir, exist_ok=True)
         csv_name = f"solar_dhr_daily_{timestamp}_{steps}.csv"
         csv_path = os.path.join(output_dir, csv_name)
+        forecast_dates = pd.date_range(start=historical_dates[-1], periods=steps+1, freq='D')[1:]
+        forecast_df = pd.DataFrame({
+            'datetime': forecast_dates,
+            'forecasted_solar_power': forecast_values,
+            'execution_time_seconds': [execution_time] * len(forecast_dates),
+            'start_time': [datetime.fromtimestamp(start_time).strftime('%Y-%m-%d %H:%M:%S,%f'[:-3])] * len(forecast_dates),
+            'finish_time': [datetime.fromtimestamp(finish_time).strftime('%Y-%m-%d %H:%M:%S,%f'[:-3])] * len(forecast_dates)
+        })
         forecast_df.to_csv(csv_path, index=False)
         logging.info(f"Forecast saved to '{csv_path}'")
     except Exception as e:
         logging.error(f"Security: File save error - {str(e)}")
-        return None, None, {"file_errors": 1}
+        return None, None, {"file_errors": 1}, None
     
     # Plotting
     try:
@@ -276,6 +300,8 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
         plt.title(f'Solar Power Forecast - {steps} Day{"s" if steps > 1 else ""}')
         plt.xlabel('Time')
         plt.ylabel('Solar Power')
+        plt.text(0.02, 0.98, f'Execution Time: {execution_time:.2f} s\nStart: {datetime.fromtimestamp(start_time).strftime("%Y-%m-%d %H:%M:%S")}\nFinish: {datetime.fromtimestamp(finish_time).strftime("%Y-%m-%d %H:%M:%S")}', 
+                 transform=plt.gca().transAxes, fontsize=10, verticalalignment='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.tight_layout()
@@ -286,6 +312,6 @@ def run_forecast(csv_path, steps, output_dir="forecasts", forecast_type="daily",
         logging.info(f"Plot saved to '{plot_path}'")
     except Exception as e:
         logging.error(f"Security: Plot save error - {str(e)}")
-        return None, None, {"file_errors": 1}
+        return None, None, {"file_errors": 1}, None
     
-    return [csv_path, plot_path], params, {"idle": idle_metrics, "runtime": runtime_metrics}
+    return [csv_path, plot_path], params, {"idle": idle_metrics, "runtime": runtime_metrics}, execution_time
