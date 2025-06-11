@@ -66,14 +66,14 @@ async def upload_file_dhr(
         
         # Run appropriate forecast based on type
         if forecast_type == "solar":
-            output_files, meta = run_dhr_forecast_solar_hourly(
+            output_files, returned_params, metrics, execution_time = run_dhr_forecast_solar_hourly(
                 temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
                 params=params
             )
         elif forecast_type == "wind":
-            output_files, meta = run_dhr_forecast_wind_hourly(
+            output_files, returned_params, metrics, execution_time = run_dhr_forecast_wind_hourly(
                 temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -84,6 +84,8 @@ async def upload_file_dhr(
         
         # Log the generated files
         logger.info(f"Generated files: {output_files}")
+        logger.info(f"Execution time: {execution_time:.2f} seconds")
+        logger.info(f"Resource metrics: {metrics}")
 
         # Save forecast entry
         forecast_entry = Forecast(
@@ -245,27 +247,33 @@ async def upload_file_dhr(
         if not os.path.exists(temp_path):
             raise HTTPException(status_code=404, detail="Temp file not found")
 
-        if forecast_type != "solar":
-            raise HTTPException(status_code=400, detail="Only solar forecast is supported in this version")
-
-        # Prepare parameters for run_forecast
-        params = {
-            "fourier_terms": fourier_terms,
-            "reg_strength": reg_strength,
-            "ar_order": ar_order,
-            "window": window,
-            "polyorder": polyorder
-        }
-
-        # Run the forecast using the new run_forecast function
-        output_files, returned_params, metrics, execution_time = run_dhr_forecast_solar_daily(
-            csv_path=temp_path,
-            steps=steps,
-            output_dir="forecasts",
-            forecast_type="daily",
-            params=params
-        )
-
+        if forecast_type == "solar":
+            output_files, returned_params, metrics, execution_time = run_dhr_forecast_solar_daily(
+                temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "fourier_terms": fourier_terms,
+                    "reg_strength": reg_strength,
+                    "ar_order": ar_order,
+                    "window": window,
+                    "polyorder": polyorder
+                }
+            )
+        elif forecast_type == "wind":
+            output_files, returned_params, metrics, execution_time = run_dhr_forecast_wind_daily(
+                temp_path,
+                forecast_type=forecast_type,
+                steps=steps,
+                params={
+                    "fourier_terms": fourier_terms,
+                    "reg_strength": reg_strength,
+                    "ar_order": ar_order,
+                    "window": window,
+                    "polyorder": polyorder
+                }
+            )
+            
         if output_files is None:
             raise HTTPException(status_code=500, detail="Forecast processing failed, check logs for details")
 
@@ -284,7 +292,7 @@ async def upload_file_dhr(
             model=model,
             energy_demand=energy_demand,
             max_capacity=max_capacity,
-            temp_id=temp_id,
+            temp_id = temp_id,
         )
         db.add(forecast_entry)
         db.commit()
@@ -314,22 +322,16 @@ async def upload_file_dhr(
         db.add(history_log_entry)
         db.commit()
 
-        # Construct download URLs
+        # Fix download URL construction - match ESN format
         download_urls = [
             f"http://localhost:8000/download/{os.path.basename(file)}"
             for file in output_files
         ]
 
-        # Include metrics in the response
         return {
             "message": "Files processed successfully",
             "download_urls": download_urls,
-            "forecast_id": forecast_entry.id,
-            "execution_time_seconds": execution_time,
-            "resource_metrics": {
-                "idle": metrics["idle"],
-                "runtime": metrics["runtime"]
-            }
+            "forecast_id": forecast_entry.id
         }
 
     except Exception as e:
