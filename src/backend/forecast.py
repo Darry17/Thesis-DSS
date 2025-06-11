@@ -454,7 +454,7 @@ async def upload_file_esn(
             raise HTTPException(status_code=404, detail="Temp file not found")
 
         if forecast_type == "solar":
-            output_files = run_esn_forecast_solar_hourly(
+            output_files, returned_params, metrics, execution_time = run_esn_forecast_solar_hourly(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -468,7 +468,7 @@ async def upload_file_esn(
                 }
             )
         elif forecast_type == "wind":
-            output_files = run_esn_forecast_wind_hourly(
+            output_files, returned_params, metrics, execution_time = run_esn_forecast_wind_hourly(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -483,6 +483,8 @@ async def upload_file_esn(
             )
         
         logger.info(f"Generated files: {output_files}")
+        logger.info(f"Execution time: {execution_time:.2f} seconds")
+        logger.info(f"Resource metrics: {metrics}")
 
         forecast_entry = Forecast(
             original_filename=original_filename,
@@ -637,7 +639,7 @@ async def upload_file_esn(
             raise HTTPException(status_code=404, detail="Temp file not found")
 
         if forecast_type == "solar":
-            output_files = run_esn_forecast_solar_daily(
+            output_files, returned_params, metrics, execution_time = run_esn_forecast_solar_daily(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -651,7 +653,7 @@ async def upload_file_esn(
                 }
             )
         elif forecast_type == "wind":
-            output_files = run_esn_forecast_wind_daily(
+            output_files, returned_params, metrics, execution_time = run_esn_forecast_wind_daily(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -666,6 +668,8 @@ async def upload_file_esn(
             )
         
         logger.info(f"Generated files: {output_files}")
+        logger.info(f"Execution time: {execution_time:.2f} seconds")
+        logger.info(f"Resource metrics: {metrics}")
 
         forecast_entry = Forecast(
             original_filename=original_filename,
@@ -828,7 +832,7 @@ async def upload_file_hybrid(
 
         # Call the hybrid forecast function using the structured configs
         if forecast_type == "solar":
-            output_files = run_hybrid_forecast_solar_hourly(
+            output_files, returned_params, metrics, execution_time = run_hybrid_forecast_solar_hourly(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -848,7 +852,7 @@ async def upload_file_hybrid(
                 }
             )
         elif forecast_type == "wind":
-            output_files = run_hybrid_forecast_wind_hourly(
+            output_files, returned_params, metrics, execution_time = run_hybrid_forecast_wind_hourly(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -871,6 +875,8 @@ async def upload_file_hybrid(
             raise HTTPException(status_code=400, detail="Invalid forecast type")
         
         logger.info(f"Generated files: {output_files}")
+        logger.info(f"Execution time: {execution_time:.2f} seconds")
+        logger.info(f"Resource metrics: {metrics}")
 
         # Save forecast metadata to database
         forecast_entry = Forecast(
@@ -1069,7 +1075,7 @@ async def upload_file_hybrid(
 
         # Call the hybrid forecast function using the structured configs
         if forecast_type == "solar":
-            output_files = run_hybrid_forecast_solar_daily(
+            output_files, returned_params, metrics, execution_time = run_hybrid_forecast_solar_daily(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -1089,7 +1095,7 @@ async def upload_file_hybrid(
                 }
             )
         elif forecast_type == "wind":
-            output_files = run_hybrid_forecast_wind_daily(
+            output_files, returned_params, metrics, execution_time = run_hybrid_forecast_wind_daily(
                 csv_path=temp_path,
                 forecast_type=forecast_type,
                 steps=steps,
@@ -1112,6 +1118,8 @@ async def upload_file_hybrid(
             raise HTTPException(status_code=400, detail="Invalid forecast type")
         
         logger.info(f"Generated files: {output_files}")
+        logger.info(f"Execution time: {execution_time:.2f} seconds")
+        logger.info(f"Resource metrics: {metrics}")
 
         # Save forecast metadata to database
         forecast_entry = Forecast(
