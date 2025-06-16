@@ -80,6 +80,31 @@ uvicorn main:app --reload
 
 Access the application at `http://localhost:3000`
 
+3. **Database Setup:**
+
+This project uses a MySQL database. The schema and initial data are provided in the `sql/thesis.sql` file.
+
+### Prerequisites
+
+- Install [XAMPP](https://www.apachefriends.org/index.html) or a standalone MySQL server.
+- Ensure MySQL is running on your system.
+
+### Steps to Set Up the Database
+
+1. **Start MySQL Server:**
+
+   - If using XAMPP, open the XAMPP Control Panel and start the MySQL module.
+   - If using a standalone MySQL server, ensure it is running (e.g., via `sudo service mysql start` on Linux or equivalent commands).
+
+2. **Create the Database:**
+
+   - Open a MySQL client (e.g., phpMyAdmin via `http://localhost/phpmyadmin` in XAMPP or the MySQL command-line tool).
+   - Log in with your MySQL credentials (default for XAMPP is username: `root`, password: empty).
+   - Create a new database:
+     ```sql
+     CREATE DATABASE thesis;
+     ```
+
 ## Project Structure
 
 ```
