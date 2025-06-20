@@ -22,6 +22,7 @@ A web-based Decision Support System built with React and FastAPI for time series
 - Axios for API calls
 - React Dropzone for file uploads
 - Papa Parse for CSV handling
+- React Chart.js 2 for visualizations
 
 ### Backend
 
@@ -29,81 +30,96 @@ A web-based Decision Support System built with React and FastAPI for time series
 - SQLAlchemy ORM
 - MySQL database
 - JWT authentication
-- Scientific computing:
-  - NumPy
-  - Pandas
-  - Scikit-learn
-  - Matplotlib
+- Scientific computing: NumPy, Pandas, Scikit-learn, Matplotlib
+
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) (v16 or higher) and npm
+- [Python](https://www.python.org/) (v3.8 or higher) and pip
+- [XAMPP](https://www.apachefriends.org/) or a standalone MySQL server
+- Git for cloning the repository
 
 ## Quick Start
 
-1. **Clone the repository:**
+1. **Clone the Repository**:
 
-```bash
-git clone https://github.com/Darry17/Thesis-DSS.git
-cd Thesis-DSS
-```
+   ```bash
+   git clone https://github.com/Darry17/Thesis-DSS.git
+   cd Thesis-DSS
+   ```
 
-2. **Install Dependencies:**
+2. **Install Dependencies**:
 
-Frontend:
+   - Frontend:
+     ```bash
+     npm install
+     ```
+   - Backend:
+     ```bash
+     pip install -r requirements.txt
+     ```
 
-```bash
-npm install @tailwindcss/vite axios comlink fs papaparse react react-dom react-dropzone react-router-dom @eslint/js @types/react @types/react-dom @vitejs/plugin-react eslint eslint-plugin-react eslint-plugin-react-hooks eslint-plugin-react-refresh globals vite worker-loader unocss react-chartjs-2
-```
+3. **Configure Environment**:
 
-Backend:
+   - Copy `.env.example` to `.env` in the project root.
+   - Update the `.env` file with your settings, e.g.:
+     ```env
+     DATABASE_URL=mysql://root:@localhost/thesis
+     JWT_SECRET=your_secret_key_here
+     ```
+   - Ensure the `DATABASE_URL` matches your MySQL configuration (username, password, host, and database name).
 
-```bash
-pip install -r requirements.txt
-```
+4. **Database Setup**:
+   This project uses a MySQL database. The schema and initial data are in `sql/thesis.sql`. **The MySQL database must be running, and the schema must be imported before starting the FastAPI backend, or it will fail to run or throw errors.**
 
-3. **Configure Environment:**
+   ### Steps
 
-- Copy `.env.example` to `.env`
-- Update database and JWT settings
+   - **Start MySQL Server**:
+     - For XAMPP: Open the XAMPP Control Panel and start the MySQL module.
+     - For standalone MySQL: Ensure the server is running (e.g., `sudo systemctl start mysql` on Linux or equivalent).
+   - **Create the Database**:
+     - Open a MySQL client:
+       - **phpMyAdmin**: Go to `http://localhost/phpmyadmin` (XAMPP must be running).
+       - **Command Line**: Run `mysql -u root -p` (default XAMPP credentials: username `root`, password empty).
+     - Create the database:
+       ```sql
+       CREATE DATABASE thesis;
+       ```
+   - **Import the Schema**:
+     - In phpMyAdmin:
+       1. Select the `thesis` database.
+       2. Click the "Import" tab.
+       3. Choose `sql/thesis.sql` from the project directory.
+       4. Click "Go" to import.
+     - In the command line:
+       ```bash
+       mysql -u root -p thesis < sql/thesis.sql
+       ```
+       Enter your password when prompted.
+   - **Verify**: Check tables in phpMyAdmin or run `SHOW TABLES;` in the command line.
+   - **Admin Accounts**: After importing `sql/thesis.sql`, the following admin accounts are available for testing:
+     | Username | Password |
+     |----------|-----------|
+     | admin1 | admin001 |
+     | admin2 | admin002 |
+     | admin3 | admin003 |
+     **Note**: These accounts are for development/testing only. Change passwords for production use.
 
-4. **Database Setup:**
+5. **Start Development Servers**:
 
-This project uses a MySQL database. The schema and initial data are provided in the `sql/thesis.sql` file.
+   - **Ensure the MySQL database is running** to avoid errors in the FastAPI backend.
+   - Frontend (runs on `http://localhost:3000`):
+     ```bash
+     npm run dev
+     ```
+   - Backend (runs on `http://localhost:8000`):
+     ```bash
+     cd src/backend
+     uvicorn main:app --reload
+     ```
 
-### Prerequisites
-
-- Install [XAMPP](https://www.apachefriends.org/index.html) or a standalone MySQL server.
-- Ensure MySQL is running on your system.
-
-  ### Steps to Set Up the Database
-
-  1. **Start MySQL Server:**
-
-  - If using XAMPP, open the XAMPP Control Panel and start the MySQL module.
-  - If using a standalone MySQL server, ensure it is running (e.g., via `sudo service mysql start` on Linux or equivalent commands).
-
-  2. **Create the Database:**
-
-  - Open a MySQL client (e.g., phpMyAdmin via `http://localhost/phpmyadmin` in XAMPP or the MySQL command-line tool).
-  - Log in with your MySQL credentials (default for XAMPP is username: `root`, password: empty).
-  - Create a new database:
-    ```sql
-    CREATE DATABASE thesis;
-    ```
-
-5. **Start Development Servers:**
-
-Frontend:
-
-```bash
-npm run dev
-```
-
-Backend:
-
-```bash
-cd src/backend
-uvicorn main:app --reload
-```
-
-Access the application at `http://localhost:3000`
+6. **Access the Application**:
+   - Open `http://localhost:3000` in your browser and log in using the admin accounts above.
 
 ## Project Structure
 
@@ -118,14 +134,15 @@ Access the application at `http://localhost:3000`
 │   │   ├── main.py      # FastAPI application
 │   │   └── ...
 │   └── components/      # React components
+├── sql/                 # Database schema (thesis.sql)
 ├── .env                 # Environment variables
 ├── requirements.txt     # Python dependencies
-└── package.json        # NPM dependencies
+├── package.json         # NPM dependencies
 ```
 
 ## API Documentation
 
-Once the backend server is running, access the API documentation at:
+Once the backend is running, access the API documentation at:
 
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
@@ -136,3 +153,17 @@ Once the backend server is running, access the API documentation at:
 - `npm run build` - Build frontend for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
+
+## Troubleshooting
+
+- **MySQL fails to start**: Ensure XAMPP’s MySQL module is running or no other MySQL instance is using port 3306.
+- **Database already exists**: Drop it with `DROP DATABASE thesis;` before recreating (use cautiously).
+- **FastAPI errors**: Ensure the MySQL database is running and `sql/thesis.sql` is imported correctly, as the backend requires a valid database connection.
+- **Login issues**: Use the admin accounts listed above for testing. Verify the database import includes these accounts.
+- **Port conflicts**: If ports `3000` or `8000` are in use, update them in `.env` or stop conflicting processes.
+- **Dependency issues**: Ensure Node.js (v16+) and Python (v3.8+) are installed. Re-run `npm install` or `pip install -r requirements.txt` if errors occur.
+- **Import errors**: Verify `sql/thesis.sql` exists and has valid SQL syntax.
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request on [GitHub](https://github.com/Darry17/Thesis-DSS).
