@@ -10,3 +10,5 @@ pandas
 numpy
 scikit-learn
 matplotlib
+python-multipart
+reservoirpy
